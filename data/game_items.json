@@ -1,0 +1,11 @@
+{
+    "artifacts": {
+        "cats_life": {"name": "Котяче життя", "rarity": "legendary"}
+    },
+    "weapons": {
+        "laganns_drill": {"name": "Бур Лаганна", "dmg": 2, "rarity": "legendary"}
+    },
+    "armor": {
+        "leaky_bucket": {"name": "Диряве відро", "def": 5, "rarity": "common"}
+    }
+}
