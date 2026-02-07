@@ -11,7 +11,8 @@ dp = Dispatcher()
 
 @dp.message(Command("start"))
 async def cmd_start(message: types.Message):
-    await update.message.reply_text(
+    user_name = message.from_user.first_name
+    await message.answer(
         f"🏴‍☠️ Вітаємо на борту {user_name}!\n"
         f"Версія системи: {config.VERSION}\n"
         f"Годувати капібару-пірата щоденно /feed\n"
