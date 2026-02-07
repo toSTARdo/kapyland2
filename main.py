@@ -3,20 +3,25 @@ import logging
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 import config
+#==========================================#
+from core.life_subcore import router as life_cmd_router
 
 logging.basicConfig(level=logging.INFO)
 
 bot = Bot(token=config.TOKEN)
 dp = Dispatcher()
 
+dp.include_router(life_cmd_router)
+
 @dp.message(Command("start"))
 async def cmd_start(message: types.Message):
     user_name = message.from_user.first_name
     await message.answer(
-        f"🏴‍☠️ Вітаємо на борту {user_name}!\n"
-        f"Версія системи: {config.VERSION}\n"
+        f"🏴‍☠️ Вітаємо на планеті Мофу {user_name}!\n"
+        f"Версія бота: {config.VERSION}\n"
         f"Годувати капібару-пірата щоденно /feed\n"
         f"Митися теж не завадить /wash\n"
+        f"Відновитися та відпочити /sleep\n"
         f"Якщо лапи сверблять то /fight @username <- капі опонента-жертви\n"
         f"Капібаряче базове HP: {config.BASE_HITPOINTS} (3 серця)"
     )
