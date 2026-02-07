@@ -24,9 +24,9 @@ async def cmd_start(message: types.Message):
         f"Митися теж не завадить /wash\n"
         f"Відновитися та відпочити /sleep\n"
         f"Якщо лапи сверблять то /fight @username <- капі опонента-жертви\n"
-        f"Капібаряче базове HP: {config.BASE_HITPOINTS} (3 серця)"
+        f"Капібаряче базове HP: {config.BASE_HITPOINTS} (3 серця)",
+        reply_markup=get_main_kb()
     )
-    reply_markup=get_main_kb()
 
 async def main():
     print(f"🚀 Капіленд de Test (v{config.VERSION}) запущений!")
