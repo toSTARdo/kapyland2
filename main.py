@@ -5,6 +5,7 @@ from aiogram.filters import Command
 import config
 #==========================================#
 from core.life_subcore import router as life_cmd_router
+from handlers.main_buttons import get_main_kb
 
 logging.basicConfig(level=logging.INFO)
 
@@ -25,6 +26,7 @@ async def cmd_start(message: types.Message):
         f"Якщо лапи сверблять то /fight @username <- капі опонента-жертви\n"
         f"Капібаряче базове HP: {config.BASE_HITPOINTS} (3 серця)"
     )
+    reply_markup=get_main_kb()
 
 async def main():
     print(f"🚀 Капіленд de Test (v{config.VERSION}) запущений!")
