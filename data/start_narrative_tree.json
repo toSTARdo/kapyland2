@@ -1,0 +1,17 @@
+{
+  "scenes": {
+    "start": {
+      "text": "...",
+      "options": [
+        {"text": "Прокинутися", "next_id": "start_of_day"}
+      ]
+    },
+    "start_of_day": {
+        "text": "Ти прокинувся і протер заспане лице",
+        "options": [
+            {"text": "Лягти назад і подрихнути ще 5 хв", "next_id": "overrun_by_redbull"},
+            {"text": "Прийняти душ", "next_id": "breakfast"}
+        ]
+    }
+  }
+}
