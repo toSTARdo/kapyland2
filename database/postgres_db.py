@@ -3,7 +3,7 @@ import json
 from config import POSTGRE_URL
 
 async def get_db_connection():
-    return await asyncpg.connect(DATABASE_URL)
+    return await asyncpg.connect(POSTGRE_URL)
 
 async def init_pg():
     conn = await get_db_connection()
