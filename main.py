@@ -4,15 +4,23 @@ from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 import config
 #==========================================#
+from fastapi import FastAPI
+import uvicorn
+#==========================================#
 from core.life_subcore import router as life_cmd_router
 from handlers.main_buttons import get_main_kb
 
 logging.basicConfig(level=logging.INFO)
+app = FastAPI()
 
 bot = Bot(token=config.TOKEN)
 dp = Dispatcher()
 
 dp.include_router(life_cmd_router)
+
+@app.get("/")
+async def health_check():
+    return {"status": "OK", "bot_version": config.VERSION}
 
 @dp.message(Command("start"))
 async def cmd_start(message: types.Message):
@@ -28,7 +36,19 @@ async def cmd_start(message: types.Message):
         reply_markup=get_main_kb()
     )
 
+async def run_bot():
+    print(f"🚀 Капіленд de Test (v{config.VERSION}) запущений!")
+    await bot.delete_webhook(drop_pending_updates=True)
+    await dp.start_polling(bot)
+
 async def main():
+    config_uvicorn = uvicorn.Config(app=app, host="0.0.0.0", port=8000)
+    server = uvicorn.Server(config_uvicorn)
+
+    await asyncio.gather(
+        server.serve(),
+        run_bot()
+    )
     print(f"🚀 Капіленд de Test (v{config.VERSION}) запущений!")
     await dp.start_polling(bot)
 
