@@ -11,7 +11,7 @@ from database.postgres_db import init_pg, get_db_connection
 from core.life_subcore import router as life_cmd_router
 from core.activity_subcore import router as activity_cmd_router
 from handlers.main_buttons import get_main_kb
-from handlers.settings import router as settings_router
+from handlers.setting import router as settings_router
 
 logging.basicConfig(level=logging.INFO)
 app = FastAPI()
