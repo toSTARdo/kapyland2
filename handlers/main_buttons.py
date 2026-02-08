@@ -1,24 +1,21 @@
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 from aiogram.utils.keyboard import ReplyKeyboardBuilder
 
-def get_main_kb() -> ReplyKeyboardMarkup:
+def get_main_kb(layout_type: int = 0) -> ReplyKeyboardMarkup:
     builder = ReplyKeyboardBuilder()
     
-    #MAIN/MOST USED
-    builder.row(
-        KeyboardButton(text="👤 Профіль"),
-        KeyboardButton(text="🎒 Інвентар")
-    )
-    #LESS USED
-    builder.row(
-        KeyboardButton(text="⚔️ Бій"),
-        KeyboardButton(text="⛵ Карта"),
-        KeyboardButton(text="📜 Квести")
-    )
-    #RARELY USED
-    builder.row(
-        KeyboardButton(text="⚓ Корабель"),
-        KeyboardButton(text="⚙️ Налаштування")
-    )
+    if layout_type == 1:
+        buttons = [
+            "👤 Профіль", "🎒 Інвентар", "⚔️ Бій",
+            "⛵ Карта", "📜 Квести", "⚓ Корабель", "⚙️ Налаштування"
+        ]
+        for btn in buttons:
+            builder.add(KeyboardButton(text=btn))
+        builder.adjust(3)
+        
+    else:
+        builder.row(KeyboardButton(text="👤 Профіль"), KeyboardButton(text="🎒 Інвентар"))
+        builder.row(KeyboardButton(text="⚔️ Бій"), KeyboardButton(text="⛵ Карта"), KeyboardButton(text="📜 Квести"))
+        builder.row(KeyboardButton(text="⚓ Корабель"), KeyboardButton(text="⚙️ Налаштування"))
     
     return builder.as_markup(resize_keyboard=True)
