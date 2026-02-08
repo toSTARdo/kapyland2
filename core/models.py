@@ -1,14 +1,14 @@
 import random
 from aiogram import html
 #=======================#
-from config import BASE_HITPOINTS, BASE_HEARTS, BASE_HIT_CHANCE
+from config import UNITS_PER_HEART, BASE_HEARTS, BASE_HIT_CHANCE
 
 class Fighter:
     def __init__(self, name: str, weight: float, color: str = "🔸"):
         self.name = name
         self.weight = weight
         self.color = color
-        self.max_hp = BASE_HEARTS * BASE_HITPOINTS
+        self.max_hp = BASE_HEARTS * UNITS_PER_HEART
         self.hp = self.max_hp
 
     def get_hp_display(self) -> str:
