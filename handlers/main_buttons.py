@@ -12,7 +12,7 @@ def get_main_kb(layout_type: int = 0) -> ReplyKeyboardMarkup:
         ]
         for btn in buttons:
             builder.add(KeyboardButton(text=btn))
-        builder.adjust(3)
+        builder.adjust(2)
         
     else:
         builder.row(KeyboardButton(text="👤 Профіль"), KeyboardButton(text="🎒 Інвентар"))
