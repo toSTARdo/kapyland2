@@ -19,3 +19,11 @@ def get_main_kb(layout_type: int = 0) -> ReplyKeyboardMarkup:
         builder.row(KeyboardButton(text="⚓ Корабель"), KeyboardButton(text="⚙️ Налаштування"))
     
     return builder.as_markup(resize_keyboard=True)
+
+def get_settings_kb() -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(
+        text="🔄 Змінити вигляд меню", 
+        callback_data="toggle_layout")
+    )
+    return builder.as_markup()

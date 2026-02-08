@@ -11,6 +11,7 @@ from database.postgres_db import init_pg, get_db_connection
 from core.life_subcore import router as life_cmd_router
 from core.activity_subcore import router as activity_cmd_router
 from handlers.main_buttons import get_main_kb
+from handlers.settings import router as settings_router
 
 logging.basicConfig(level=logging.INFO)
 app = FastAPI()
@@ -20,6 +21,7 @@ dp = Dispatcher()
 
 dp.include_router(life_cmd_router)
 dp.include_router(activity_cmd_router)
+dp.include_router(settings_router)
 
 @app.get("/")
 async def health_check():
