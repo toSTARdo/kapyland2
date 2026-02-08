@@ -8,6 +8,7 @@ from fastapi import FastAPI
 import uvicorn
 #==========================================#
 from core.life_subcore import router as life_cmd_router
+from core.activity_subcore import router as activity_cmd_router
 from handlers.main_buttons import get_main_kb
 
 logging.basicConfig(level=logging.INFO)
@@ -17,6 +18,7 @@ bot = Bot(token=config.TOKEN)
 dp = Dispatcher()
 
 dp.include_router(life_cmd_router)
+dp.include_router(activity_cmd_router)
 
 @app.get("/")
 async def health_check():
