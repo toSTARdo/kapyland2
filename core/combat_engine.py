@@ -1,12 +1,15 @@
-import random
+from aiogram import html
 
 class CombatEngine:
     @staticmethod
-    def resolve_turn(attacker_name: str, defender_name: str):
-        success = random.choice([True, False])
-        if success:
-            damage = 1
-            return f"⚔️ <b>{attacker_name}</b> влучив у <b>{defender_name}</b> і завдав {damage} шкоди!", damage
-        else:
-            return f"🛡 <b>{attacker_name}</b> промахнувся по <b>{defender_name}</b>!", 0
-
+    def resolve_turn(attacker, defender):
+        log_text, damage = attacker.attack(defender)
+        
+        report = (
+            f"{log_text}\n"
+            f"━━━━━━━━━━━━━━━\n"
+            f"{attacker.color} {html.bold(attacker.name)}: {attacker.get_hp_display()}\n"
+            f"{defender.color} {html.bold(defender.name)}: {defender.get_hp_display()}"
+        )
+        
+        return report, damage
