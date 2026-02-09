@@ -43,7 +43,7 @@ async def cmd_start(message: types.Message):
         if not capy_exists:
             await conn.execute(
                 "INSERT INTO capybaras (owner_id, name) VALUES ($1, $2)",
-                uid, f"Капібара {user_name}"
+                uid, f"Безіменна булочка"
             )
             is_new = True
         else:

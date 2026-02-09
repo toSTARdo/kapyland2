@@ -13,12 +13,10 @@ async def init_pg():
             tg_id BIGINT PRIMARY KEY,
             username TEXT,
             lang TEXT DEFAULT 'ua',
-            
-            -- Глобальний прогрес аккаунту
             reincarnation_count INTEGER DEFAULT 0,
             reincarnation_multiplier FLOAT DEFAULT 1.0,
-            
-            joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            kb_layout INTEGER DEFAULT 0
         )
     ''')
 
@@ -27,32 +25,31 @@ async def init_pg():
             id SERIAL PRIMARY KEY,
             owner_id BIGINT REFERENCES users(tg_id) ON DELETE CASCADE,
             name TEXT NOT NULL DEFAULT 'Безіменна булочка',
-            
-            -- Прогресія
             lvl INTEGER DEFAULT 1,
             exp INTEGER DEFAULT 0,
             energy INTEGER DEFAULT 100,
-            
-            -- Бойова статистика
             wins INTEGER DEFAULT 0,
             losses INTEGER DEFAULT 0,
             win_streak INTEGER DEFAULT 0,
-            
-            -- JSONB Гнучкі дані (Заміна MongoDB)
             meta JSONB DEFAULT '{
                 "weight": 20.0,
+                "hunger": 3,
+                "cleanness": 3,
                 "stats": {
-                    "attack": 0,
-                    "defense": 0,
-                    "luck": 0,
-                    "agility": 0
-                },
-                "effects": {
-                    "blessings": [],
-                    "curses": []
+                    "hp": 3,
+                    "attack": 1,
+                    "defense": 1,
+                    "luck": 1,
+                    "agility": 1
                 },
                 "inventory": {
-                    "food": {"tangerines": 5},
+                    "food": {
+                        "tangerines": 5,
+                        "melon": 1,
+                        "watermelon_slices": 14,
+                        "mango": 7,
+                        "kiwi": 2
+                    },
                     "loot": {"chest": 0, "key": 0},
                     "items": []
                 },
@@ -61,7 +58,8 @@ async def init_pg():
                     "armor": "Хутро",
                     "artifact": null
                 },
-                "last_feed": null
+                "last_feed": null,
+                "last_wash": null
             }'::jsonb
         )
     ''')
@@ -85,5 +83,48 @@ async def get_user_profile(tg_id: int):
             WHERE u.tg_id = $1
         '''
         return await conn.fetchrow(query, tg_id)
+    finally:
+        await conn.close()
+
+import datetime
+import json
+
+async def feed_capybara_logic(tg_id: int, weight_gain: float):
+    conn = await get_db_connection()
+    try:
+        row = await conn.fetchrow('''
+            SELECT c.meta, u.reincarnation_multiplier 
+            FROM capybaras c 
+            JOIN users u ON c.owner_id = u.tg_id 
+            WHERE c.owner_id = $1
+        ''', tg_id)
+        
+        if not row: return "no_capy"
+
+        meta = json.loads(row['meta']) if isinstance(row['meta'], str) else row['meta']
+        multiplier = row['reincarnation_multiplier']
+
+        last_feed_str = meta.get("last_feed")
+        if last_feed_str:
+            last_feed = datetime.datetime.fromisoformat(last_feed_str)
+            if datetime.datetime.now() - last_feed < datetime.timedelta(hours=8):
+                remaining = datetime.timedelta(hours=8) - (datetime.datetime.now() - last_feed)
+                return {"status": "cooldown", "remaining": remaining}
+
+        actual_gain = round((weight_gain * multiplier) * 2) / 2
+        
+        new_weight = meta.get("weight", 20.0) + actual_gain
+        new_hunger = min(meta.get("hunger", 0) + 1, 3)
+        
+        meta["weight"] = round(new_weight, 1)
+        meta["hunger"] = new_hunger
+        meta["last_feed"] = datetime.datetime.now().isoformat()
+
+        await conn.execute(
+            "UPDATE capybaras SET meta = $1 WHERE owner_id = $2",
+            json.dumps(meta), tg_id
+        )
+        
+        return {"status": "success", "gain": actual_gain, "total": new_weight, "hunger": new_hunger}
     finally:
         await conn.close()
