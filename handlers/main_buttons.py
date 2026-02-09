@@ -7,16 +7,16 @@ def get_main_kb(layout_type: int = 0) -> ReplyKeyboardMarkup:
     
     if layout_type == 1:
         buttons = [
-            "👤 Профіль", "🎒 Інвентар", "⚔️ Бій",
-            "⛵ Карта", "📜 Квести", "⚓ Корабель", "⚙️ Налаштування"
+            "🐾 Профіль", "🎒 Інвентар", "⚔️ Бій",
+            "🗺️ Карта", "📜 Квести", "⚓ Корабель", "⚙️ Налаштування"
         ]
         for btn in buttons:
             builder.add(KeyboardButton(text=btn))
         builder.adjust(2)
         
     else:
-        builder.row(KeyboardButton(text="👤 Профіль"), KeyboardButton(text="🎒 Інвентар"))
-        builder.row(KeyboardButton(text="⚔️ Бій"), KeyboardButton(text="⛵ Карта"), KeyboardButton(text="📜 Квести"))
+        builder.row(KeyboardButton(text="🐾 Профіль"), KeyboardButton(text="🎒 Інвентар"))
+        builder.row(KeyboardButton(text="⚔️ Бій"), KeyboardButton(text="🗺️ Карта"), KeyboardButton(text="📜 Квести"))
         builder.row(KeyboardButton(text="⚓ Корабель"), KeyboardButton(text="⚙️ Налаштування"))
     
     return builder.as_markup(resize_keyboard=True)
@@ -28,3 +28,47 @@ def get_settings_kb() -> InlineKeyboardMarkup:
         callback_data="toggle_layout")
     )
     return builder.as_markup()
+
+"""
+🎒 Інвентар
+⚔️ Бої
+⚙️ Налаштування
+⚓ Моя команда
+📜 Квести
+🎣 Рибалити | 🦀/🐟/🦈/🪼/🐡/
+🧭 І
+🗺️ Карта
+🐾 Мій профіль
+
+🌿 Їсти 💤 Відпочити 🧼 Покупатися | 💰 Продати
+🥭🍊🍉🍈🥝 - Їсти з ефектами
+🍄‍🟫 - Їсти гриб
+
+🎟️ Лотерея
+⚗️ Синтез
+🗃 - Скриня 🔑 - Ключі
+🔮
+Головні напрями розвитку
+⚡
+🍀
+💪
+🛡️
+
+----
+🗡️
+🔰
+🧿
+🐲🐦‍🔥🦄
+
+5 lvl - ships & map (50exp)
+|--8 lvl (128exp) fishing & foraging
+11 lvl - boss fights & plot (242exp)
+|--14 lvl (392exp)
+17 lvl - quests (578exp)
+|--20 lvl (800exp)
+23 lvl - kiwi forgery (1058exp)
+|--26 lvl (1352exp)
+29 lvl (1682exp)
+|--31 lvl (1922exp)
+34 lvl - syntesis / pearls quests (2312exp)
+"""
