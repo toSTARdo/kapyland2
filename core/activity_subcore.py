@@ -96,7 +96,7 @@ async def show_inventory_buttons(message: types.Message):
     if loot.get("key", 0) > 0:
         builder.button(text=f"🔑 Ключ ({loot['key']})", callback_data="inspect_key")
 
-    builder.adjust(2)
+    builder.adjust(1)
 
     await message.answer(
         f"<b>🎒 Твій рюкзак</b>\n\n"
