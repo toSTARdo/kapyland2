@@ -43,9 +43,7 @@ async def cmd_feed(message: types.Message):
         parse_mode="HTML"
     )
 
-@router.message(Command("wash"))
-@router.message(F.text == "🧼 Мити")
-async def wash_capybara_logic(tg_id: int):
+async def wash_db_operation(tg_id: int):
     conn = await get_db_connection()
     try:
         row = await conn.fetchrow("SELECT meta FROM capybaras WHERE owner_id = $1", tg_id)
@@ -67,16 +65,40 @@ async def wash_capybara_logic(tg_id: int):
     finally:
         await conn.close()
 
-@router.message(Command("sleep"))
-@router.message(F.text == "💤 Відпочити")
-async def sleep_capybara_logic(tg_id: int):
+async def sleep_db_operation(tg_id: int):
     conn = await get_db_connection()
     try:
+        exists = await conn.fetchval("SELECT 1 FROM capybaras WHERE owner_id = $1", tg_id)
+        if not exists: return "no_capy"
+        
         await conn.execute("UPDATE capybaras SET energy = 100 WHERE owner_id = $1", tg_id)
         return True
     finally:
         await conn.close()
 
+@router.message(Command("wash"))
+@router.message(F.text == "🧼 Мити")
+async def cmd_wash(message: types.Message):
+    uid = message.from_user.id
+    result = await wash_db_operation(uid) 
+    
+    if result == "no_capy":
+        await message.answer("❌ У тебе немає капібари!")
+    elif result == "cooldown":
+        await message.answer("🧼 Капібара ще чиста! Приходь пізніше.")
+    else:
+        await message.answer("🧼 Капібара скупалася та сяє!")
+
+@router.message(Command("sleep"))
+@router.message(F.text == "💤 Відпочити")
+async def cmd_sleep(message: types.Message):
+    uid = message.from_user.id
+    result = await sleep_db_operation(uid) 
+    
+    if result == "no_capy":
+        await message.answer("❌ У тебе немає капібари!")
+    else:
+        await message.answer("💤 Капібара відпочила, енергія: 100%")
 def create_scale(current, max_val, emoji, empty_emoji='▫️'):
     current = max(0, min(int(current), max_val))
     empty = max_val - current
