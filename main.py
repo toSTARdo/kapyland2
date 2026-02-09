@@ -38,24 +38,37 @@ async def cmd_start(message: types.Message):
             "INSERT INTO users (tg_id, username) VALUES ($1, $2) ON CONFLICT (tg_id) DO NOTHING",
             uid, user_name
         )
-        await conn.execute(
-            "INSERT INTO capybaras (owner_id, name) VALUES ($1, $2) ON CONFLICT DO NOTHING",
-            uid, f"Капібара {user_name}"
-        )
+        capy_exists = await conn.fetchval("SELECT id FROM capybaras WHERE owner_id = $1", uid)
+
+        if not capy_exists:
+            await conn.execute(
+                "INSERT INTO capybaras (owner_id, name) VALUES ($1, $2)",
+                uid, f"Капібара {user_name}"
+            )
+            is_new = True
+        else:
+            is_new = False
+
         user_data = await conn.fetchrow("SELECT kb_layout FROM users WHERE tg_id = $1", uid)
+        
     finally:
         await conn.close()
 
     layout = user_data['kb_layout'] if user_data else 0
+    
+    if is_new:
+        welcome_text = f"🏴‍☠️ Вітаємо на планеті Мофу, {user_name}!"
+    else:
+        welcome_text = f"⚓️ В тебе вже є капібара, йо-хо-хо {user_name}!"
 
     await message.answer(
-        f"🏴‍☠️ Вітаємо на планеті Мофу {user_name}!\n"
+        f"{welcome_text}\n\n"
         f"Версія бота: {config.VERSION}\n"
-        f"Годувати капібару-пірата щоденно /feed\n"
-        f"Митися теж не завадить /wash\n"
-        f"Відновитися та відпочити /sleep\n"
-        f"Якщо лапи сверблять то /fight @username <- капі опонента-жертви\n"
-        f"Капібаряче базове HP: {config.BASE_HITPOINTS} (3 серця)",
+        f"🍎 Годувати: /feed\n"
+        f"🧼 Митися: /wash\n"
+        f"💤 Відпочинок: /sleep\n"
+        f"⚔️ Бій: /fight @username\n\n"
+        f"Життя вашої капібари: ❤️❤️❤️ (3 серця)",
         reply_markup=get_main_kb(layout_type=layout)
     )
 
