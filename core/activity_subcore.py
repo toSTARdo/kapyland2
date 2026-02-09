@@ -1,8 +1,9 @@
-import asyncio
+import asyncio, json
 from aiogram import Router, types, html, F
 from aiogram.filters import Command
 from core.combat_engine import CombatEngine
 from core.models import Fighter
+from database.postgres_db import get_user_inventory
 from config import BASE_HITPOINTS
 
 router = Router()
@@ -53,3 +54,43 @@ async def cmd_fight(message: types.Message):
         res = "🤝 <b>НІЧИЯ!</b> Обидва пірати втомилися і пішли їсти травичку."
 
     await message.answer(res, parse_mode="HTML")
+
+@router.message(F.text == "🎒 Інвентар")
+async def show_inventory_buttons(message: types.Message):
+    uid = message.from_user.id
+    meta_data = await get_user_inventory(uid)
+    
+    if not meta_data:
+        await message.answer("❌ Твій профіль не знайдено.")
+        return
+
+    meta = json.loads(meta_data) if isinstance(meta_data, str) else meta_data
+    
+    inv = meta.get("inventory", {})
+    food = inv.get("food", {})
+    loot = inv.get("loot", {})
+    
+    builder = InlineKeyboardBuilder()
+
+    for item_key, count in food.items():
+        if count > 0:
+            name = "🍊 Мандаринки" if item_key == "tangerines" else item_key.capitalize()
+            builder.button(
+                text=f"{name} ({count})", 
+                callback_data=f"use_food:{item_key}"
+            )
+
+    if loot.get("chest", 0) > 0:
+        builder.button(text=f"🗃 Скриня ({loot['chest']})", callback_data="open_chest")
+    
+    if loot.get("key", 0) > 0:
+        builder.button(text=f"🔑 Ключ ({loot['key']})", callback_data="inspect_key")
+
+    builder.adjust(2)
+
+    await message.answer(
+        f"<b>🎒 Твій рюкзак</b>\n\n"
+        f"Обери предмет, щоб використати його або подивитися опис:",
+        reply_markup=builder.as_markup(),
+        parse_mode="HTML"
+    )

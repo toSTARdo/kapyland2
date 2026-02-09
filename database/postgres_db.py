@@ -52,13 +52,13 @@ async def init_pg():
                     "curses": []
                 },
                 "inventory": {
-                    "food": {"grass": 5},
-                    "loot": {"wooden_chest": 0, "golden_key": 0},
+                    "food": {"tangerines": 5},
+                    "loot": {"chest": 0, "key": 0},
                     "items": []
                 },
                 "equipment": {
                     "weapon": "Лапки",
-                    "armor": null,
+                    "armor": "Хутро",
                     "artifact": null
                 },
                 "last_feed": null
@@ -66,3 +66,11 @@ async def init_pg():
         )
     ''')
     await conn.close()
+
+async def get_user_inventory(tg_id: int):
+    conn = await get_db_connection()
+    try:
+        row = await conn.fetchrow("SELECT meta FROM capybaras WHERE owner_id = $1", tg_id)
+        return row['meta'] if row else None
+    finally:
+        await conn.close()
