@@ -5,7 +5,7 @@ from database.postgres_db import feed_capybara_logic
 import json
 from aiogram import Router, types, F
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from database.postgres_db import get_user_profile, calculate_dynamic_stats
+from database.postgres_db import get_user_profile, calculate_dynamic_stats, get_db_connection
 import datetime
 
 router = Router()
