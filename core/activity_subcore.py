@@ -1,6 +1,7 @@
 import asyncio, json
 from aiogram import Router, types, html, F
 from aiogram.filters import Command
+from aiogram.utils.keyboard import InlineKeyboardBuilder
 from core.combat_engine import CombatEngine
 from core.models import Fighter
 from database.postgres_db import get_user_inventory
