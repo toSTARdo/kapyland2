@@ -73,11 +73,11 @@ async def cmd_start(message: types.Message):
     )
 
 async def run_bot():
-    await init_pg()
     await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot)
 
 async def main():
+    await init_pg()
     config_uvicorn = uvicorn.Config(app=app, host="0.0.0.0", port=8000, log_level="error")
     server = uvicorn.Server(config_uvicorn)
 
