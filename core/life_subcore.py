@@ -12,7 +12,7 @@ router = Router()
 
 @router.callback_query(F.data == "feed_capy")
 @router.message(Command("feed"))
-async def cmd_feed(message: types.Message):
+async def cmd_feed(event: types.Message | types.CallbackQuery):
     uid = message.from_user.id
     message = event.message if isinstance(event, types.CallbackQuery) else event
     raw_random_weight = random.uniform(0, 5)
@@ -79,7 +79,7 @@ async def sleep_db_operation(tg_id: int):
 
 @router.callback_query(Command("wash"))
 @router.message(F.data == "wash_capy")
-async def cmd_wash(message: types.Message):
+async def cmd_wash(event: types.Message | types.CallbackQuery):
     uid = message.from_user.id
     message = event.message if isinstance(event, types.CallbackQuery) else event
     result = await wash_db_operation(uid) 
@@ -93,7 +93,7 @@ async def cmd_wash(message: types.Message):
 
 @router.callback_query(Command("sleep"))
 @router.message(F.data == "sleep_capy")
-async def cmd_sleep(message: types.Message):
+async def cmd_sleep(event: types.Message | types.CallbackQuery):
     uid = message.from_user.id
     message = event.message if isinstance(event, types.CallbackQuery) else event
     result = await sleep_db_operation(uid) 
