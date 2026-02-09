@@ -75,7 +75,16 @@ async def show_inventory_buttons(message: types.Message):
 
     for item_key, count in food.items():
         if count > 0:
-            name = "🍊 Мандаринки" if item_key == "tangerines" else item_key.capitalize()
+            item_names = {
+                "tangerines": "🍊 Мандаринки",
+                "melon": "🍉 Кавун",
+                "watermelon_slices": "🍉 Шматочки кавуна",
+                "mango": "🥭 Манго",
+                "kiwi": "🥝 Ківі"
+            }
+            
+            name = item_names.get(item_key, item_key.replace("_", " ").capitalize())
+            
             builder.button(
                 text=f"{name} ({count})", 
                 callback_data=f"use_food:{item_key}"
