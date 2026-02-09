@@ -154,4 +154,4 @@ async def show_profile(message: types.Message):
     builder.button(text="💤 Спати")
     builder.adjust(3)
 
-    await message.answer(profile_text, parse_mode="HTML")
+    await message.answer(profile_text, reply_markup=builder.as_markup(), parse_mode="HTML")
