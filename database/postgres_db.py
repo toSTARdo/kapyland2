@@ -35,6 +35,7 @@ async def init_pg():
                 "weight": 20.0,
                 "hunger": 3,
                 "cleanness": 3,
+                "mood": "Normal",
                 "stats": {
                     "hp": 3,
                     "attack": 1,
@@ -128,3 +129,39 @@ async def feed_capybara_logic(tg_id: int, weight_gain: float):
         return {"status": "success", "gain": actual_gain, "total": new_weight, "hunger": new_hunger}
     finally:
         await conn.close()
+
+def calculate_dynamic_stats(meta):
+    now = datetime.datetime.now()
+    hp = meta.get("stats", {}).get("hp", 3)
+    
+    last_feed = datetime.datetime.fromisoformat(meta.get("last_feed", now.isoformat()))
+    days_since_feed = (now - last_feed).total_seconds() / 86400 
+    
+    hunger_loss = int(days_since_feed // 1)
+    meta["hunger"] = max(0, 3 - hunger_loss)
+    
+    if hunger_loss > 3:
+        starving_days = hunger_loss - 3
+        hp -= starving_days
+
+    last_wash = datetime.datetime.fromisoformat(meta.get("last_wash", now.isoformat()))
+    days_since_wash = (now - last_wash).total_seconds() / 86400
+    
+    wash_loss = int(days_since_wash // 1)
+    meta["cleanness"] = max(0, 3 - wash_loss)
+    
+    if wash_loss > 3:
+        dirty_days = wash_loss - 3
+        hp -= dirty_days
+
+    meta["stats"]["hp"] = max(0, int(hp))
+    
+    if meta["stats"]["hp"] < 3:
+        if meta["cleanness"] == 0:
+            meta["mood"] = "Sick"
+        elif meta["hunger"] == 0:
+            meta["mood"] = "Weak"
+    else:
+        meta.pop("mood", None)
+
+    return meta

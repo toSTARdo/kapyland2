@@ -4,10 +4,13 @@ import random
 from database.postgres_db import feed_capybara_logic
 import json
 from aiogram import Router, types, F
+from aiogram.utils.keyboard import InlineKeyboardBuilder
 from database.postgres_db import get_user_profile
+import datetime
 
 router = Router()
 
+@router.message(F.text == "🍎 Годувати")
 @router.message(Command("feed"))
 async def cmd_feed(message: types.Message):
     uid = message.from_user.id
@@ -41,12 +44,38 @@ async def cmd_feed(message: types.Message):
     )
 
 @router.message(Command("wash"))
-async def cmd_wash(message: types.Message):
-    await message.answer("Капібара скупалася та позбулася бліх!")
+@router.message(F.text == "🧼 Мити")
+async def wash_capybara_logic(tg_id: int):
+    conn = await get_db_connection()
+    try:
+        row = await conn.fetchrow("SELECT meta FROM capybaras WHERE owner_id = $1", tg_id)
+        if not row: return "no_capy"
+        
+        meta = json.loads(row['meta']) if isinstance(row['meta'], str) else row['meta']
+        
+        last_wash_str = meta.get("last_wash")
+        if last_wash_str:
+            last_wash = datetime.datetime.fromisoformat(last_wash_str)
+            if datetime.datetime.now() - last_wash < datetime.timedelta(hours=1):
+                return "cooldown"
+
+        meta["cleanness"] = 3
+        meta["last_wash"] = datetime.datetime.now().isoformat()
+        
+        await conn.execute("UPDATE capybaras SET meta = $1 WHERE owner_id = $2", json.dumps(meta), tg_id)
+        return True
+    finally:
+        await conn.close()
 
 @router.message(Command("sleep"))
-async def cmd_sleep(message: types.Message):
-    await message.answer("Капібара гарненько відіспалася і готова покоряти моря!")
+@router.message(F.text == "💤 Відпочити")
+async def sleep_capybara_logic(tg_id: int):
+    conn = await get_db_connection()
+    try:
+        await conn.execute("UPDATE capybaras SET energy = 100 WHERE owner_id = $1", tg_id)
+        return True
+    finally:
+        await conn.close()
 
 def create_scale(current, max_val, emoji, empty_emoji='▫️'):
     current = max(0, min(int(current), max_val))
@@ -76,21 +105,31 @@ async def show_profile(message: types.Message):
     elif lvl >= 5:
         title = "Матрос"
 
+    meta = calculate_dynamic_stats(meta)
+
     hp = meta.get('stats', {}).get('hp', 3) 
     hunger = meta.get('hunger', 3)         
-    clean = meta.get('cleanness', 3)      
+    clean = meta.get('cleanness', 3)  
+    mood = meta.get("mood", "Chill")    
 
     profile_text = (
         f"<b>₍ᐢ-(ェ)-ᐢ₎ {name}</b> [{title}]\n"
+        f"Current mood: {mood}\n"
         f"━━━━━━━━━━━━━━\n"
         f"🌟 Рівень: <b>{lvl}</b> ({data['exp']} exp)\n"
         f"⚖️ Вага: <b>{weight:.2f} кг</b>\n\n"
         f"1️⃣ Здоров'я: {create_scale(hp, 3, '❤️', '🖤')}\n"
-        f"2️⃣ Ситість:   {create_scale(hunger, 3, '🍏', '▫️')}\n"
-        f"3️⃣ Гігієна:    {create_scale(clean, 3, '🧼', '▫️')}\n\n"
+        f"2️⃣ Ситість:    {create_scale(hunger, 3, '🍏', '●')}\n"
+        f"3️⃣ Гігієна:      {create_scale(clean, 3, '🧼', '🦠')}\n\n"
         f"⚡ Енергія: <b>{data['energy']}/100</b>\n"
         f"━━━━━━━━━━━━━━\n"
         f"👤 Гравець: <i>{data['username']}</i>"
     )
+
+    builder = InlineKeyboardBuilder()
+    builder.button(text="🍎 Годувати")
+    builder.button(text="🧼 Мити")
+    builder.button(text="💤 Спати")
+    builder.adjust(3)
 
     await message.answer(profile_text, parse_mode="HTML")
