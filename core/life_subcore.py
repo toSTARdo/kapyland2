@@ -10,7 +10,7 @@ import datetime
 
 router = Router()
 
-@router.message(F.text == "🍎 Годувати")
+@router.message(F.text == "feed_capy")
 @router.message(Command("feed"))
 async def cmd_feed(message: types.Message):
     uid = message.from_user.id
@@ -77,7 +77,7 @@ async def sleep_db_operation(tg_id: int):
         await conn.close()
 
 @router.message(Command("wash"))
-@router.message(F.text == "🧼 Мити")
+@router.message(F.text == "wash_capy")
 async def cmd_wash(message: types.Message):
     uid = message.from_user.id
     result = await wash_db_operation(uid) 
@@ -90,7 +90,7 @@ async def cmd_wash(message: types.Message):
         await message.answer("🧼 Капібара скупалася та сяє!")
 
 @router.message(Command("sleep"))
-@router.message(F.text == "💤 Відпочити")
+@router.message(F.text == "sleep_capy")
 async def cmd_sleep(message: types.Message):
     uid = message.from_user.id
     result = await sleep_db_operation(uid) 
@@ -149,9 +149,9 @@ async def show_profile(message: types.Message):
     )
 
     builder = InlineKeyboardBuilder()
-    builder.button(text="🍎 Годувати")
-    builder.button(text="🧼 Мити")
-    builder.button(text="💤 Спати")
+    builder.button(text="🍎 Годувати", callback_data="feed_capy")
+    builder.button(text="🧼 Мити", callback_data="wash_capy")
+    builder.button(text="💤 Спати", callback_data="sleep_capy")
     builder.adjust(3)
 
     await message.answer(profile_text, reply_markup=builder.as_markup(), parse_mode="HTML")
