@@ -10,7 +10,7 @@ import datetime
 
 router = Router()
 
-@router.message(F.text == "feed_capy")
+@router.callback_query(F.text == "feed_capy")
 @router.message(Command("feed"))
 async def cmd_feed(message: types.Message):
     uid = message.from_user.id
@@ -76,7 +76,7 @@ async def sleep_db_operation(tg_id: int):
     finally:
         await conn.close()
 
-@router.message(Command("wash"))
+@router.callback_query(Command("wash"))
 @router.message(F.text == "wash_capy")
 async def cmd_wash(message: types.Message):
     uid = message.from_user.id
@@ -89,7 +89,7 @@ async def cmd_wash(message: types.Message):
     else:
         await message.answer("🧼 Капібара скупалася та сяє!")
 
-@router.message(Command("sleep"))
+@router.callback_query(Command("sleep"))
 @router.message(F.text == "sleep_capy")
 async def cmd_sleep(message: types.Message):
     uid = message.from_user.id
