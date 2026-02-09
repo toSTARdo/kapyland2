@@ -77,7 +77,7 @@ async def show_inventory_buttons(message: types.Message):
         if count > 0:
             item_names = {
                 "tangerines": "🍊 Мандаринки",
-                "melon": "🍉 Кавун",
+                "melon": "🍈 Кавун",
                 "watermelon_slices": "🍉 Шматочки кавуна",
                 "mango": "🥭 Манго",
                 "kiwi": "🥝 Ківі"
