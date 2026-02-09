@@ -2,6 +2,9 @@ from aiogram import types, Router
 from aiogram.filters import Command
 import random
 from database.postgres_db import feed_capybara_logic
+import json
+from aiogram import Router, types, F
+from database.postgres_db import get_user_profile
 
 router = Router()
 
@@ -44,12 +47,6 @@ async def cmd_wash(message: types.Message):
 @router.message(Command("sleep"))
 async def cmd_sleep(message: types.Message):
     await message.answer("Капібара гарненько відіспалася і готова покоряти моря!")
-
-import json
-from aiogram import Router, types, F
-from database.postgres_db import get_user_profile
-
-router = Router()
 
 def create_scale(current, max_val, emoji, empty_emoji='▫️'):
     current = max(0, min(int(current), max_val))
