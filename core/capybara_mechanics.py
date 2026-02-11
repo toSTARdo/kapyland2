@@ -127,7 +127,7 @@ async def wash_db_operation(tg_id: int):
         if last_wash_str:
             last_wash = datetime.datetime.fromisoformat(last_wash_str)
             diff = datetime.datetime.now() - last_wash
-            if diff < datetime.timedelta(hours=12:
+            if diff < datetime.timedelta(hours=12):
                 remaining = datetime.timedelta(hours=12) - diff
                 return "cooldown", remaining
 
