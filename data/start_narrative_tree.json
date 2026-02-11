@@ -1,17 +1,142 @@
 {
-  "scenes": {
-    "start": {
-      "text": "...",
+  "story_title": "Один день, тисяча фургонів",
+  "nodes": [
+    {
+      "id": "1",
+      "text": "Ти прокинувся. Ранок обіцяє бути спокійним. Що робимо?",
       "options": [
-        {"text": "Прокинутися", "next_id": "start_of_day"}
+        { "text": "Лягти назад і подрихнути ще 5 хв", "next_id": "2" },
+        { "text": "Прийняти душ", "next_id": "3" },
+        { "text": "Пропустити душ", "next_id": "3" }
       ]
     },
-    "start_of_day": {
-        "text": "Ти прокинувся і протер заспане лице",
-        "options": [
-            {"text": "Лягти назад і подрихнути ще 5 хв", "next_id": "overrun_by_redbull"},
-            {"text": "Прийняти душ", "next_id": "breakfast"}
-        ]
-    }
-  }
+    {
+      "id": "2",
+      "text": "Цілий день минув уві сні... Ти встав у туалет, але раптом у вікно влетів фургон Red Bull. Ти — млинець.",
+      "status": "dead",
+      "ending_code": 2
+    },
+    {
+      "id": "3",
+      "text": "Час підкріпитися?",
+      "options": [
+        { "text": "Поснідати", "next_id": "4" },
+        { "text": "Пропустити сніданок", "next_id": "4" }
+      ]
+    },
+    {
+      "id": "4",
+      "text": "Чим займемося вдома?",
+      "options": [
+        { "text": "Грати в ігри", "next_id": "hobby_gaming" },
+        { "text": "Слухати музику", "next_id": "hobby_music" },
+        { "text": "Влаштувати фотосесію коту", "next_id": "hobby_cat" },
+        { "text": "Малювати картину", "next_id": "hobby_art" },
+        { "text": "Піти погуляти", "next_id": "5_choices" },
+        { "text": "Піти на роботу", "next_id": "5_work" }
+      ]
+    },
+    {
+      "id": "hobby_gaming",
+      "text": "Ти виграв міжнародний турнір! Приїхали новини, але фургон преси переїхав тебе на ганку.",
+      "status": "dead",
+      "ending_code": 5
+    },
+    {
+      "id": "hobby_music",
+      "text": "Ти став 1 000 000 слухачем пісні! Приїхали новини, але водій фургона забув про гальма... Прощавай.",
+      "status": "dead",
+      "ending_code": 5
+    },
+    {
+      "id": "hobby_cat",
+      "text": "Фото кота завірусилося! Приїхали журналісти, і їхній фургон зробив з тебе зірковий млинець.",
+      "status": "dead",
+      "ending_code": 5
+    },
+    {
+      "id": "hobby_art",
+      "text": "Картина завірусилася, її хочуть на аукціон! Але фургон аукціонного дому розчавив твій талант разом з тобою.",
+      "status": "dead",
+      "ending_code": 5
+    },
+    {
+      "id": "5_work",
+      "text": "Ти на роботі. Робочий процес іде за планом.",
+      "options": [
+        { "text": "Працювати сумлінно", "next_id": "work_finish" },
+        { "text": "Втекти з офісу/магазину", "next_id": "escape_fail" },
+        { "text": "Поїхати на доставку", "next_id": "delivery_fail" }
+      ]
+    },
+    {
+      "id": "work_finish",
+      "text": "Зміна закінчена. Дорогою додому ти бачиш волонтерський проєкт з тваринами.",
+      "options": [
+        { "text": "Допомогти капібарам", "next_id": "capybara_fail" },
+        { "text": "Просто піти додому", "next_id": "home_safe" }
+      ]
+    },
+    {
+      "id": "5_choices",
+      "text": "Як гуляємо?",
+      "options": [
+        { "text": "Йду сам", "next_id": "solo_walk" },
+        { "text": "Кличу друзів", "next_id": "friends_walk" }
+      ]
+    },
+    {
+      "id": "solo_walk",
+      "text": "Куди підеш наодинці?",
+      "options": [
+        { "text": "Шопінг у ТЦ", "next_id": "shopping_list" },
+        { "text": "Пікнік у парку", "next_id": "home_safe" },
+        { "text": "Піти в гори", "next_id": "home_safe" },
+        { "text": "Порибалити", "next_id": "home_safe" },
+        { "text": "У спортзал", "next_id": "home_safe" }
+      ]
+    },
+    {
+      "id": "shopping_list",
+      "text": "Який магазин відвідаємо?",
+      "options": [
+        { "text": "Супермаркет", "next_id": "home_safe" },
+        { "text": "Магазин техніки", "next_id": "home_safe" },
+        { "text": "Чайний бутік", "next_id": "home_safe" },
+        { "text": "Туристичне спорядження", "next_id": "home_safe" }
+      ]
+    },
+    {
+      "id": "friends_walk",
+      "text": "Друзі вже чекають! Куди рванемо?",
+      "options": [
+        { "text": "По магазинах", "next_id": "shopping_list" },
+        { "text": "Пити пиво", "next_id": "bar_path" }
+      ]
+    },
+    {
+      "id": "bar_path",
+      "text": "Градус росте. Пиво -> Віскі -> Стрип-бар.",
+      "options": [
+        { "text": "Йти додому спати", "next_id": "day_2_start" },
+        { "text": "Пити до переможного", "next_id": "ambulance_fail" }
+      ]
+    },
+    {
+      "id": "home_safe",
+      "text": "Ти вдома. Вечеряєш і лягаєш спати. Сьогодні фургони тебе не дістали.",
+      "options": [
+        { "text": "Заснути", "next_id": "day_2_start" }
+      ]
+    },
+    {
+      "id": "day_2_start",
+      "text": "Прокинутися. День 2. Чи пощастить сьогодні?",
+      "status": "win"
+    },
+    { "id": "escape_fail", "text": "Ти вибіг з роботи, але тебе збив корпоративний фургон.", "status": "dead", "ending_code": 3 },
+    { "id": "delivery_fail", "text": "Ти в доставці. Тебе збив фургон конкурента.", "status": "dead", "ending_code": 6 },
+    { "id": "capybara_fail", "text": "Капібара викрала фургон і переїхала тебе.", "status": "dead", "ending_code": 1 },
+    { "id": "ambulance_fail", "text": "Алкогольне отруєння. Швидка приїхала, але переїхала тебе при паркуванні.", "status": "dead", "ending_code": 4 }
+  ]
 }

@@ -14,6 +14,7 @@ async def init_pg():
             tg_id BIGINT PRIMARY KEY,
             username TEXT,
             lang TEXT DEFAULT 'ua',
+            has_finished_prologue BOOLEAN DEFAULT FALSE,
             reincarnation_count INTEGER DEFAULT 0,
             reincarnation_multiplier FLOAT DEFAULT 1.0,
             joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

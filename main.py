@@ -14,6 +14,8 @@ from core.activity_subcore import router as activity_cmd_router
 from handlers.main_buttons import get_main_kb
 from handlers.setting import router as settings_router
 from handlers.lottery import router as lottery_router
+from handles.start import router as prolog_router
+from handlers.start import render_story_node
 
 logging.basicConfig(level=logging.INFO)
 app = FastAPI()
@@ -25,55 +27,66 @@ dp.include_router(life_cmd_router)
 dp.include_router(activity_cmd_router)
 dp.include_router(settings_router)
 dp.include_router(lottery_router)
+dp.include_router(prolog_router)
 
 @app.get("/")
 async def health_check():
     return {"status": "OK", "bot_version": config.VERSION}
 
 @dp.message(Command("start"))
-async def cmd_start(message: types.Message):
+async def cmd_start(message: types.Message, forced_entry: bool = False):
     uid = message.from_user.id
     user_name = message.from_user.first_name
     
     conn = await get_db_connection()
     try:
-        await conn.execute(
-            "INSERT INTO users (tg_id, username) VALUES ($1, $2) ON CONFLICT (tg_id) DO NOTHING",
+        user = await conn.fetchrow(
+            "INSERT INTO users (tg_id, username) VALUES ($1, $2) "
+            "ON CONFLICT (tg_id) DO UPDATE SET username = EXCLUDED.username "
+            "RETURNING has_finished_prologue, kb_layout",
             uid, user_name
         )
-        capy_exists = await conn.fetchval("SELECT id FROM capybaras WHERE owner_id = $1", uid)
 
+        if not user['has_finished_prologue'] and not forced_entry:
+            await render_story_node(message, "1")
+            return
+
+        capy_exists = await conn.fetchval("SELECT id FROM capybaras WHERE owner_id = $1", uid)
         if not capy_exists:
             await conn.execute(
                 "INSERT INTO capybaras (owner_id, name) VALUES ($1, $2)",
-                uid, f"Безіменна булочка"
+                uid, "Безіменна булочка"
             )
             is_new = True
         else:
             is_new = False
-
-        user_data = await conn.fetchrow("SELECT kb_layout FROM users WHERE tg_id = $1", uid)
         
+        layout = user['kb_layout'] if user else 0
     finally:
         await conn.close()
 
-    layout = user_data['kb_layout'] if user_data else 0
-    
-    if is_new:
-        welcome_text = f"🏴‍☠️ Вітаємо на планеті Мофу, {user_name}!"
-    else:
-        welcome_text = f"⚓️ В тебе вже є капібара, йо-хо-хо {user_name}!"
-
+    welcome_text = f"🏴‍☠️ Вітаємо на планеті Мофу, {user_name}!" if is_new else f"⚓️ З поверненням, {user_name}!"
     await message.answer(
         f"{welcome_text}\n\n"
         f"Версія бота: {config.VERSION}\n"
-        f"🍎 Годувати: /feed\n"
-        f"🧼 Митися: /wash\n"
-        f"💤 Відпочинок: /sleep\n"
-        f"⚔️ Бій: /fight @username\n\n"
-        f"Життя вашої капібари: ❤️❤️❤️ (3 серця)",
+        "🍎 /feed | 🧼 /wash | 💤 /sleep",
         reply_markup=get_main_kb(layout_type=layout)
     )
+
+@dp.callback_query(F.data == "finish_prologue")
+async def handle_isekai(callback: types.CallbackQuery):
+    await callback.message.edit_reply_markup(reply_markup=None)
+    
+    conn = await get_db_connection()
+    try:
+        await conn.execute("UPDATE users SET has_finished_prologue = TRUE WHERE tg_id = $1", callback.from_user.id)
+    finally:
+        await conn.close()
+    
+    await callback.message.answer("💫 В очах темніє і остання думка це 🍊")
+    
+    await cmd_start(callback.message, forced_entry=True)
+    await callback.answer()
 
 async def run_bot():
     await bot.delete_webhook(drop_pending_updates=True)
