@@ -53,10 +53,10 @@ DROP_RATES = {
 }
 
 RARITY_META = {
-    "common": {"emoji": "⚪️", "label": "Звичайний", "color": 0x808080},
-    "rare": {"emoji": "🔵", "label": "Рідкісний", "color": 0x0000FF},
-    "epic": {"emoji": "🟣", "label": "Епічний", "color": 0xA020F0},
-    "legendary": {"emoji": "💎", "label": "Легендарний", "color": 0xFFD700}
+    "Common": {"emoji": "⚪️", "label": "Звичайний", "color": 0x808080},
+    "Rare": {"emoji": "🔵", "label": "Рідкісний", "color": 0x0000FF},
+    "Epic": {"emoji": "🟣", "label": "Епічний", "color": 0xA020F0},
+    "Legendary": {"emoji": "💎", "label": "Легендарний", "color": 0xFFD700}
 }
 
 #====================ITEMS LIST============================#
