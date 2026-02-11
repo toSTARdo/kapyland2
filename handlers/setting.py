@@ -9,7 +9,7 @@ router = Router()
 class RenameStates(StatesGroup):
     waiting_for_new_name = State()
 
-@router.message(F.text.startswith("⚙️")
+@router.message(F.text.startswith("⚙️"))
 async def show_settings(message: types.Message):
     await message.answer(
         "⚙️ <b>Центр підкрутки твоїй капібарі гайок</b>",

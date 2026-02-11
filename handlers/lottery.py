@@ -12,7 +12,7 @@ from database.postgres_db import get_db_connection
 GACHA_ITEMS = ARTIFACTS
 router = Router()
 
-@router.message(F.text.startswith("🎟️")
+@router.message(F.text.startswith("🎟️"))
 @router.message(Command("lottery"))
 async def cmd_lottery_start(message: types.Message):
     builder = InlineKeyboardBuilder()
