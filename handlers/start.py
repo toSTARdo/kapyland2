@@ -7,7 +7,7 @@ router = Router()
 
 def load_story():
     try:
-        with open('data/start_narrative.json', 'r', encoding='utf-8') as f:
+        with open('data/start_narrative_tree.json', 'r', encoding='utf-8') as f:
             data = json.load(f)
             nodes = {str(node['id']): node for node in data['nodes']}
             logging.info(f"✅ Story Engine: Завантажено {len(nodes)} вузлів сюжету.")
