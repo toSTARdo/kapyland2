@@ -65,7 +65,7 @@ RARITY_META = {
 GAME_ITEMS = load_game_data("data/game_items.json")
 
     #ARTIFACTS:
-ARTIFACTS = GAME_ITEMS.get("GAME_ITEMS", {})
+ARTIFACTS = GAME_ITEMS.get("GACHA_ITEMS", {})
 
     #WEAPON:
 WEAPON = GAME_ITEMS.get("WEAPONS", {})
