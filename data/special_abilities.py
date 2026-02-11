@@ -257,7 +257,7 @@ def rubber_choke_effect(att, defe):
 
 ABILITY_REGISTRY = {
     "none": lambda a, d: False,
-    "hook_snag": snag_effect,
+    "hook_snag": hook_snag,
     "wooden_leg": wooden_leg_effect,
     "heavy_swing": heavy_swing_effect,
     "mop_wash": mop_wash_effect,
