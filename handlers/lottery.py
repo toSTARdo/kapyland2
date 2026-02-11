@@ -18,7 +18,7 @@ async def cmd_lottery_start(message: types.Message):
     builder.button(text="🏴‍☠️ Крутити (1🎟 або 5кг)", callback_data="gacha_spin")
     builder.adjust(1)
     
-    c, r, e, l = RARITY_META['common'], RARITY_META['rare'], RARITY_META['epic'], RARITY_META['legendary']
+    c, r, e, l = RARITY_META['Common'], RARITY_META['Rare'], RARITY_META['Epic'], RARITY_META['Legendary']
 
     await message.answer(
         f"🎰 <b>ГАЗИНО</b>\n\n"
