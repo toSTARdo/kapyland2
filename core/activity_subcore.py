@@ -116,19 +116,12 @@ async def start_pvp_battle(callback: types.CallbackQuery):
     asyncio.create_task(cmd_fight(callback.message, opponent_id=challenger_id))
     await callback.answer("Бій розпочато!")
 
-async def run_battle_logic(message: types.Message, opponent_id: int = None, is_bot: bool = False):
-    bot = event.bot
-    
-    if isinstance(event, types.CallbackQuery):
-        message = event.message
-        uid = event.message.chat.id
-        user_name = event.from_user.first_name
-    else:
-        message = event
-        uid = event.chat.id
-        user_name = event.from_user.first_name
-    uid = message.chat.id
-    user_name = message.from_user.first_name
+async def run_battle_logic(callback: types.CallbackQuery, opponent_id: int = None, is_bot: bool = False):
+    bot = callback.bot
+    parent_msg = callback.message
+    uid = callback.from_user.id
+    chat_id = parent_msg.chat.id
+    user_name = callback.from_user.first_name
 
     conn = await get_db_connection()
     try:
