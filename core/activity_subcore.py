@@ -5,7 +5,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from core.models import Fighter, CombatEngine
 from database.postgres_db import get_user_inventory, get_db_connection
-from config import BASE_HITPOINTS, ARTIFACTS, RARITY_META
+from config import BASE_HITPOINTS, ARTIFACTS, RARITY_META, WEAPON, ARMOR
 GACHA_ITEMS = ARTIFACTS
 
 router = Router()
@@ -89,33 +89,55 @@ async def handle_fight_bot(callback: types.CallbackQuery):
 async def run_battle_logic(callback: types.CallbackQuery, opponent_id: int = None, is_bot: bool = False):
     bot = callback.bot
     uid = callback.from_user.id
-    user_name = callback.from_user.first_name
+    
+    battle_config = {
+        "WEAPONS": WEAPON,
+        "ARMOR": ARMOR
+    }
 
-    async def get_data(target_id):
+    async def get_full_capy_data(target_id, is_bot_flag=False):
+        if is_bot_flag:
+            return {
+                "kapy_name": "Папуга Павло (Бот)",
+                "weight": 5.0,
+                "stats": {"attack": 1, "defense": 1, "agility": 3, "luck": 1},
+                "equipped_weapon": "Зуби акули",
+                "equipped_armor": "",
+                "artifacts": []
+            }
+        
         conn = await get_db_connection()
         try:
             row = await conn.fetchrow("SELECT name, meta FROM capybaras WHERE owner_id = $1", target_id)
-            if not row: return "Пірат", 25.0
+            if not row: return None
+            
             meta = json.loads(row['meta']) if isinstance(row['meta'], str) else row['meta']
-            return row['name'], meta.get("weight", 25.0)
+            equip = meta.get("equipment", {})
+            
+            return {
+                "kapy_name": row['name'],
+                "weight": meta.get("weight", 25.0),
+                "stats": meta.get("stats", {"attack": 0, "defense": 0, "agility": 0, "luck": 0}),
+                "equipped_weapon": equip.get("weapon", "Лапки"),
+                "equipped_armor": equip.get("armor", ""),
+                "artifacts": meta.get("artifacts", [])
+            }
         finally: await conn.close()
 
-    p1_name, p1_weight = await get_data(uid)
-    p1 = Fighter(name=p1_name, weight=p1_weight, color="🟢")
+    p1_data = await get_full_capy_data(uid)
+    p2_data = await get_full_capy_data(opponent_id, is_bot)
 
-    p2_id = None
-    if is_bot:
-        p2 = Fighter(name="Папуга Павло (Бот)", weight=5.0, color="🔴")
-    else:
-        p2_id = opponent_id
-        p2_name, p2_weight = await get_data(p2_id)
-        p2 = Fighter(name=p2_name, weight=p2_weight, color="🔴")
+    if not p1_data or not p2_data:
+        return await callback.message.answer("❌ Помилка: Дані капібари не знайдено.")
+
+    p1 = Fighter(p1_data, battle_config, color="🟢")
+    p2 = Fighter(p2_data, battle_config, color="🔴")
 
     start_info = f"🏟 <b>БІЙ: {p1.name} VS {p2.name}</b>"
     msg1 = await callback.message.answer(start_info, parse_mode="HTML")
     msg2 = None
-    if p2_id:
-        try: msg2 = await bot.send_message(p2_id, start_info, parse_mode="HTML")
+    if opponent_id and not is_bot:
+        try: msg2 = await bot.send_message(opponent_id, start_info, parse_mode="HTML")
         except: pass
 
     await asyncio.sleep(1.5)
@@ -130,15 +152,19 @@ async def run_battle_logic(callback: types.CallbackQuery, opponent_id: int = Non
         attacker, defender = random.sample([p1, p2], 2)
         init_msg = f"⚡ Спритність рівна! Але першим вдається ударити {html.bold(attacker.name)}."
 
+    await msg1.answer(init_msg, parse_mode="HTML")
+    if msg2:
+        try: await msg2.answer(init_msg, parse_mode="HTML")
+        except: pass
+
     round_num = 1
     while p1.hp > 0 and p2.hp > 0 and round_num <= 30:
-        attacker, defender = (p1, p2) if round_num % 2 != 0 else (p2, p1)
         report, _ = CombatEngine.resolve_turn(attacker, defender)
         
         full_report = (
             f"🏟 <b>Раунд {round_num}</b>\n"
-            f"{p1.color} {p1.name}: {p1.hp} HP\n"
-            f"{p2.color} {p2.name}: {p2.hp} HP\n"
+            f"{p1.color} {p1.name}: {p1.get_hp_display()}\n"
+            f"{p2.color} {p2.name}: {p2.get_hp_display()}\n"
             f"━━━━━━━━━━━━━━\n\n{report}"
         )
         
@@ -147,14 +173,16 @@ async def run_battle_logic(callback: types.CallbackQuery, opponent_id: int = Non
             if msg2: await msg2.edit_text(full_report, parse_mode="HTML")
         except: pass
             
-        await asyncio.sleep(2)
+        attacker, defender = defender, attacker
+        await asyncio.sleep(2.3)
         round_num += 1
 
     if p1.hp > 0 and p2.hp <= 0:
-        res = f"🏆 <b>ПЕРЕМОГА {p1.color}!</b>\n{html.bold(p1.name)} розгромив суперника {html.bold(p2.name)} і показав хто тут справжній пірат!"
+        res = f"🏆 <b>ПЕРЕМОГА {p1.color}!</b>\n{html.bold(p1.name)} розгромив суперника {html.bold(p2.name)}!"
     elif p2.hp > 0 and p1.hp <= 0:
-        res = f"👑 <b>ПЕРЕМОГА {p2.color}!</b>\n{html.bold(p2.name)} виявився сильнішим за {html.bold(p1.name)}. Всі капіледі і кавуновий ром його!"
-    else: res = "🤝 <b>НІЧИЯ! Капі обезсилені впали на травичку...</b>"
+        res = f"👑 <b>ПЕРЕМОГА {p2.color}!</b>\n{html.bold(p2.name)} виявився сильнішим за {html.bold(p1.name)}!"
+    else: 
+        res = "🤝 <b>НІЧИЯ! Капі обезсилені впали на травичку...</b>"
 
     await msg1.answer(res, parse_mode="HTML")
     if msg2:
