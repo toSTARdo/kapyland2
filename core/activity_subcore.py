@@ -117,7 +117,16 @@ async def start_pvp_battle(callback: types.CallbackQuery):
     await callback.answer("Бій розпочато!")
 
 async def run_battle_logic(message: types.Message, opponent_id: int = None, is_bot: bool = False):
-    bot = message.bot
+    bot = event.bot
+    
+    if isinstance(event, types.CallbackQuery):
+        message = event.message
+        uid = event.message.chat.id
+        user_name = event.from_user.first_name
+    else:
+        message = event
+        uid = event.chat.id
+        user_name = event.from_user.first_name
     uid = message.chat.id
     user_name = message.from_user.first_name
 
