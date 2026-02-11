@@ -208,7 +208,7 @@ async def render_inventory_page(message, user_id, page="food", is_callback=False
         curr_weapon = curr_equip.get("weapon", "Лапки")
         curr_armor = curr_equip.get("armor", "")
         
-y        all_items = inv.get("equipment", [])
+        all_items = inv.get("equipment", [])
         
         if not all_items:
             content = "<i>Твій трюм порожній...</i>"
