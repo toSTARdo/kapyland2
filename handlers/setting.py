@@ -12,9 +12,7 @@ class RenameStates(StatesGroup):
 @router.message(F.text == "⚙️ Налаштування")
 async def show_settings(message: types.Message):
     await message.answer(
-        "⚙️ <b>Центр керування капібарою</b>\n\n"
-        "• Змінюй макет меню для зручності\n"
-        "• Дай своїй булочці нове ім'я",
+        "⚙️ <b>Центр підкрутки твоїй капібарі гайок</b>",
         reply_markup=get_settings_kb(),
         parse_mode="HTML"
     )

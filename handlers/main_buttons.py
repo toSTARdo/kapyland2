@@ -23,10 +23,17 @@ def get_main_kb(layout_type: int = 0) -> ReplyKeyboardMarkup:
 
 def get_settings_kb() -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
+    
+    builder.row(InlineKeyboardButton(
+        text="📝 Змінити ім'я", 
+        callback_data="change_name_start")
+    )
+    
     builder.row(InlineKeyboardButton(
         text="🔄 Змінити вигляд меню", 
         callback_data="toggle_layout")
     )
+    
     return builder.as_markup()
 
 """
