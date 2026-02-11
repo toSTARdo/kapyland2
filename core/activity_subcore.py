@@ -3,10 +3,10 @@ from aiogram import Router, types, html, F
 from aiogram.filters import Command
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-from core.combat_engine import CombatEngine
-from core.models import Fighter
+from core.models import Fighter, CombatEngine
 from database.postgres_db import get_user_inventory, get_db_connection
-from config import BASE_HITPOINTS
+from config import BASE_HITPOINTS, ARTIFACTS
+GACHA_ITEMS = ARTIFACTS
 
 router = Router()
 
@@ -120,8 +120,18 @@ async def run_battle_logic(callback: types.CallbackQuery, opponent_id: int = Non
 
     await asyncio.sleep(1.5)
 
+    if p1.agi > p2.agi:
+        attacker, defender = p1, p2
+        init_msg = f"⚡ {html.bold(p1.name)} виявився спритнішим і атакує першим!"
+    elif p2.agi > p1.agi:
+        attacker, defender = p2, p1
+        init_msg = f"⚡ {html.bold(p2.name)} швидше зорієнтувався і вистрибує вперед!"
+    else:
+        attacker, defender = random.sample([p1, p2], 2)
+        init_msg = f"⚡ Спритність рівна! Але першим вдається ударити {html.bold(attacker.name)}."
+
     round_num = 1
-    while p1.hp > 0 and p2.hp > 0 and round_num <= 20:
+    while p1.hp > 0 and p2.hp > 0 and round_num <= 30:
         attacker, defender = (p1, p2) if round_num % 2 != 0 else (p2, p1)
         report, _ = CombatEngine.resolve_turn(attacker, defender)
         
@@ -140,9 +150,11 @@ async def run_battle_logic(callback: types.CallbackQuery, opponent_id: int = Non
         await asyncio.sleep(2)
         round_num += 1
 
-    if p1.hp > p2.hp: res = f"🏆 <b>ПЕРЕМОГА!</b>\n{p1.name} розніс ворога!"
-    elif p2.hp > p1.hp: res = f"💀 <b>ПОРАЗКА...</b>\n{p1.name} програв дуель."
-    else: res = "🤝 <b>НІЧИЯ!</b>"
+    elif p1.hp > 0 and p2.hp <= 0:
+        res = f"🏆 <b>ПЕРЕМОГА {p1.color}!</b>\n{html.bold(p1.name)} розгромив суперника {html.bold(p2.name)} і показав хто тут справжній пірат!"
+    elif p2.hp > 0 and p1.hp <= 0:
+        res = f"👑 <b>ПЕРЕМОГА {p2.color}!</b>\n{html.bold(p2.name)} виявився сильнішим за {html.bold(p1.name)}. Всі капіледі і кавуновий ром його!"
+    else: res = "🤝 <b>НІЧИЯ! Капі обезсилені впали на травичку...</b>"
 
     await msg1.answer(res, parse_mode="HTML")
     if msg2:
@@ -191,32 +203,45 @@ async def render_inventory_page(message, user_id, page="food", is_callback=False
         builder.adjust(1)
 
     elif page == "items":
-        title = "⚔️ <b>Колекція амуніції та артефактів</b>"
-        equipment = inv.get("equipment", [])
+        title = "⚔️ <b>Амуніція</b>"
+        curr_equip = meta.get("equipment", {})
+        curr_weapon = curr_equip.get("weapon", "Лапки")
+        curr_armor = curr_equip.get("armor", "")
         
-        if not equipment:
-            content = "<i>Тут поки порожньо...</i>"
+y        all_items = inv.get("equipment", [])
+        
+        if not all_items:
+            content = "<i>Твій трюм порожній...</i>"
         else:
-            counts = {}
-            for item in equipment:
-                item_name = item.get('name')
+            unique_items = {}
+            for item in all_items:
+                name = item['name']
+                if name not in unique_items: unique_items[name] = item
+            
+            content_lines = []
+            for name, item in unique_items.items():
                 rarity = item.get('rarity', 'Common')
-
-                item_type = "artifact" 
-                category_list = GACHA_ITEMS.get(rarity, [])
                 
-                for gacha_item in category_list:
-                    if gacha_item["name"] == item_name:
-                        item_type = gacha_item["type"]
+                item_type = "artifact"
+                for g_item in GACHA_ITEMS.get(rarity, []):
+                    if g_item["name"] == name:
+                        item_type = g_item["type"]
                         break
+                
+                is_equipped = (name == curr_weapon or name == curr_armor)
                 
                 r_icon = RARITY_META.get(rarity, {}).get('emoji', '⚪')
                 t_icon = TYPE_ICONS.get(item_type, "🧿")
+                status = " ✅" if is_equipped else ""
                 
-                key = f"{r_icon}{t_icon} {item_name}"
-                counts[key] = counts.get(key, 0) + 1
-            
-            content = "\n".join([f"{k} (x{v})" if v > 1 else k for k, v in counts.items()])
+                content_lines.append(f"{r_icon}{t_icon} <b>{name}</b>{status}")
+                
+                if item_type in ["weapon", "armor"] and not is_equipped:
+                    builder.button(
+                        text=f"Взяти {name}", 
+                        callback_data=f"equip:{item_type}:{name}"
+                    )
+            content = "\n".join(content_lines)
         builder.adjust(1)
 
     nav_buttons = []
@@ -235,6 +260,42 @@ async def render_inventory_page(message, user_id, page="food", is_callback=False
 @router.message(F.text == "🎒 Інвентар")
 async def show_inventory_start(message: types.Message):
     await render_inventory_page(message, message.from_user.id, page="food")
+
+@router.callback_query(F.data.startswith("equip:"))
+async def handle_equip_item(callback: types.CallbackQuery):
+    _, itype, iname = callback.data.split(":")
+    user_id = callback.from_user.id
+    
+    conn = await get_db_connection()
+    try:
+        row = await conn.fetchrow("SELECT meta FROM capybaras WHERE owner_id = $1", user_id)
+        if not row: return await callback.answer("Де твоя капібара?")
+            
+        meta = json.loads(row['meta']) if isinstance(row['meta'], str) else row['meta']
+        
+        if "equipment" not in meta:
+            meta["equipment"] = {"weapon": "Лапки", "armor": ""}
+            
+        current_item = meta["equipment"].get(itype)
+        
+        if current_item == iname:
+            default_val = "Лапки" if itype == "weapon" else ""
+            meta["equipment"][itype] = default_val
+            msg = f"❌ Знято: {iname}"
+        else:
+            meta["equipment"][itype] = iname
+            msg = f"✅ Одягнено: {iname}"
+            
+        await conn.execute(
+            "UPDATE capybaras SET meta = $1 WHERE owner_id = $2",
+            json.dumps(meta, ensure_ascii=False), user_id
+        )
+        
+        await callback.answer(msg)
+        await render_inventory_page(callback.message, user_id, page="items", is_callback=True)
+        
+    finally:
+        await conn.close()
 
 @router.callback_query(F.data.startswith("inv_page:"))
 async def handle_inventory_pagination(callback: types.CallbackQuery):
