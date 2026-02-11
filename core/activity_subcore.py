@@ -149,29 +149,95 @@ async def run_battle_logic(callback: types.CallbackQuery, opponent_id: int = Non
         try: await msg2.answer(res, parse_mode="HTML")
         except: pass
 
-@router.message(F.text == "🎒 Інвентар")
-async def show_inventory(message: types.Message):
-    meta_data = await get_user_inventory(message.from_user.id)
+async def render_inventory_page(message, user_id, page="food", is_callback=False):
+    meta_data = await get_user_inventory(user_id)
     if not meta_data:
         return await message.answer("❌ Профіль не знайдено.")
 
     meta = json.loads(meta_data) if isinstance(meta_data, str) else meta_data
     inv = meta.get("inventory", {})
-    food = inv.get("food", {})
-    
     builder = InlineKeyboardBuilder()
-    item_names = {
-                "tangerines": "🍊 Мандаринки",
-                "melon": "🍈 Кавун",
-                "watermelon_slices": "🍉 Шматочки кавуна",
-                "mango": "🥭 Манго",
-                "kiwi": "🥝 Ківі"
-            }
-    
-    for k, v in food.items():
-        if v > 0:
-            name = item_names.get(k, k.capitalize())
-            builder.button(text=f"{name} ({v})", callback_data=f"use_food:{k}")
-    
-    builder.adjust(1)
-    await message.answer("<b>🎒 Твій рюкзак</b>", reply_markup=builder.as_markup(), parse_mode="HTML")
+
+    TYPE_ICONS = {
+        "weapon": "🗡️",
+        "armor": "🔰",
+        "artifact": "🧿"
+    }
+
+    if page == "food":
+        title = "🍎 <b>Провізія</b>"
+        food = inv.get("food", {})
+        food_names = {"tangerines": "🍊", "melon": "🍈", "watermelon_slices": "🍉", "mango": "🥭", "kiwi": "🥝"}
+        
+        content_lines = []
+        for k, v in food.items():
+            if v > 0:
+                name = food_names.get(k, "🍱")
+                builder.button(text=f"{name} ({v})", callback_data=f"use_food:{k}")
+        
+        content = "<i>Натисни на кнопку, щоб поїсти:</i>"
+        builder.adjust(2)
+
+    elif page == "loot":
+        title = "🧳 <b>Скарби та ресурси</b>"
+        loot = inv.get("loot", {})
+        
+        loot_lines = []
+        if loot.get('lottery_ticket', 0) > 0: loot_lines.append(f"🎟️ Квитки: <b>{loot['lottery_ticket']}</b>")
+        if loot.get('key', 0) > 0: loot_lines.append(f"🗝️ Ключі: <b>{loot['key']}</b>")
+        if loot.get('chest', 0) > 0: loot_lines.append(f"🗃 Скрині: <b>{loot['chest']}</b>")
+        
+        content = "\n".join(loot_lines) if loot_lines else "<i>Твій сейф порожній...</i>"
+        builder.adjust(1)
+
+    elif page == "items":
+        title = "⚔️ <b>Колекція амуніції та артефактів</b>"
+        equipment = inv.get("equipment", [])
+        
+        if not equipment:
+            content = "<i>Тут поки порожньо...</i>"
+        else:
+            counts = {}
+            for item in equipment:
+                item_name = item.get('name')
+                rarity = item.get('rarity', 'Common')
+
+                item_type = "artifact" 
+                category_list = GACHA_ITEMS.get(rarity, [])
+                
+                for gacha_item in category_list:
+                    if gacha_item["name"] == item_name:
+                        item_type = gacha_item["type"]
+                        break
+                
+                r_icon = RARITY_META.get(rarity, {}).get('emoji', '⚪')
+                t_icon = TYPE_ICONS.get(item_type, "🧿")
+                
+                key = f"{r_icon}{t_icon} {item_name}"
+                counts[key] = counts.get(key, 0) + 1
+            
+            content = "\n".join([f"{k} (x{v})" if v > 1 else k for k, v in counts.items()])
+        builder.adjust(1)
+
+    nav_buttons = []
+    if page != "food": nav_buttons.append(types.InlineKeyboardButton(text="🍎 Їжа", callback_data="inv_page:food"))
+    if page != "loot": nav_buttons.append(types.InlineKeyboardButton(text="🧳 Лут", callback_data="inv_page:loot"))
+    if page != "items": nav_buttons.append(types.InlineKeyboardButton(text="⚔️ Речі", callback_data="inv_page:items"))
+    builder.row(*nav_buttons)
+
+    text = f"{title}\n━━━━━━━━━━━━━━━\n{content}"
+
+    if is_callback:
+        await message.edit_text(text, reply_markup=builder.as_markup(), parse_mode="HTML")
+    else:
+        await message.answer(text, reply_markup=builder.as_markup(), parse_mode="HTML")
+
+@router.message(F.text == "🎒 Інвентар")
+async def show_inventory_start(message: types.Message):
+    await render_inventory_page(message, message.from_user.id, page="food")
+
+@router.callback_query(F.data.startswith("inv_page:"))
+async def handle_inventory_pagination(callback: types.CallbackQuery):
+    page = callback.data.split(":")[1]
+    await render_inventory_page(callback.message, callback.from_user.id, page=page, is_callback=True)
+    await callback.answer()
