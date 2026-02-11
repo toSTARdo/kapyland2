@@ -1,5 +1,5 @@
 from aiogram import Router, types, F
-from aiogram.fsm.context import FContext
+from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 from database.postgres_db import get_db_connection
 from handlers.main_buttons import get_settings_kb, get_main_kb
@@ -20,13 +20,13 @@ async def show_settings(message: types.Message):
     )
 
 @router.callback_query(F.data == "change_name_start")
-async def rename_start(callback: types.CallbackQuery, state: FContext):
+async def rename_start(callback: types.CallbackQuery, state: FSMContext):
     await state.set_state(RenameStates.waiting_for_new_name)
     await callback.message.answer("📝 Введи нове ім'я для своєї капібари (до 30 символів):")
     await callback.answer()
 
 @router.message(RenameStates.waiting_for_new_name)
-async def rename_finish(message: types.Message, state: FContext):
+async def rename_finish(message: types.Message, state: FSMContext):
     new_name = message.text.strip()
     
     if len(new_name) > 30:
