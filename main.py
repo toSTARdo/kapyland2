@@ -23,11 +23,11 @@ app = FastAPI()
 bot = Bot(token=config.TOKEN)
 dp = Dispatcher(storage=MemoryStorage())
 
+dp.include_router(prolog_router)
 dp.include_router(life_cmd_router)
 dp.include_router(activity_cmd_router)
 dp.include_router(settings_router)
 dp.include_router(lottery_router)
-dp.include_router(prolog_router)
 
 @app.get("/")
 async def health_check():
