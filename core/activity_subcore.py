@@ -118,7 +118,7 @@ async def start_pvp_battle(callback: types.CallbackQuery):
 
 async def run_battle_logic(callback: types.CallbackQuery, opponent_id: int = None, is_bot: bool = False):
     bot = callback.bot
-    parent_msg = callback.message
+    message = callback.message
     uid = callback.from_user.id
     chat_id = parent_msg.chat.id
     user_name = callback.from_user.first_name
