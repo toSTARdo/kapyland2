@@ -17,7 +17,7 @@ logging.basicConfig(level=logging.INFO)
 app = FastAPI()
 
 bot = Bot(token=config.TOKEN)
-dp = Dispatcher()
+dp = Dispatcher(storage=MemoryStorage())
 
 dp.include_router(life_cmd_router)
 dp.include_router(activity_cmd_router)
