@@ -61,7 +61,8 @@ async def init_pg():
                     "artifact": null
                 },
                 "last_feed": null,
-                "last_wash": null
+                "last_wash": null,
+                "last_weekly_lega": null
             }'::jsonb
         )
     ''')

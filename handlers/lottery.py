@@ -4,6 +4,7 @@ import random
 from aiogram import Router, types, F
 from aiogram.filters import Command
 from aiogram.utils.keyboard import InlineKeyboardBuilder
+import datetime
 
 from config import RARITY_META, ARTIFACTS
 from database.postgres_db import get_db_connection
@@ -16,6 +17,7 @@ router = Router()
 async def cmd_lottery_start(message: types.Message):
     builder = InlineKeyboardBuilder()
     builder.button(text="🏴‍☠️ Крутити (1🎟 або 5кг)", callback_data="gacha_spin")
+    builder.button(text="🔥 10+1 (10🎟)", callback_data="gacha_guaranteed_10")
     builder.adjust(1)
     
     c, r, e, l = RARITY_META['Common'], RARITY_META['Rare'], RARITY_META['Epic'], RARITY_META['Legendary']
@@ -57,7 +59,7 @@ async def handle_gacha_spin(callback: types.CallbackQuery):
 
     rarity_info = RARITY_META[rarity_key]
     res_text = (
-        f"🎉 <b>ТВІЙ ЛУТ!</b>\n\n"
+        f"🎉 <b>ТВІЙ ПРИЗ!</b>\n\n"
         f"📦 Предмет: <b>{item['name']}</b>\n"
         f"{rarity_info['emoji']} Рідкість: <b>{rarity_info['label']}</b>\n"
         f"🛠 Тип: {item['type'].capitalize()}\n"
@@ -65,8 +67,118 @@ async def handle_gacha_spin(callback: types.CallbackQuery):
         f"📜 <i>{item['desc']}</i>"
     )
 
-    await callback.message.edit_text(res_text, parse_mode="HTML")
+    builder = InlineKeyboardBuilder()
+    builder.button(text="🔄 Крутити ще (1🎟/5кг)", callback_data="gacha_spin")
+    builder.adjust(1)
+
+    await callback.message.edit_text(
+            res_text, 
+            reply_markup=builder.as_markup(), 
+            parse_mode="HTML"
+        )
     await callback.answer()
+
+@router.callback_query(F.data == "gacha_guaranteed_10")
+async def handle_bulk_spin(callback: types.CallbackQuery):
+    uid = callback.from_user.id
+    conn = await get_db_connection()
+    now = datetime.datetime.now()
+    
+    try:
+        row = await conn.fetchrow("SELECT meta FROM capybaras WHERE owner_id = $1", uid)
+        if not row:
+            return await callback.answer("❌ Капібару не знайдено!", show_alert=True)
+        
+        meta = json.loads(row['meta']) if isinstance(row['meta'], str) else row['meta']
+        inventory = meta.setdefault("inventory", {})
+        loot = inventory.setdefault("loot", {})
+        tickets = loot.get("lottery_ticket", 0)
+        
+        if tickets < 10:
+            return await callback.answer(f"❌ Треба 🎟️x10, а маєш лише 🎟️x{tickets}", show_alert=True)
+        
+        last_lega_str = meta.get("last_weekly_lega")
+        can_get_lega = True
+        
+        if last_lega_str:
+            last_lega_date = datetime.datetime.fromisoformat(last_lega_str)
+            if now < last_lega_date + datetime.timedelta(days=7):
+                can_get_lega = False
+
+        await callback.answer("🎰 КРУТИМО БАРАБАН (10+1)...")
+
+        equipment = inventory.setdefault("equipment", [])
+        owned_names = [i["name"] for i in equipment]
+        
+        results_icons = []
+        watermelons_gain = 0
+        new_items_count = 0
+        used_weekly_bonus = False
+
+        for i in range(11):
+            if i == 10:
+                if can_get_lega:
+                    rarity = "Legendary"
+                    used_weekly_bonus = True
+                else:
+                    rarity = "Epic"
+            else:
+                r = random.random()
+                if r < 0.03: rarity = "Legendary"
+                elif r < 0.15: rarity = "Epic"
+                elif r < 0.40: rarity = "Rare"
+                else: rarity = "Common"
+
+            item = random.choice(GACHA_ITEMS[rarity])
+            item_name = item["name"]
+            prefix = RARITY_META[rarity]["emoji"]
+
+            if item_name in owned_names:
+                compensation = {"Common": 1, "Rare": 2, "Epic": 3, "Legendary": 5}
+                gain = compensation.get(rarity, 1)
+                
+                food = inventory.setdefault("food", {})
+                food["watermelon_slices"] = food.get("watermelon_slices", 0) + gain
+                watermelons_gain += gain
+                results_icons.append(f"{prefix} <s>{item_name}</s> 🍉+{gain}")
+            else:
+                equipment.append({
+                    "name": item_name, "type": item["type"],
+                    "rarity": rarity, "desc": item["desc"]
+                })
+                owned_names.append(item_name)
+                new_items_count += 1
+                results_icons.append(f"{prefix} <b>{item_name}</b>")
+
+        if used_weekly_bonus:
+            meta["last_weekly_lega"] = now.isoformat()
+
+        loot["lottery_ticket"] -= 10
+        await conn.execute("UPDATE capybaras SET meta = $1 WHERE owner_id = $2", json.dumps(meta), uid)
+        
+        status_msg = "🌟 <b>ВИКОРИСТАНО ЩОТИЖНЕВИЙ ГАРАНТ!</b>" if used_weekly_bonus else "💎 Гарант: Epic (Лега ще в КД)"
+        
+        res_list = "\n".join(results_icons)
+        text = (
+            f"🎰 <b>МЕГА КУШ: 10 + 1 БОНУС</b>\n"
+            f"________________________________\n\n"
+            f"{res_list}\n"
+            f"________________________________\n"
+            f"{status_msg}\n"
+            f"🎁 Нових предметів: <b>{new_items_count}</b>\n"
+            f"🍉 Нарізано з повторок: <b>{watermelons_gain}</b>\n"
+            f"🎟️ Залишилось квитків: <b>{loot['lottery_ticket']}</b>"
+        )
+        
+        builder = InlineKeyboardBuilder()
+        builder.button(text="🎰 Знову (🎟️x10)", callback_data="gacha_guaranteed_10")
+        builder.button(text="🔙 Назад", callback_data="lottery")
+        builder.adjust(1)
+
+        await callback.message.edit_text(text, reply_markup=builder.as_markup(), parse_mode="HTML")
+
+    finally:
+        await conn.close()
 
 async def check_and_pay_for_spin(uid: int):
     conn = await get_db_connection()
