@@ -1,6 +1,7 @@
 from aiogram import html
 import random
 from config import UNITS_PER_HEART, BASE_HEARTS, BASE_HIT_CHANCE, STAT_WEIGHTS, BASE_BLOCK_CHANCE
+from data.special_abilities import *
 
 class Fighter:
     def __init__(self, capy, config_data, color="🔸"):
@@ -75,10 +76,20 @@ class CombatEngine:
             damage += 1
             crit_text = "💥 "
 
+        special_msg = ""
+        special_key = att.weapon_data.get("special")
+        
+        if special_key in ABILITY_REGISTRY:
+            if ABILITY_REGISTRY[special_key](att, defe):
+                json_special_text = att.weapon_data.get("special_text", "")
+                if json_special_text:
+                    special_msg = f"\n{json_special_text}"
+
         defe.hp = max(0, defe.hp - damage)
         
         raw_text = random.choice(att.weapon_data["texts"])
         attack_verb = raw_text.replace("{defen}", html.bold(defe.name))
         
         return (f"{crit_text}{att.color} {html.bold(att.name)} {attack_verb}!\n"
-                f"➔ Шкода: {html.bold('-' + str(damage) + ' HP')}")
+                f"➔ Шкода: {html.bold('-' + str(damage) + ' HP')}"
+                f"{special_msg}")
