@@ -5,7 +5,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from core.models import Fighter, CombatEngine
 from database.postgres_db import get_user_inventory, get_db_connection
-from config import BASE_HITPOINTS, ARTIFACTS
+from config import BASE_HITPOINTS, ARTIFACTS, RARITY_META
 GACHA_ITEMS = ARTIFACTS
 
 router = Router()
