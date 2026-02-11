@@ -28,7 +28,7 @@ async def cmd_feed(event: types.Message | types.CallbackQuery):
 
     if isinstance(result, dict) and result.get("status") == "cooldown":
         time_str = format_time(result["remaining"])
-        return await message.answer(f"⏳ Капібара сита! Зачекай ще {time_str)
+        return await message.answer(f"⏳ Капібара сита! Зачекай ще {time_str}")
 
     await message.answer(
         f"🍎 <b>Смакота!</b>\n"
