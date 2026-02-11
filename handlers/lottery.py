@@ -46,12 +46,13 @@ async def handle_gacha_spin(callback: types.CallbackQuery):
     await asyncio.sleep(1.5)
     
     rarity_key = random.choices(
-        ["Common", "Rare", "Epic", "Legendary"],
+        ["common", "rare", "epic", "legendary"],
         weights=[60, 25, 12, 3],
         k=1
     )[0]
-    item = random.choice(GACHA_ITEMS[rarity_key])
     
+    item = random.choice(GACHA_ITEMS[rarity_key.lower()])  
+
     await save_gacha_result(uid, meta, item, rarity_key)
 
     rarity_info = RARITY_META[rarity_key]
