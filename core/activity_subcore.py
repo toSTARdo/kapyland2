@@ -159,7 +159,7 @@ async def run_battle_logic(callback: types.CallbackQuery, opponent_id: int = Non
 
     round_num = 1
     while p1.hp > 0 and p2.hp > 0 and round_num <= 30:
-        report, _ = CombatEngine.resolve_turn(attacker, defender)
+        report = CombatEngine.resolve_turn(attacker, defender)
         
         full_report = (
             f"🏟 <b>Раунд {round_num}</b>\n"
