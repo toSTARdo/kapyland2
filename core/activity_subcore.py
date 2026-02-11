@@ -286,7 +286,7 @@ async def render_inventory_page(message, user_id, page="food", is_callback=False
     else:
         await message.answer(text, reply_markup=builder.as_markup(), parse_mode="HTML")
 
-@router.message(F.text.startswith("🎒")
+@router.message(F.text.startswith("🎒"))
 async def show_inventory_start(message: types.Message):
     await render_inventory_page(message, message.from_user.id, page="food")
 
