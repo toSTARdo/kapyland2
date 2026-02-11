@@ -1,6 +1,7 @@
 import asyncpg
 import json
 from config import POSTGRE_URL
+import datetime
 
 async def get_db_connection():
     return await asyncpg.connect(POSTGRE_URL)
@@ -87,8 +88,7 @@ async def get_user_profile(tg_id: int):
     finally:
         await conn.close()
 
-import datetime
-import json
+
 
 async def feed_capybara_logic(tg_id: int, weight_gain: float):
     conn = await get_db_connection()
@@ -134,7 +134,11 @@ def calculate_dynamic_stats(meta):
     now = datetime.datetime.now()
     hp = meta.get("stats", {}).get("hp", 3)
     
-    last_feed = datetime.datetime.fromisoformat(meta.get("last_feed", now.isoformat()))
+    val = meta.get("last_feed")
+    if val and isinstance(val, str):
+        last_feed = datetime.datetime.fromisoformat(val)
+    else:
+        last_feed = now
     days_since_feed = (now - last_feed).total_seconds() / 86400 
     
     hunger_loss = int(days_since_feed // 1)
@@ -144,7 +148,11 @@ def calculate_dynamic_stats(meta):
         starving_days = hunger_loss - 3
         hp -= starving_days
 
-    last_wash = datetime.datetime.fromisoformat(meta.get("last_wash", now.isoformat()))
+    val = meta.get("last_wash")
+    if val and isinstance(val, str):
+        last_wash = datetime.datetime.fromisoformat(val)
+    else:
+        last_wash = now
     days_since_wash = (now - last_wash).total_seconds() / 86400
     
     wash_loss = int(days_since_wash // 1)
