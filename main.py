@@ -2,6 +2,7 @@ import asyncio
 import logging
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
+from aiogram.fsm.storage.memory import MemoryStorage
 import config
 #==============================================================#
 from fastapi import FastAPI
