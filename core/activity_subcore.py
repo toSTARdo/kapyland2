@@ -103,13 +103,6 @@ async def get_fighter_data(tg_id: int, color: str, default_name: str = "Піра
     finally:
         await conn.close()
 
-@router.callback_query(F.data.startswith("accept_"))
-async def start_pvp_battle(callback: types.CallbackQuery):
-    challenger_id = int(callback.data.split("_")[1])
-    await callback.message.delete()
-    asyncio.create_task(cmd_fight(callback.message, opponent_id=challenger_id))
-    await callback.answer("Бій розпочато!")
-
 async def run_battle_logic(callback: types.CallbackQuery, opponent_id: int = None, is_bot: bool = False):
     bot = callback.bot
     message = callback.message
