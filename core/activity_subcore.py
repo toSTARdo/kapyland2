@@ -26,7 +26,7 @@ async def cmd_fight_lobby(message: types.Message):
         await conn.close()
 
     if not players:
-        return await message.answer("🏝 На архіпелазі дивно пусто і одиноко...")
+        await message.answer("🏝 На архіпелазі дивно пусто і одиноко...")
 
     builder = InlineKeyboardBuilder()
     for p in players:
