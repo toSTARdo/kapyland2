@@ -51,7 +51,7 @@ async def init_pg():
                         "mango": 7,
                         "kiwi": 2
                     },
-                    "loot": {"chest": 0, "key": 0},
+                    "loot": {"chest": 0, "key": 0, "lottery_ticket": 5},
                     "items": []
                 },
                 "equipment": {
