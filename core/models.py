@@ -64,7 +64,7 @@ class CombatEngine:
         if random.random() < defe.get_dodge_chance():
             return f"⚡ {html.bold(defe.name)} спритно ухилився від атаки!"
 
-        if random.random() < defe.calculate_block_chance():
+        if random.random() < defe.get_block_chance():
             armor_msg = defe.armor_data.get("text", "заблокував удар")
             return f"🔰 {html.bold(defe.name)} {armor_msg}!"
 
