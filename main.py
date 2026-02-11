@@ -13,6 +13,7 @@ from core.life_subcore import router as life_cmd_router
 from core.activity_subcore import router as activity_cmd_router
 from handlers.main_buttons import get_main_kb
 from handlers.setting import router as settings_router
+from handlers.lottery import router as lottery_router
 
 logging.basicConfig(level=logging.INFO)
 app = FastAPI()
@@ -23,6 +24,7 @@ dp = Dispatcher(storage=MemoryStorage())
 dp.include_router(life_cmd_router)
 dp.include_router(activity_cmd_router)
 dp.include_router(settings_router)
+dp.include_router(lottery_router)
 
 @app.get("/")
 async def health_check():
