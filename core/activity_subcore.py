@@ -150,7 +150,7 @@ async def run_battle_logic(callback: types.CallbackQuery, opponent_id: int = Non
         await asyncio.sleep(2)
         round_num += 1
 
-    elif p1.hp > 0 and p2.hp <= 0:
+    if p1.hp > 0 and p2.hp <= 0:
         res = f"🏆 <b>ПЕРЕМОГА {p1.color}!</b>\n{html.bold(p1.name)} розгромив суперника {html.bold(p2.name)} і показав хто тут справжній пірат!"
     elif p2.hp > 0 and p1.hp <= 0:
         res = f"👑 <b>ПЕРЕМОГА {p2.color}!</b>\n{html.bold(p2.name)} виявився сильнішим за {html.bold(p1.name)}. Всі капіледі і кавуновий ром його!"
