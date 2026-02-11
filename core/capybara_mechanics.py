@@ -1,4 +1,5 @@
 from database.postgres_db import get_db_connection
+from utils.helpers import calculate_lvl_data
 import datetime
 
 async def get_user_inventory(tg_id: int):
@@ -22,13 +23,11 @@ async def get_user_profile(tg_id: int):
     finally:
         await conn.close()
 
-
-
 async def feed_capybara_logic(tg_id: int, weight_gain: float):
     conn = await get_db_connection()
     try:
         row = await conn.fetchrow('''
-            SELECT c.meta, u.reincarnation_multiplier 
+            SELECT c.meta, c.exp, u.reincarnation_multiplier 
             FROM capybaras c 
             JOIN users u ON c.owner_id = u.tg_id 
             WHERE c.owner_id = $1
@@ -38,6 +37,7 @@ async def feed_capybara_logic(tg_id: int, weight_gain: float):
 
         meta = json.loads(row['meta']) if isinstance(row['meta'], str) else row['meta']
         multiplier = row['reincarnation_multiplier']
+        current_exp = row['exp'] or 0
 
         last_feed_str = meta.get("last_feed")
         if last_feed_str:
@@ -47,20 +47,27 @@ async def feed_capybara_logic(tg_id: int, weight_gain: float):
                 return {"status": "cooldown", "remaining": remaining}
 
         actual_gain = round((weight_gain * multiplier) * 2) / 2
+        exp_gain = int(actual_gain)
         
-        new_weight = meta.get("weight", 20.0) + actual_gain
-        new_hunger = min(meta.get("hunger", 0) + 1, 3)
-        
-        meta["weight"] = round(new_weight, 1)
-        meta["hunger"] = new_hunger
+        new_total_exp, new_lvl = calculate_lvl_data(current_exp, exp_gain)
+
+        meta["weight"] = round(meta.get("weight", 20.0) + actual_gain, 1)
+        meta["hunger"] = min(meta.get("hunger", 0) + 1, 3)
         meta["last_feed"] = datetime.datetime.now().isoformat()
 
-        await conn.execute(
-            "UPDATE capybaras SET meta = $1 WHERE owner_id = $2",
-            json.dumps(meta), tg_id
-        )
+        await conn.execute('''
+            UPDATE capybaras 
+            SET meta = $1, exp = $2, lvl = $3 
+            WHERE owner_id = $4
+        ''', json.dumps(meta), new_total_exp, new_lvl, tg_id)
         
-        return {"status": "success", "gain": actual_gain, "total": new_weight, "hunger": new_hunger}
+        return {
+            "status": "success", 
+            "gain": actual_gain, 
+            "exp_gain": exp_gain,
+            "lvl": new_lvl,
+            "total_weight": meta["weight"]
+        }
     finally:
         await conn.close()
 
@@ -107,3 +114,33 @@ def calculate_dynamic_stats(meta):
         meta.pop("mood", None)
 
     return meta
+
+async def wash_db_operation(tg_id: int):
+    conn = await get_db_connection()
+    try:
+        row = await conn.fetchrow("SELECT meta, exp FROM capybaras WHERE owner_id = $1", tg_id)
+        if not row: return "no_capy", None
+        
+        meta = json.loads(row['meta']) if isinstance(row['meta'], str) else row['meta']
+        
+        last_wash_str = meta.get("last_wash")
+        if last_wash_str:
+            last_wash = datetime.datetime.fromisoformat(last_wash_str)
+            diff = datetime.datetime.now() - last_wash
+            if diff < datetime.timedelta(hours=12:
+                remaining = datetime.timedelta(hours=12) - diff
+                return "cooldown", remaining
+
+        exp_gain = 1
+        new_exp, new_lvl = calculate_lvl_data(row['exp'], exp_gain)
+
+        meta["cleanness"] = 3
+        meta["last_wash"] = datetime.datetime.now().isoformat()
+        
+        await conn.execute('''
+            UPDATE capybaras SET meta = $1, exp = $2, lvl = $3 WHERE owner_id = $4
+        ''', json.dumps(meta), new_exp, new_lvl, tg_id)
+        
+        return "success", {"exp_gain": exp_gain, "lvl": new_lvl}
+    finally:
+        await conn.close()

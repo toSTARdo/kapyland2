@@ -5,34 +5,11 @@ from aiogram import Router, types, F
 from aiogram.filters import Command
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-from core.capybara_mechanics import get_user_profile, calculate_dynamic_stats, feed_capybara_logic
+from core.capybara_mechanics import get_user_profile, calculate_dynamic_stats, feed_capybara_logic, wash_db_operation
+from utils.helpers import format_time
 from database.postgres_db import get_db_connection
 
 router = Router()
-
-async def wash_db_operation(tg_id: int):
-    conn = await get_db_connection()
-    try:
-        row = await conn.fetchrow("SELECT meta FROM capybaras WHERE owner_id = $1", tg_id)
-        if not row: return "no_capy", None
-        
-        meta = json.loads(row['meta']) if isinstance(row['meta'], str) else row['meta']
-        
-        last_wash_str = meta.get("last_wash")
-        if last_wash_str:
-            last_wash = datetime.datetime.fromisoformat(last_wash_str)
-            diff = datetime.datetime.now() - last_wash
-            if diff < datetime.timedelta(hours=1):
-                remaining = datetime.timedelta(hours=1) - diff
-                return "cooldown", remaining
-
-        meta["cleanness"] = 3
-        meta["last_wash"] = datetime.datetime.now().isoformat()
-        
-        await conn.execute("UPDATE capybaras SET meta = $1 WHERE owner_id = $2", json.dumps(meta), tg_id)
-        return "success", None
-    finally:
-        await conn.close()
 
 @router.callback_query(F.data == "feed_capy")
 @router.message(Command("feed"))
@@ -50,12 +27,13 @@ async def cmd_feed(event: types.Message | types.CallbackQuery):
         return await message.answer("❌ У тебе немає капібари! Натисни /start")
 
     if isinstance(result, dict) and result.get("status") == "cooldown":
-        rem = result["remaining"]
-        return await message.answer(f"⏳ Капібара сита! Зачекай ще {rem.seconds // 60} хв.")
+        time_str = format_time(result["remaining"])
+        return await message.answer(f"⏳ Капібара сита! Зачекай ще {time_str)
 
     await message.answer(
-        f"🍎 <b>Смакота!</b>\nНабрала: <b>+{result['gain']} кг</b>\n"
-        f"Вага: <b>{result['total']} кг</b>\n"
+        f"🍎 <b>Смакота!</b>\n"
+        f"Набрала: <b>+{result['gain']} кг</b> (✨ +{result['exp_gain']} EXP)\n"
+        f"Вага: <b>{result['total_weight']} кг</b> | Рівень: <b>{result['lvl']}</b>\n"
         f"🍏 Ситість: {'🍏' * result['hunger']}",
         parse_mode="HTML"
     )
@@ -74,9 +52,15 @@ async def cmd_wash(event: types.Message | types.CallbackQuery):
     if status == "no_capy":
         await message.answer("❌ У тебе немає капібари!")
     elif status == "cooldown":
-        await message.answer(f"🧼 Вона ще чиста! Зачекай {remaining.seconds // 60} хв.")
+        time_str = format_time(result["remaining"])
+        await message.answer(f"🧼 Вона ще чиста! Зачекай {time_str}")
     else:
-        await message.answer("🧼 Капібара скупалася та сяє!")
+        await message.answer(
+            f"🧼 <b>Капібара скупалася та сяє!</b>\n"
+            f"Отримано: ✨ <b>+{data['exp_gain']} EXP</b>\n"
+            f"Поточний рівень: <b>{data['lvl']}</b>",
+            parse_mode="HTML"
+        )
 
 @router.callback_query(F.data == "sleep_capy")
 @router.message(Command("sleep"))
