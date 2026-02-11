@@ -56,7 +56,7 @@ async def set_layout_callback(callback: types.CallbackQuery):
     finally:
         await conn.close()
 
-    layouts = {0: "Стандартне", 1: "Компактне", 2: "Тільки іконки", 3:"Тамагочі-центрична" 4:"РПГ-центрична" 5:"Пригодницько-центрична" 6:"Кастомна"}
+    layouts = {0: "Стандартне", 1: "Компактне", 2: "Тільки іконки", 3:"Тамагочі-центрична", 4:"РПГ-центрична", 5:"Пригодницько-центрична", 6:"Кастомна"}
     
     await callback.answer(f"✅ Встановлено: {layouts[layout_id]}")
     await callback.message.answer(
