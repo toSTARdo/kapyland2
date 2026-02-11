@@ -120,7 +120,7 @@ async def run_battle_logic(callback: types.CallbackQuery, opponent_id: int = Non
     bot = callback.bot
     message = callback.message
     uid = callback.from_user.id
-    chat_id = parent_msg.chat.id
+    chat_id = message.chat.id
     user_name = callback.from_user.first_name
 
     conn = await get_db_connection()
