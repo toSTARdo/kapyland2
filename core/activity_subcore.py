@@ -4,7 +4,8 @@ from aiogram.filters import Command
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from core.models import Fighter, CombatEngine
-from database.postgres_db import get_user_inventory, get_db_connection
+from core.capybara_mechanics import get_user_inventory
+from database.postgres_db import get_db_connection
 from config import BASE_HITPOINTS, ARTIFACTS, RARITY_META, WEAPON, ARMOR
 GACHA_ITEMS = ARTIFACTS
 

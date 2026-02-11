@@ -5,12 +5,8 @@ from aiogram import Router, types, F
 from aiogram.filters import Command
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-from database.postgres_db import (
-    get_user_profile, 
-    calculate_dynamic_stats, 
-    get_db_connection, 
-    feed_capybara_logic
-)
+from core.capybara_mechanics import get_user_profile, calculate_dynamic_stats, feed_capybara_logic
+from database.postgres_db import get_db_connection
 
 router = Router()
 
