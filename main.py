@@ -17,7 +17,7 @@ from handlers.lottery import router as lottery_router
 from core.map import router as map_router
 from handlers.start import router as prolog_router
 from handlers.start import render_story_node
-from middlewares.capy_guard import CapyGuardMiddleware
+from middleware.capy_guard import CapyGuardMiddleware
 
 logging.basicConfig(level=logging.INFO)
 app = FastAPI()
