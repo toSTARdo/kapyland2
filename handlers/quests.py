@@ -12,7 +12,7 @@ with open("data/quests_narrative.json", "r", encoding="utf-8") as f:
     QUEST_PLOTS = DATA["QUEST_PLOTS"]
     RUMOR_COMPONENTS = DATA["RUMOR_COMPONENTS"]
 
-@router.message(F.text.contains("📜") | Command("quests"))
+@router.message(F.text.contains("📜"))
 async def cmd_quests_board(message: types.Message):
     intro = random.choice(RUMOR_COMPONENTS["intros"])
     hint = random.choice(RUMOR_COMPONENTS["hints"])
