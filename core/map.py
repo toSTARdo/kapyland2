@@ -26,14 +26,14 @@ def get_biome_name(py, map_height):
     else: return "🏝️ Архіпелаг Джуа"
 
 def render_pov(px, py, discovered_list, mode="ship"):
-    win_w, win_h = 13, 7
+    win_w, win_h = 15, 8
     icon = SHIP_ICON if mode == "ship" else PLAYER_ICON
     start_x = max(0, min(MAP_WIDTH - win_w, px - win_w // 2))
     start_y = max(0, min(MAP_HEIGHT - win_h, py - win_h // 2))
     
     discovered_set = set(discovered_list)
     
-    rows = ["<code>╔" + "═" * (win_w) + "╗"]
+    rows = ["═" * (win_w)]
     for y in range(start_y, start_y + win_h):
         display_row = []
         for x in range(start_x, start_x + win_w):
@@ -44,7 +44,7 @@ def render_pov(px, py, discovered_list, mode="ship"):
             else:
                 display_row.append(FOG_ICON)
         rows.append(f"{''.join(display_row)}")
-    rows.append("╚" + "═" * (win_w) + "╝</code>")
+    rows.append("═" * (win_w))
     return "\n".join(rows)
 
 def get_map_keyboard(px, py, mode):
@@ -55,7 +55,6 @@ def get_map_keyboard(px, py, mode):
         types.InlineKeyboardButton(text="⬇️", callback_data=f"mv:down:{px}:{py}:{mode}"),
         types.InlineKeyboardButton(text="➡️", callback_data=f"mv:right:{px}:{py}:{mode}")
     )
-    builder.row(types.InlineKeyboardButton(text="😴 Залягти в сплячку (2 год)", callback_data="sleep_capy"))
     return builder.as_markup()
 
 @router.message(F.text.startswith("🗺️"))
@@ -66,8 +65,8 @@ async def cmd_map(message: types.Message):
         row = await conn.fetchrow("SELECT meta FROM capybaras WHERE owner_id = $1", uid)
         meta = json.loads(row['meta']) if row else {}
         
-        px = meta.get("x", 76)
-        py = meta.get("y", 140)
+        px = meta.get("x", 77)
+        py = meta.get("y", 144)
         stamina = meta.get("stamina", 100)
         mode = meta.get("mode", "capy")
         discovered = meta.get("discovered", [])
@@ -110,7 +109,7 @@ async def handle_move(callback: types.CallbackQuery):
         stamina = meta.get("stamina", 100)
 
         if stamina < 1:
-            await callback.answer("🪫 Енергія на нулі! Треба поспати. 😴", show_alert=True)
+            await callback.answer("Енергія на нулі! Нема сил бродити. 😴", show_alert=True)
             return
 
         target_tile = FULL_MAP[ny][nx]
