@@ -1,4 +1,4 @@
-import asyncio, json
+import asyncio, json, random
 from aiogram import Router, types, html, F
 from aiogram.filters import Command
 from aiogram.utils.keyboard import InlineKeyboardBuilder
@@ -75,7 +75,7 @@ async def battle_declined(callback: types.CallbackQuery):
 @router.callback_query(F.data.startswith("accept_"))
 async def handle_accept(callback: types.CallbackQuery):
     challenger_id = int(callback.data.split("_")[1])
-    await callback.message.edit_text("🚀 Бій прийнято! Починаємо...")
+    await callback.message.edit_text("🚀 Бій прийнято! Починаємо (-5 ⚡)...")
     asyncio.create_task(run_battle_logic(callback, opponent_id=challenger_id))
     await callback.answer()
 
@@ -178,9 +178,14 @@ async def run_battle_logic(callback: types.CallbackQuery, opponent_id: int = Non
         await asyncio.sleep(2.3)
         round_num += 1
 
+    winner, loser = None, None
     if p1.hp > 0 and p2.hp <= 0:
+        winner, loser = p1, p2
+        winner_id, loser_id = uid, opponent_id
         res = f"🏆 <b>ПЕРЕМОГА {p1.color}!</b>\n{html.bold(p1.name)} розгромив суперника {html.bold(p2.name)}!"
     elif p2.hp > 0 and p1.hp <= 0:
+        winner, loser = p2, p1
+        winner_id, loser_id = opponent_id, uid
         res = f"👑 <b>ПЕРЕМОГА {p2.color}!</b>\n{html.bold(p2.name)} виявився сильнішим за {html.bold(p1.name)}!"
     else: 
         res = "🤝 <b>НІЧИЯ! Капі обезсилені впали на травичку...</b>"
@@ -189,6 +194,34 @@ async def run_battle_logic(callback: types.CallbackQuery, opponent_id: int = Non
     if msg2:
         try: await msg2.answer(res, parse_mode="HTML")
         except: pass
+
+    if winner and loser:
+        conn = await get_db_connection()
+        try:
+            await conn.execute("""
+                UPDATE capybaras SET meta = meta || 
+                jsonb_build_object(
+                    'weight', (meta->>'weight')::float + 3.0,
+                    'stamina', GREATEST((meta->>'stamina')::int - 5, 0),
+                    'exp', (meta->>'exp')::int + 3
+                ) WHERE owner_id = $1
+            """, winner_id)
+
+            if not (is_bot and loser_id == opponent_id):
+                await conn.execute("""
+                    UPDATE capybaras SET meta = meta || 
+                    jsonb_build_object(
+                        'weight', LEAST(GREATEST((meta->>'weight')::float - 3.0, 1.0), 500.0),
+                        'stamina', GREATEST((meta->>'stamina')::int - 5, 0)
+                    ) WHERE owner_id = $1
+                """, loser_id)
+            
+            reward_msg = f"📈 <b>Підсумки бою:</b>\n🥇 {winner.name}: +3 кг, +3 EXP\n🥈 {loser.name}: -3 кг"
+            await msg1.answer(reward_msg, parse_mode="HTML")
+            if msg2: await msg2.answer(reward_msg, parse_mode="HTML")
+
+        finally:
+            await conn.close()
 
 async def render_inventory_page(message, user_id, page="food", is_callback=False):
     meta_data = await get_user_inventory(user_id)

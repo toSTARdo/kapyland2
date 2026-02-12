@@ -81,6 +81,17 @@ def create_scale(current, max_val, emoji, empty_emoji='▫️'):
     current = max(0, min(int(current), max_val))
     return f"{emoji * current}{empty_emoji * (max_val - current)} ({current}/{max_val})"
 
+def get_stamina_icons(current_stamina):
+    current_stamina = int(current_stamina)
+    if current_stamina > 66:
+        return "⚡⚡⚡"
+    elif current_stamina > 33:
+        return "⚡⚡ ●"
+    elif current_stamina > 0:
+        return "⚡ ● ●"
+    else:
+        return "● ● ●"
+
 @router.message(F.text.startswith("🐾"))
 async def show_profile(message: types.Message):
     uid = message.from_user.id
@@ -100,7 +111,7 @@ async def show_profile(message: types.Message):
         f"❤️ ХП: {create_scale(meta.get('stats', {}).get('hp', 3), 3, '❤️', '🖤')}\n"
         f"🍏 Ситість: {create_scale(meta.get('hunger', 3), 3, '🍏', '●')}\n"
         f"🧼 Гігієна: {create_scale(meta.get('cleanness', 3), 3, '🧼', '🦠')}\n"
-        f"⚡ Енергія: <b>{data['energy']}/100</b>"
+        f"⚡ Енергія: <b>{get_stamina_icons(data['stamina'])}</b>"
     )
 
     builder = InlineKeyboardBuilder()

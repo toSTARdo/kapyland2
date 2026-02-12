@@ -28,11 +28,16 @@ async def init_pg():
             name TEXT NOT NULL DEFAULT 'Безіменна булочка',
             lvl INTEGER DEFAULT 1,
             exp INTEGER DEFAULT 0,
-            energy INTEGER DEFAULT 100,
             wins INTEGER DEFAULT 0,
             losses INTEGER DEFAULT 0,
             win_streak INTEGER DEFAULT 0,
             meta JSONB DEFAULT '{
+                "x": 76,
+                "y": 140,
+                "stamina": 100,
+                "status": "active",
+                "wake_up": null,
+                "mode": "capy",
                 "weight": 20.0,
                 "hunger": 3,
                 "cleanness": 3,
@@ -53,7 +58,7 @@ async def init_pg():
                         "kiwi": 2
                     },
                     "loot": {"chest": 0, "key": 0, "lottery_ticket": 5},
-                    "items": []
+                    "equipment": []
                 },
                 "equipment": {
                     "weapon": "Лапки",

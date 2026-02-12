@@ -24,6 +24,17 @@ POSTGRE_URL = os.getenv("POSTGRE_URL")
 
 #===================CONSTANTS============================#
 
+    #STAMINA_CONST:
+STAMINA_COSTS = {
+    "move": 1,
+    "fight_1v1": 5,
+    "brawl": 10,
+    "boss": 15,
+    "guild_boss": 5,
+    "ram": 15,
+    "steal": 5
+}
+
     #FIGHT_CONSTS:
 BASE_HIT_CHANCE = 0.33
 BASE_HEARTS = 3
