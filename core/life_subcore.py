@@ -106,7 +106,7 @@ def get_stamina_icons(current_stamina):
         return "● ● ●"
 
 def get_general_profile_text(data, meta):
-    mood = "₍ᐢ꩜(τ)꩜ᐢ₎" # Твій фірмовий стиль
+    mood = "ദ്ദി₍ᐢ•(ܫ)•ᐢ₎"
     stamina_val = meta.get('stamina', 100)
     
     return (
