@@ -29,8 +29,10 @@ async def init_pg():
             lvl INTEGER DEFAULT 1,
             exp INTEGER DEFAULT 0,
             wins INTEGER DEFAULT 0,
-            losses INTEGER DEFAULT 0,
+            total_fights INTEGER DEFAULT 0,
             win_streak INTEGER DEFAULT 0,
+            karma INTEGER DEFAULT 0,
+            zen INTEGER DEFAULT 0,
             meta JSONB DEFAULT '{
                 "x": 76,
                 "y": 140,

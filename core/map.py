@@ -3,10 +3,15 @@ import datetime
 from aiogram import types, F, Router
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from database.postgres_db import get_db_connection
+from handlers.quests import start_branching_quest
 
 from config import FULL_MAP, PLAYER_ICON, SHIP_ICON
 
 router = Router()
+
+COORD_QUESTS = {
+    "15,128": "carpathian_pearl"
+}
 
 MAP_HEIGHT = len(FULL_MAP)
 MAP_WIDTH = len(FULL_MAP[0])
@@ -104,12 +109,14 @@ async def handle_move(callback: types.CallbackQuery):
 
     conn = await get_db_connection()
     try:
-        row = await conn.fetchrow("SELECT meta FROM capybaras WHERE owner_id = $1", uid)
+        row = await conn.fetchrow("SELECT meta, zen, karma FROM capybaras WHERE owner_id = $1", uid)
         meta = json.loads(row['meta'])
         stamina = meta.get("stamina", 100)
+        zen = row['zen']
+        karma = row['karma']
 
         if stamina < 1:
-            await callback.answer("Енергія на нулі! Нема сил бродити. 😴", show_alert=True)
+            await callback.answer("Енергія на нулі! Нема сил бродити...", show_alert=True)
             return
 
         target_tile = FULL_MAP[ny][nx]
@@ -122,6 +129,14 @@ async def handle_move(callback: types.CallbackQuery):
             if target_tile not in WATER_TILES: x, y = nx, ny
             else: x, y, new_mode = nx, ny, "ship"; await callback.answer("На борт! ⚓")
 
+        coord_key = f"{x},{y}"
+        if coord_key in COORD_QUESTS:
+            curr_q = await conn.fetchrow("SELECT current_quest FROM capybaras WHERE owner_id = $1", uid)
+            if not curr_q or not curr_q['current_quest']:
+                await callback.answer("🧭 Щось проявляється через туман...")
+                return await start_branching_quest(callback, COORD_QUESTS[coord_key])
+
+        old_disc_count = len(meta.get("discovered", []))
         discovered_set = set(meta.get("discovered", []))
         for dy in range(-1, 2):
             for dx in range(-1, 2):
@@ -130,8 +145,11 @@ async def handle_move(callback: types.CallbackQuery):
                     discovered_set.add(f"{scan_x},{scan_y}")
         
         new_discovered = list(discovered_set)
+        if len(new_discovered) > old_disc_count and len(new_discovered) % 30 == 0:
+            zen += 1
+            await callback.answer("🧘 Мудрість зростає! +1 Дзен")
+
         new_stamina = stamina - 1
-        
         meta.update({
             "x": x, 
             "y": y, 
@@ -140,7 +158,8 @@ async def handle_move(callback: types.CallbackQuery):
             "discovered": new_discovered
         })
         
-        await conn.execute("UPDATE capybaras SET meta = $1 WHERE owner_id = $2", json.dumps(meta, ensure_ascii=False), uid)
+        await conn.execute("UPDATE capybaras SET meta = $1, zen = $2 WHERE owner_id = $3", 
+                           json.dumps(meta, ensure_ascii=False), zen, uid)
 
     finally: await conn.close()
 
@@ -149,8 +168,8 @@ async def handle_move(callback: types.CallbackQuery):
     map_display = render_pov(x, y, new_discovered, new_mode)
     
     text = (f"📍 <b>Карта ({x}, {y})</b> | {st_icons}\n"
-            f"🧭 Біом: {biome}\n"
-            f"🔋 Енергія: {new_stamina}/100\n\n"
+            f"🧭 Біом: {biome} | ✨ Дзен: {zen}\n"
+            f"🔋 Енергія: {new_stamina}/100 | ⚖️ Карма: {karma}\n\n"
             f"{map_display}")
 
     try:

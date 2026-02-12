@@ -105,38 +105,106 @@ def get_stamina_icons(current_stamina):
     else:
         return "● ● ●"
 
+def get_general_profile_text(data, meta):
+    mood = "₍ᐢ꩜(τ)꩜ᐢ₎" # Твій фірмовий стиль
+    stamina_val = meta.get('stamina', 100)
+    
+    return (
+        f"<b>{mood} {data['name']}</b>\n"
+        f"________________________________\n\n"
+        f"🌟 Рівень: <b>{data['lvl']}</b>\n"
+        f"✳️ Капі-дзен: <b>{data['zen']}</b>\n"
+        f"✴️ Капі-карма: <b>{data['karma']}</b>\n"
+        f"⚖️ Вага: <b>{meta.get('weight', 20.0):.2f} кг</b>\n\n"
+        f"ХП: {create_scale(meta.get('stats', {}).get('hp', 3), 3, '❤️', '🖤')}\n"
+        f"Ситість: {create_scale(meta.get('hunger', 3), 3, '🍏', '●')}\n"
+        f"Гігієна: {create_scale(meta.get('cleanness', 3), 3, '🧼', '🦠')}\n"
+        f"⚡ Енергія: <b>{get_stamina_icons(stamina_val)}</b>"
+    )
+
+def get_fight_stats_text(data, meta):
+    stats = meta.get('stats', {})
+    equip = meta.get('equipment', {})
+    win_rate = (data['wins'] / (data['wins'] + data['total_fights']) * 100) if (data['wins'] + data['total_fights']) > 0 else 0
+    
+    return (
+        f"<b>⚔️ БОЙОВІ ХАРАКТЕРИСТИКИ</b>\n"
+        f"<b>{data['name']}</b>\n"
+        f"________________________________\n\n"
+        f"🏆 Відсоток перемог: <b>{win_rate:.1f}%</b>\n"
+        f"⚔️ Зброя: <b>{equip.get('weapon', 'Лапки')}</b>\n"
+        f"🔰 Броня: <b>{equip.get('armor', 'Хутро')}</b>\n\n"
+        f"✨ Благословення: <i>---</i>\n"
+        f"💀 Прокляття: <i>---</i>\n"
+        f"________________________________\n\n"
+        f"<b>Показники:</b>\n"
+        f"🔥 ATK: <b>{stats.get('attack', 1)}</b>  |  "
+        f"🛡️ DEF: <b>{stats.get('defense', 1)}</b>\n"
+        f"💨 AGI: <b>{stats.get('agility', 1)}</b>  |  "
+        f"🍀 LCK: <b>{stats.get('luck', 1)}</b>\n"
+        f"❤️ HP: <b>{stats.get('hp', 3)}</b>"
+    )
+
 @router.message(F.text.startswith("🐾"))
 async def show_profile(message: types.Message):
     uid = message.from_user.id
     data = await get_user_profile(uid)
+    if not data: return await message.answer("❌ Капібару не знайдено.")
+
+    meta = json.loads(data['meta']) if isinstance(data['meta'], str) else data['meta']
     
-    if not data:
-        return await message.answer("❌ Капібару не знайдено.")
-
-    meta = data['meta']
-    if isinstance(meta, str): meta = json.loads(meta)
-    meta = calculate_dynamic_stats(meta)
-
-    stamina_val = meta.get('stamina', 100)
-    mood = MOODS["cool"]
-
-    profile_text = (
-        f"<b>{mood} {data['name']}</b>\n"
-        f"🌟 Рівень: <b>{data['lvl']}</b>\n"
-        f"⚖️ Вага: <b>{meta.get('weight', 20.0):.2f} кг</b>\n\n"
-        f"❤️ ХП: {create_scale(meta.get('stats', {}).get('hp', 3), 3, '❤️', '🖤')}\n"
-        f"🍏 Ситість: {create_scale(meta.get('hunger', 3), 3, '🍏', '●')}\n"
-        f"🧼 Гігієна: {create_scale(meta.get('cleanness', 3), 3, '🧼', '🦠')}\n"
-        f"⚡ Енергія: <b>{get_stamina_icons(stamina_val)}</b>"
-    )
-
     builder = InlineKeyboardBuilder()
+    builder.button(text="⚔️ Бойові характеристики", callback_data="stats_page")
     builder.button(text="🍎 Годувати", callback_data="feed_capy")
     builder.button(text="🧼 Мити", callback_data="wash_capy")
-    builder.button(text="💤 Спати (2 год)", callback_data="sleep_capy")
-    builder.button(text="🧤 Обікрасти", callback_data="steal")
-    builder.button(text="🪵 Протаранити", callback_data="ram")
-    builder.button(text="🎣 Рибалити", callback_data="fish")
-    builder.adjust(3)
+    builder.button(text="💤 Сон", callback_data="sleep_capy")
+    builder.button(text="🧤 Красти", callback_data="steal")
+    builder.button(text="🪵 Таран", callback_data="ram")
+    builder.button(text="🎣 Риба", callback_data="fish")
+    
+    builder.adjust(1, 3, 3)
 
-    await message.answer(profile_text, reply_markup=builder.as_markup(), parse_mode="HTML")
+    await message.answer(
+        get_general_profile_text(data, meta), 
+        reply_markup=builder.as_markup(), 
+        parse_mode="HTML"
+    )
+
+@router.callback_query(F.data == "stats_page")
+async def show_stats_callback(callback: types.CallbackQuery):
+    uid = callback.from_user.id
+    data = await get_user_profile(uid)
+    meta = json.loads(data['meta']) if isinstance(data['meta'], str) else data['meta']
+    
+    builder = InlineKeyboardBuilder()
+    builder.button(text="🔙 Назад", callback_data="profile_back")
+    builder.button(text="🪷 Медитація", callback_data="zen_upgrade")
+    builder.adjust(1)
+
+    await callback.message.edit_text(
+        get_fight_stats_text(data, meta),
+        reply_markup=builder.as_markup(),
+        parse_mode="HTML"
+    )
+
+@router.callback_query(F.data == "profile_back")
+async def profile_back_callback(callback: types.CallbackQuery):
+    uid = callback.from_user.id
+    data = await get_user_profile(uid)
+    meta = json.loads(data['meta']) if isinstance(data['meta'], str) else data['meta']
+    
+    builder = InlineKeyboardBuilder()
+    builder.button(text="⚔️ Бойові характеристики", callback_data="stats_page")
+    builder.button(text="🍎 Годувати", callback_data="feed_capy")
+    builder.button(text="🧼 Мити", callback_data="wash_capy")
+    builder.button(text="💤 Сон", callback_data="sleep_capy")
+    builder.button(text="🧤 Красти", callback_data="steal")
+    builder.button(text="🪵 Таран", callback_data="ram")
+    builder.button(text="🎣 Риба", callback_data="fish")
+    builder.adjust(1, 3, 3)
+
+    await callback.message.edit_text(
+        get_general_profile_text(data, meta),
+        reply_markup=builder.as_markup(),
+        parse_mode="HTML"
+    )
