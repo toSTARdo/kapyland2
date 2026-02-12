@@ -151,7 +151,7 @@ async def sleep_db_operation(tg_id: int):
     conn = await get_db_connection()
     try:
         row = await conn.fetchrow("SELECT meta FROM capybaras WHERE owner_id = $1", tg_id)
-        if not row: return "no_capy"
+        if not row: return "no_capy", None
         
         meta = json.loads(row['meta']) if isinstance(row['meta'], str) else row['meta']
         
@@ -164,6 +164,6 @@ async def sleep_db_operation(tg_id: int):
             "UPDATE capybaras SET meta = $1 WHERE owner_id = $2", 
             json.dumps(meta, ensure_ascii=False), tg_id
         )
-        return "success"
+        return "success", None
     finally:
         await conn.close()

@@ -34,6 +34,7 @@ async def init_pg():
             meta JSONB DEFAULT '{
                 "x": 76,
                 "y": 140,
+                "discovered": ["76,140"],
                 "stamina": 100,
                 "status": "active",
                 "wake_up": null,

@@ -8,6 +8,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from core.capybara_mechanics import get_user_profile, calculate_dynamic_stats, feed_capybara_logic, wash_db_operation, sleep_db_operation
 from utils.helpers import format_time
 from database.postgres_db import get_db_connection
+from config import MOODS
 
 router = Router()
 
@@ -117,9 +118,10 @@ async def show_profile(message: types.Message):
     meta = calculate_dynamic_stats(meta)
 
     stamina_val = meta.get('stamina', 100)
+    mood = MOODS["cool"]
 
     profile_text = (
-        f"<b>₍ᐢ-(ェ)-ᐢ₎ {data['name']}</b>\n"
+        f"<b>{mood} {data['name']}</b>\n"
         f"🌟 Рівень: <b>{data['lvl']}</b>\n"
         f"⚖️ Вага: <b>{meta.get('weight', 20.0):.2f} кг</b>\n\n"
         f"❤️ ХП: {create_scale(meta.get('stats', {}).get('hp', 3), 3, '❤️', '🖤')}\n"
@@ -131,7 +133,7 @@ async def show_profile(message: types.Message):
     builder = InlineKeyboardBuilder()
     builder.button(text="🍎 Годувати", callback_data="feed_capy")
     builder.button(text="🧼 Мити", callback_data="wash_capy")
-    builder.button(text="💤 Спати", callback_data="sleep_capy")
+    builder.button(text="💤 Спати (2 год)", callback_data="sleep_capy")
     builder.adjust(3)
 
     await message.answer(profile_text, reply_markup=builder.as_markup(), parse_mode="HTML")
