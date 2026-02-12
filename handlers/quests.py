@@ -7,7 +7,7 @@ from database.postgres_db import get_db_connection
 
 router = Router()
 
-with open("data/quests_narratives.json", "r", encoding="utf-8") as f:
+with open("data/quests_narrative.json", "r", encoding="utf-8") as f:
     DATA = json.load(f)
     QUEST_PLOTS = DATA["QUEST_PLOTS"]
     RUMOR_COMPONENTS = DATA["RUMOR_COMPONENTS"]
