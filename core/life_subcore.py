@@ -81,7 +81,7 @@ def create_scale(current, max_val, emoji, empty_emoji='▫️'):
     current = max(0, min(int(current), max_val))
     return f"{emoji * current}{empty_emoji * (max_val - current)} ({current}/{max_val})"
 
-@router.message(F.text == "🐾 Профіль")
+@router.message(F.text.startswith("🐾"))
 async def show_profile(message: types.Message):
     uid = message.from_user.id
     data = await get_user_profile(uid)

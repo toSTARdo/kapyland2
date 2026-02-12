@@ -14,6 +14,7 @@ from core.activity_subcore import router as activity_cmd_router
 from handlers.main_buttons import get_main_kb
 from handlers.setting import router as settings_router
 from handlers.lottery import router as lottery_router
+from core.map import router as map_router
 from handlers.start import router as prolog_router
 from handlers.start import render_story_node
 
@@ -28,6 +29,7 @@ dp.include_router(life_cmd_router)
 dp.include_router(activity_cmd_router)
 dp.include_router(settings_router)
 dp.include_router(lottery_router)
+dp.include_router(map_router)
 
 @app.get("/")
 async def health_check():
