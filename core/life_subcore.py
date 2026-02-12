@@ -47,18 +47,20 @@ async def cmd_wash(event: types.Message | types.CallbackQuery):
     if isinstance(event, types.CallbackQuery):
         await event.answer()
 
-    status, remaining = await wash_db_operation(uid) 
+    status, result_data = await wash_db_operation(uid) 
     
     if status == "no_capy":
-        await message.answer("❌ У тебе немає капібари!")
+        return await message.answer("❌ У тебе немає капібари!")
+        
     elif status == "cooldown":
-        time_str = format_time(result["remaining"])
-        await message.answer(f"🧼 Вона ще чиста! Зачекай {time_str}")
-    else:
+        time_str = format_time(result_data) 
+        return await message.answer(f"🧼 Вона ще чиста! Зачекай {time_str}")
+        
+    elif status == "success":
         await message.answer(
             f"🧼 <b>Капібара скупалася та сяє!</b>\n"
-            f"Отримано: ✨ <b>+{data['exp_gain']} EXP</b>\n"
-            f"Поточний рівень: <b>{data['lvl']}</b>",
+            f"Отримано: ✨ <b>+{result_data['exp_gain']} EXP</b>\n"
+            f"Поточний рівень: <b>{result_data['lvl']}</b>",
             parse_mode="HTML"
         )
 

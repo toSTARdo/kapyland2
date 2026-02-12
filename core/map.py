@@ -95,7 +95,7 @@ async def handle_move(callback: types.CallbackQuery):
     try:
         row = await conn.fetchrow("SELECT meta FROM capybaras WHERE owner_id = $1", uid)
         meta = json.loads(row['meta'])
-        stamina = meta.get("energy", 100)
+        stamina = meta.get("stamina", 100)
 
         if stamina < 1:
             await callback.answer("🪫 Енергія на нулі! Твоя капібара ледь переставляє лапки. Треба поспати. 😴", show_alert=True)

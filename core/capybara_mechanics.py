@@ -15,7 +15,7 @@ async def get_user_profile(tg_id: int):
     conn = await get_db_connection()
     try:
         query = '''
-            SELECT u.username, u.reincarnation_count, c.name, c.lvl, c.exp, c.energy, c.meta 
+            SELECT u.username, u.reincarnation_count, c.name, c.lvl, c.exp, c.meta 
             FROM users u 
             JOIN capybaras c ON u.tg_id = c.owner_id 
             WHERE u.tg_id = $1
@@ -60,14 +60,15 @@ async def feed_capybara_logic(tg_id: int, weight_gain: float):
             UPDATE capybaras 
             SET meta = $1, exp = $2, lvl = $3 
             WHERE owner_id = $4
-        ''', json.dumps(meta), new_total_exp, new_lvl, tg_id)
+        ''', json.dumps(meta, ensure_ascii=False), new_total_exp, new_lvl, tg_id)
         
         return {
             "status": "success", 
             "gain": actual_gain, 
             "exp_gain": exp_gain,
             "lvl": new_lvl,
-            "total_weight": meta["weight"]
+            "total_weight": meta["weight"],
+            "hunger": meta["hunger"] 
         }
     finally:
         await conn.close()
