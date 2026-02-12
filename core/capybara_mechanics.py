@@ -1,6 +1,7 @@
 from database.postgres_db import get_db_connection
 from utils.helpers import calculate_lvl_data
 import datetime
+import json
 
 async def get_user_inventory(tg_id: int):
     conn = await get_db_connection()

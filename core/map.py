@@ -49,7 +49,6 @@ def get_map_keyboard(px, py, mode):
     )
     return builder.as_markup()
 
-@router.message(Command("map"))
 @router.message(F.text.startswith("🗺️"))
 async def cmd_map(message: types.Message):
     px, py = 76, 140 
