@@ -5,7 +5,7 @@ from aiogram import Router, types, F
 from aiogram.filters import Command
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-from core.capybara_mechanics import get_user_profile, calculate_dynamic_stats, feed_capybara_logic, wash_db_operation
+from core.capybara_mechanics import get_user_profile, calculate_dynamic_stats, feed_capybara_logic, wash_db_operation, sleep_db_operation
 from utils.helpers import format_time
 from database.postgres_db import get_db_connection
 
@@ -73,12 +73,22 @@ async def cmd_sleep(event: types.Message | types.CallbackQuery):
     if isinstance(event, types.CallbackQuery):
         await event.answer()
 
-    result = await sleep_db_operation(uid) 
-    if result == "no_capy":
-        await message.answer("❌ У тебе немає капібари!")
-    else:
-        await message.answer("💤 Капібара відпочила, енергія: 100%")
+    status, result_data = await sleep_db_operation(uid) 
+    
+    if status == "no_capy":
+        return await message.answer("❌ У тебе немає капібари!")
+    
+    if status == "already_sleeping":
+        time_str = format_time(result_data)
+        return await message.answer(f"💤 Капібара вже бачить сни. Прокинеться через: <b>{time_str}</b>", parse_mode="HTML")
 
+    if status == "success":
+        await message.answer(
+            "💤 <b>Капібара згорнулася калачиком...</b>\n"
+            "Вона буде спати 2 години, щоб повністю відновити 100% ⚡.\n\n"
+            "<i>У цей час вона не зможе битися або подорожувати.</i>",
+            parse_mode="HTML"
+        )
 def create_scale(current, max_val, emoji, empty_emoji='▫️'):
     current = max(0, min(int(current), max_val))
     return f"{emoji * current}{empty_emoji * (max_val - current)} ({current}/{max_val})"
@@ -106,6 +116,8 @@ async def show_profile(message: types.Message):
     if isinstance(meta, str): meta = json.loads(meta)
     meta = calculate_dynamic_stats(meta)
 
+    stamina_val = meta.get('stamina', 100)
+
     profile_text = (
         f"<b>₍ᐢ-(ェ)-ᐢ₎ {data['name']}</b>\n"
         f"🌟 Рівень: <b>{data['lvl']}</b>\n"
@@ -113,7 +125,7 @@ async def show_profile(message: types.Message):
         f"❤️ ХП: {create_scale(meta.get('stats', {}).get('hp', 3), 3, '❤️', '🖤')}\n"
         f"🍏 Ситість: {create_scale(meta.get('hunger', 3), 3, '🍏', '●')}\n"
         f"🧼 Гігієна: {create_scale(meta.get('cleanness', 3), 3, '🧼', '🦠')}\n"
-        f"⚡ Енергія: <b>{get_stamina_icons(data['stamina'])}</b>"
+        f"⚡ Енергія: <b>{get_stamina_icons(stamina_val)}</b>"
     )
 
     builder = InlineKeyboardBuilder()

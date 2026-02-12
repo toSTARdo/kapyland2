@@ -146,3 +146,24 @@ async def wash_db_operation(tg_id: int):
         return "success", {"exp_gain": exp_gain, "lvl": new_lvl}
     finally:
         await conn.close()
+
+async def sleep_db_operation(tg_id: int):
+    conn = await get_db_connection()
+    try:
+        row = await conn.fetchrow("SELECT meta FROM capybaras WHERE owner_id = $1", tg_id)
+        if not row: return "no_capy"
+        
+        meta = json.loads(row['meta']) if isinstance(row['meta'], str) else row['meta']
+        
+        wake_up_time = datetime.datetime.now() + datetime.timedelta(hours=2)
+        meta["status"] = "sleep"
+        meta["wake_up"] = wake_up_time.isoformat()
+        meta["stamina"] = 100
+        
+        await conn.execute(
+            "UPDATE capybaras SET meta = $1 WHERE owner_id = $2", 
+            json.dumps(meta, ensure_ascii=False), tg_id
+        )
+        return "success"
+    finally:
+        await conn.close()
