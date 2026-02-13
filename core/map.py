@@ -133,6 +133,11 @@ async def handle_move(callback: types.CallbackQuery):
         if coord_key in COORD_QUESTS:
             curr_q = await conn.fetchrow("SELECT current_quest FROM capybaras WHERE owner_id = $1", uid)
             if not curr_q or not curr_q['current_quest']:
+                meta.update({"x": x, "y": y, "stamina": stamina - 1, "mode": new_mode})
+                await conn.execute(
+                    "UPDATE capybaras SET meta = $1 WHERE owner_id = $2", 
+                    json.dumps(meta, ensure_ascii=False), uid
+                )
                 await callback.answer("🧭 Щось проявляється через туман...")
                 return await start_branching_quest(callback, COORD_QUESTS[coord_key])
 
@@ -145,9 +150,12 @@ async def handle_move(callback: types.CallbackQuery):
                     discovered_set.add(f"{scan_x},{scan_y}")
         
         new_discovered = list(discovered_set)
-        if len(new_discovered) > old_disc_count and len(new_discovered) % 30 == 0:
-            zen += 1
-            await callback.answer("🧘 Мудрість зростає! +1 Дзен")
+        old_milestones = old_disc_count // 800
+        new_milestones = len(new_discovered) // 800
+
+        if new_milestones > old_milestones:
+            zen += (new_milestones - old_milestones)
+            await callback.answer(f"🧘 Мудрість зростає! +{new_milestones - old_milestones} Дзен")
 
         new_stamina = stamina - 1
         meta.update({
