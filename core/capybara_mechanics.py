@@ -10,12 +10,14 @@ async def get_user_inventory(tg_id: int):
         return row['meta'] if row else None
     finally:
         await conn.close()
-
 async def get_user_profile(tg_id: int):
     conn = await get_db_connection()
     try:
         query = '''
-            SELECT u.username, u.reincarnation_count, c.name, c.lvl, c.exp, c.meta 
+            SELECT 
+                u.username, u.reincarnation_count, 
+                c.name, c.lvl, c.exp, c.meta,
+                c.zen, c.karma, c.wins, c.total_fights
             FROM users u 
             JOIN capybaras c ON u.tg_id = c.owner_id 
             WHERE u.tg_id = $1

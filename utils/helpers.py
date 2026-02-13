@@ -5,6 +5,9 @@ def calculate_lvl_data(current_exp, added_exp):
     new_lvl = max(1, int(math.sqrt(new_exp / 2)))
     return new_exp, new_lvl
 
+def calculate_winrate(wins, total_fights):
+    return round(wins/total_fights, 1) * 100
+
 def format_time(td):
     hours, remainder = divmod(td.total_seconds(), 3600)
     minutes = remainder // 60

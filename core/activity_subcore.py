@@ -199,27 +199,45 @@ async def run_battle_logic(callback: types.CallbackQuery, opponent_id: int = Non
         conn = await get_db_connection()
         try:
             await conn.execute("""
-                UPDATE capybaras SET meta = meta || 
-                jsonb_build_object(
-                    'weight', (meta->>'weight')::float + 3.0,
-                    'stamina', GREATEST((meta->>'stamina')::int - 5, 0),
-                    'exp', (meta->>'exp')::int + 3
-                ) WHERE owner_id = $1
+                UPDATE capybaras 
+                SET 
+                    wins = wins + 1,
+                    total_fights = total_fights + 1,
+                    exp = exp + 3,
+                    meta = meta || jsonb_build_object(
+                        'weight', (meta->>'weight')::float + 3.0,
+                        'stamina', GREATEST((meta->>'stamina')::int - 5, 0)
+                    ) 
+                WHERE owner_id = $1
             """, winner_id)
 
             if not (is_bot and loser_id == opponent_id):
                 await conn.execute("""
-                    UPDATE capybaras SET meta = meta || 
-                    jsonb_build_object(
-                        'weight', LEAST(GREATEST((meta->>'weight')::float - 3.0, 1.0), 500.0),
-                        'stamina', GREATEST((meta->>'stamina')::int - 5, 0)
-                    ) WHERE owner_id = $1
+                    UPDATE capybaras 
+                    SET 
+                        total_fights = total_fights + 1,
+                        meta = meta || jsonb_build_object(
+                            'weight', LEAST(GREATEST((meta->>'weight')::float - 3.0, 1.0), 500.0),
+                            'stamina', GREATEST((meta->>'stamina')::int - 5, 0)
+                        ) 
+                    WHERE owner_id = $1
                 """, loser_id)
             
             reward_msg = f"📈 <b>Підсумки бою:</b>\n🥇 {winner.name}: +3 кг, +3 EXP\n🥈 {loser.name}: -3 кг"
             await msg1.answer(reward_msg, parse_mode="HTML")
-            if msg2: await msg2.answer(reward_msg, parse_mode="HTML")
+            if msg2:
+                try: await msg2.answer(reward_msg, parse_mode="HTML")
+                except: pass
 
+        finally:
+            await conn.close()
+            
+    elif not winner: 
+        conn = await get_db_connection()
+        try:
+            await conn.execute("UPDATE capybaras SET total_fights = total_fights + 1 WHERE owner_id = $1", uid)
+            if opponent_id and not is_bot:
+                await conn.execute("UPDATE capybaras SET total_fights = total_fights + 1 WHERE owner_id = $1", opponent_id)
         finally:
             await conn.close()
 
