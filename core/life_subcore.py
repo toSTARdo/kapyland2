@@ -116,7 +116,7 @@ def get_general_profile_text(data, meta):
         f"✳️ Капі-дзен: <b>{data['zen']}</b>\n"
         f"✴️ Капі-карма: <b>{data['karma']}</b>\n"
         f"⚖️ Вага: <b>{meta.get('weight', 20.0):.2f} кг</b>\n\n"
-        f"ХП: {create_scale(meta.get('stats', {}).get('hp', 3), 3, '❤️', '🖤')}\n"
+        f"ХП: {create_scale(meta.get('stats', {}).get('hp', 3), 3, '♥️', '🖤')}\n"
         f"Ситість: {create_scale(meta.get('hunger', 3), 3, '🍏', '●')}\n"
         f"Гігієна: {create_scale(meta.get('cleanness', 3), 3, '🧼', '🦠')}\n"
         f"⚡ Енергія: <b>{get_stamina_icons(stamina_val)}</b>"
@@ -142,7 +142,7 @@ def get_fight_stats_text(data, meta):
         f"🛡️ DEF: <b>{stats.get('defense', 1)}</b>\n"
         f"💨 AGI: <b>{stats.get('agility', 1)}</b>  |  "
         f"🍀 LCK: <b>{stats.get('luck', 1)}</b>\n"
-        f"❤️ HP: <b>{stats.get('hp', 3)}</b>"
+        f"♥️ HP: <b>{stats.get('hp', 3)}</b>"
     )
 
 @router.message(F.text.startswith("🐾"))
