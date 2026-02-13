@@ -33,8 +33,8 @@ async def init_pg():
             win_streak INTEGER DEFAULT 0,
             karma INTEGER DEFAULT 0,
             zen INTEGER DEFAULT 0,
-            current_quest TEXT[] DEFAULT '{}',
             blessings TEXT[] DEFAULT '{}',
+            curses TEXT[] DEFAULT '{}',
             current_quest JSONB DEFAULT NULL,
             meta JSONB DEFAULT '{
                 "x": 76,
