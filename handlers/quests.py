@@ -177,3 +177,24 @@ async def apply_rewards(uid, state):
             loot['exp'], json.dumps(meta, ensure_ascii=False), uid
         )
     finally: await conn.close()
+
+async def start_branching_quest(event: types.Message | types.CallbackQuery, quest_id: str):
+    uid = event.from_user.id
+    quest = QUEST_PLOTS.get(quest_id)
+    if not quest: return
+
+    quest_state = {
+        "id": quest_id,
+        "stage": "0",
+        "loot": {"exp": 0, "watermelon_slices": 0, "key": 0, "chest": 0}
+    }
+
+    conn = await get_db_connection()
+    try:
+        await conn.execute(
+            "UPDATE capybaras SET current_quest = $1 WHERE owner_id = $2",
+            json.dumps(quest_state), uid
+        )
+    finally: await conn.close()
+
+    await render_quest_stage(event, quest_state)
