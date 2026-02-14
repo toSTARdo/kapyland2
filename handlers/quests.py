@@ -42,21 +42,29 @@ async def handle_buy_map(callback: types.CallbackQuery):
         if not row: return
         
         meta = json.loads(row['meta']) if isinstance(row['meta'], str) else row['meta']
-        inventory = meta.get('inventory', {})
-        food = inventory.get('food', {})
+        
+        inventory = meta.setdefault('inventory', {})
+        food = inventory.setdefault('food', {})
+        loot = inventory.setdefault('loot', {})
         current_slices = food.get('watermelon_slices', 0)
 
         if current_slices < 50:
             return await callback.answer(f"❌ Тобі бракує кавунів! (Є: {current_slices}/50)", show_alert=True)
 
         food['watermelon_slices'] = current_slices - 50
+        
         map_num = random.randint(100, 999)
-        coords = f"{random.randint(10, 200)},{random.randint(10, 200)}"
-        meta.setdefault('discovered', []).append(coords)
-        inventory.get('loot', {}).setdefault('treasure_maps', []).append({
+        coords = f"{random.randint(0, 149)},{random.randint(0, 149)}"
+        
+        if 'treasure_maps' not in loot:
+            loot['treasure_maps'] = []
+            
+        new_map = {
             "id": f"#{map_num}", 
-            "pos": coords
-        })
+            "pos": coords,
+            "bought_at": str(datetime.datetime.now().date())
+        }
+        loot['treasure_maps'].append(new_map)
 
         await conn.execute(
             "UPDATE capybaras SET meta = $1 WHERE owner_id = $2", 
@@ -64,7 +72,7 @@ async def handle_buy_map(callback: types.CallbackQuery):
         )
         
         await callback.message.answer(
-            f"🗺 <b>Обмін завершено!</b>\n"
+            f"🗺 <b>Куплено в сумнівного пірата!</b>\n"
             f"Ви віддали 50 🍉 за карту #{map_num}.\n"
             f"Координати: <code>{coords}</code>", 
             parse_mode="HTML"

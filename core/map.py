@@ -31,21 +31,25 @@ def get_biome_name(py, map_height):
     elif 0.35 <= progress < 0.65: return "🌊 Уроборострім"
     else: return "🏝️ Архіпелаг Джуа"
 
-def render_pov(px, py, discovered_list, mode="ship"):
+def render_pov(px, py, discovered_list, mode="ship", treasure_maps=None):
     win_w, win_h = 15, 8
     icon = SHIP_ICON if mode == "ship" else PLAYER_ICON
     start_x = max(0, min(MAP_WIDTH - win_w, px - win_w // 2))
     start_y = max(0, min(MAP_HEIGHT - win_h, py - win_h // 2))
     
     discovered_set = set(discovered_list)
+    treasure_coords = {m['pos'] for m in treasure_maps} if treasure_maps else set()
     
     rows = ["═" * (win_w)]
     for y in range(start_y, start_y + win_h):
         display_row = []
         for x in range(start_x, start_x + win_w):
+            c_str = f"{x},{y}"
             if x == px and y == py:
                 display_row.append(icon)
-            elif f"{x},{y}" in discovered_set:
+            elif c_str in treasure_coords and c_str in discovered_set:
+                display_row.append("X")
+            elif c_str in discovered_set:
                 display_row.append(FULL_MAP[y][x])
             else:
                 display_row.append(FOG_ICON)
@@ -131,6 +135,17 @@ async def handle_move(callback: types.CallbackQuery):
             else: x, y, new_mode = nx, ny, "ship"; await callback.answer("На борт! ⚓")
 
         coord_key = f"{x},{y}"
+        
+        inventory = meta.setdefault("inventory", {})
+        loot = inventory.setdefault("loot", {})
+        treasure_maps = loot.get("treasure_maps", [])
+        
+        found_map = next((m for m in treasure_maps if m["pos"] == coord_key), None)
+        if found_map:
+            loot["treasure_maps"] = [m for m in treasure_maps if m["pos"] != coord_key]
+            loot["chest"] = loot.get("chest", 0) + 1
+            await callback.answer("🏴‍☠️ Скарб знайдено! Ви відкопали скриню.", show_alert=True)
+
         if coord_key in COORD_QUESTS:
             curr_q = await conn.fetchrow("SELECT current_quest FROM capybaras WHERE owner_id = $1", uid)
             if not curr_q or not curr_q['current_quest']:
@@ -174,11 +189,12 @@ async def handle_move(callback: types.CallbackQuery):
 
     st_icons = get_stamina_icons(new_stamina)
     biome = get_biome_name(y, MAP_HEIGHT)
-    map_display = render_pov(x, y, new_discovered, new_mode)
+    current_maps = meta.get("inventory", {}).get("loot", {}).get("treasure_maps", [])
+    map_display = render_pov(x, y, new_discovered, new_mode, current_maps)
     
     text = (f"📍 <b>Карта ({x}, {y})</b> | {st_icons}\n"
             f"🧭 Біом: {biome} | ✨ Дзен: {zen}\n"
-            f"🔋 Енергія: {new_stamina}/100 | ⚖️ Карма: {karma}\n\n"
+            f"🔋 Енергія: {new_stamina}/100\n\n"
             f"{map_display}")
 
     try:

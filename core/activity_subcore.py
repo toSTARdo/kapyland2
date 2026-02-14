@@ -286,6 +286,20 @@ async def render_inventory_page(message, user_id, page="food", is_callback=False
         content = "\n".join(loot_lines) if loot_lines else "<i>Твій сейф порожній...</i>"
         builder.adjust(1)
 
+    elif page == "maps":
+        title = "🗺 <b>Карти скарбів</b>"
+        maps = inv.get("loot", {}).get("treasure_maps", [])
+        
+        if not maps:
+            content = "<i>У тебе немає жодної карти. Купи їх у таверні!</i>"
+        else:
+            content = "<i>Твої замітки:</i>\n\n"
+            map_lines = []
+            for m in maps:
+                map_lines.append(f"📍 <b>Карта {m['id']}</b>\n╰ Координати: <code>{m['pos']}</code>")
+            content += "\n\n".join(map_lines)
+        builder.adjust(1)
+
     elif page == "items":
         title = "⚔️ <b>Амуніція</b>"
         curr_equip = meta.get("equipment", {})
@@ -328,11 +342,19 @@ async def render_inventory_page(message, user_id, page="food", is_callback=False
             content = "\n".join(content_lines)
         builder.adjust(1)
 
-    nav_buttons = []
-    if page != "food": nav_buttons.append(types.InlineKeyboardButton(text="🍎 Їжа", callback_data="inv_page:food"))
-    if page != "loot": nav_buttons.append(types.InlineKeyboardButton(text="🧳 Лут", callback_data="inv_page:loot"))
-    if page != "items": nav_buttons.append(types.InlineKeyboardButton(text="⚔️ Речі", callback_data="inv_page:items"))
-    builder.row(*nav_buttons)
+    nav_row = []
+    pages_meta = {
+        "food": "🍎 Їжа",
+        "loot": "🧳 Лут",
+        "maps": "🗺 Мапи",
+        "items": "⚔️ Речі"
+    }
+    
+    for p_key, p_text in pages_meta.items():
+        if page != p_key:
+            nav_row.append(types.InlineKeyboardButton(text=p_text, callback_data=f"inv_page:{p_key}"))
+    
+    builder.row(*nav_row)
 
     text = f"{title}\n━━━━━━━━━━━━━━━\n{content}"
 
