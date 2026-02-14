@@ -192,7 +192,7 @@ async def back_to_fight(callback: types.CallbackQuery):
     await callback.message.delete()
     await cmd_fight_lobby(callback.message)
 
-async def run_battle_logic(callback: types.CallbackQuery, opponent_id: int = None, is_bot: bool = False):
+async def run_battle_logic(callback: types.CallbackQuery, opponent_id: int = None, bot_type: str = None):
     bot = callback.bot
     uid = callback.from_user.id
     
@@ -201,17 +201,35 @@ async def run_battle_logic(callback: types.CallbackQuery, opponent_id: int = Non
         "ARMOR": ARMOR
     }
 
-    async def get_full_capy_data(target_id, is_bot_flag=False):
-        if is_bot_flag:
-            return {
-                "kapy_name": "Папуга Павло (Бот)",
-                "weight": 5.0,
+    async def get_full_capy_data(target_id: int, b_type: str = None):
+        NPC_REGISTRY = {
+            "parrotbot": {
+                "kapy_name": "Папуга Павло",
+                "color": "🦜",
                 "stats": {"attack": 1, "defense": 1, "agility": 3, "luck": 1},
+                "equipped_weapon": "Весло",
+                "hp_bonus": 0
+            },
+            "mimic": {
+                "kapy_name": "Мімік",
+                "color": "🗃",
+                "stats": {"attack": 4, "defense": 20, "agility": 1, "luck": 2},
                 "equipped_weapon": "Зуби акули",
-                "equipped_armor": "",
-                "artifacts": []
+                "hp_bonus": 7
+            },
+            "boss_pelican": {
+                "kapy_name": "Пелікан Петро",
+                "color": "🦢",
+                "stats": {"attack": 15, "defense": 8, "agility": 5, "luck": 5},
+                "equipped_weapon": "",
+                "hp_bonus": 7,
+                "is_boss": True
             }
-        
+        }
+
+        if b_type in NPC_REGISTRY:
+            return NPC_REGISTRY[b_type]
+
         conn = await get_db_connection()
         try:
             row = await conn.fetchrow("SELECT name, meta FROM capybaras WHERE owner_id = $1", target_id)
@@ -226,23 +244,28 @@ async def run_battle_logic(callback: types.CallbackQuery, opponent_id: int = Non
                 "stats": meta.get("stats", {"attack": 0, "defense": 0, "agility": 0, "luck": 0}),
                 "equipped_weapon": equip.get("weapon", "Лапки"),
                 "equipped_armor": equip.get("armor", ""),
-                "artifacts": meta.get("artifacts", [])
+                "artifacts": meta.get("artifacts", []),
+                "color": "🔴"
             }
         finally: await conn.close()
 
     p1_data = await get_full_capy_data(uid)
-    p2_data = await get_full_capy_data(opponent_id, is_bot)
+    p2_data = await get_full_capy_data(opponent_id, b_type=bot_type)
 
     if not p1_data or not p2_data:
         return await callback.message.answer("❌ Помилка: Дані капібари не знайдено.")
 
     p1 = Fighter(p1_data, battle_config, color="🟢")
-    p2 = Fighter(p2_data, battle_config, color="🔴")
+    p2 = Fighter(p2_data, battle_config, color=p2_data.get("color", "🔴"))
+
+    if p2_data.get("hp_bonus"):
+        p2.max_hp += p2_data["hp_bonus"]
+        p2.hp = p2.max_hp
 
     start_info = f"🏟 <b>БІЙ: {p1.name} VS {p2.name}</b>"
     msg1 = await callback.message.answer(start_info, parse_mode="HTML")
     msg2 = None
-    if opponent_id and not is_bot:
+    if opponent_id and not bot_type:
         try: msg2 = await bot.send_message(opponent_id, start_info, parse_mode="HTML")
         except: pass
 
@@ -284,6 +307,8 @@ async def run_battle_logic(callback: types.CallbackQuery, opponent_id: int = Non
         round_num += 1
 
     winner, loser = None, None
+    winner_id, loser_id = None, None
+
     if p1.hp > 0 and p2.hp <= 0:
         winner, loser = p1, p2
         winner_id, loser_id = uid, opponent_id
@@ -303,20 +328,21 @@ async def run_battle_logic(callback: types.CallbackQuery, opponent_id: int = Non
     if winner and loser:
         conn = await get_db_connection()
         try:
-            await conn.execute("""
-                UPDATE capybaras 
-                SET 
-                    wins = wins + 1,
-                    total_fights = total_fights + 1,
-                    exp = exp + 3,
-                    meta = meta || jsonb_build_object(
-                        'weight', (meta->>'weight')::float + 3.0,
-                        'stamina', GREATEST((meta->>'stamina')::int - 5, 0)
-                    ) 
-                WHERE owner_id = $1
-            """, winner_id)
+            if winner_id:
+                await conn.execute("""
+                    UPDATE capybaras 
+                    SET 
+                        wins = wins + 1,
+                        total_fights = total_fights + 1,
+                        exp = exp + 3,
+                        meta = meta || jsonb_build_object(
+                            'weight', (meta->>'weight')::float + 3.0,
+                            'stamina', GREATEST((meta->>'stamina')::int - 5, 0)
+                        ) 
+                    WHERE owner_id = $1
+                """, winner_id)
 
-            if not (is_bot and loser_id == opponent_id):
+            if loser_id and not bot_type:
                 await conn.execute("""
                     UPDATE capybaras 
                     SET 
@@ -341,7 +367,7 @@ async def run_battle_logic(callback: types.CallbackQuery, opponent_id: int = Non
         conn = await get_db_connection()
         try:
             await conn.execute("UPDATE capybaras SET total_fights = total_fights + 1 WHERE owner_id = $1", uid)
-            if opponent_id and not is_bot:
+            if opponent_id and not bot_type:
                 await conn.execute("UPDATE capybaras SET total_fights = total_fights + 1 WHERE owner_id = $1", opponent_id)
         finally:
             await conn.close()
@@ -383,12 +409,19 @@ async def render_inventory_page(message, user_id, page="food", is_callback=False
         title = "🧳 <b>Скарби та ресурси</b>"
         loot = inv.get("loot", {})
         
+        chests = loot.get('chest', 0)
+        keys = loot.get('key', 0)
+        
         loot_lines = []
         if loot.get('lottery_ticket', 0) > 0: loot_lines.append(f"🎟️ Квитки: <b>{loot['lottery_ticket']}</b>")
-        if loot.get('key', 0) > 0: loot_lines.append(f"🗝️ Ключі: <b>{loot['key']}</b>")
-        if loot.get('chest', 0) > 0: loot_lines.append(f"🗃 Скрині: <b>{loot['chest']}</b>")
+        if keys > 0: loot_lines.append(f"🗝️ Ключі: <b>{keys}</b>")
+        if chests > 0: loot_lines.append(f"🗃 Скрині: <b>{chests}</b>")
         
         content = "\n".join(loot_lines) if loot_lines else "<i>Твій сейф порожній...</i>"
+        
+        if chests > 0 and keys > 0:
+            builder.button(text="🔓 Відкрити скриню", callback_data="open_chest")
+        
         builder.adjust(1)
 
     elif page == "maps":
@@ -554,6 +587,44 @@ async def handle_eat(callback: types.CallbackQuery):
         
         await render_inventory_page(callback.message, user_id, page="food", is_callback=True)
 
+    finally:
+        await conn.close()
+
+@dp.callback_query(F.data == "open_chest")
+async def handle_open_chest(callback: types.CallbackQuery):
+    uid = callback.from_user.id
+    conn = await get_db_connection()
+    
+    try:
+        row = await conn.fetchrow("SELECT meta FROM capybaras WHERE owner_id = $1", uid)
+        if not row: return
+        
+        meta = row['meta']
+        loot = meta.get("equipment", {}).get("loot", {})
+        
+        if loot.get('chest', 0) < 1 or loot.get('key', 0) < 1:
+            return await callback.answer("❌ Тобі потрібен і ключ, і скриня!", show_alert=True)
+
+        await conn.execute("""
+            UPDATE capybaras 
+            SET meta = jsonb_set(
+                jsonb_set(
+                    jsonb_set(meta, '{equipment, loot, chest}', ((meta->'equipment'->'loot'->>'chest')::int - 1)::text::jsonb),
+                    '{equipment, loot, key}', ((meta->'equipment'->'loot'->>'key')::int - 1)::text::jsonb
+                ),
+                '{watermelon_slices}', ((COALESCE(meta->>'watermelon_slices', '0')::int) + 50)::text::jsonb
+            )
+            WHERE owner_id = $1
+        """, uid)
+        
+        await callback.answer("🎊 Бум! Скриня піддалася!", show_alert=True)
+        await callback.message.edit_text(
+            "🔓 <b>Скриня відкрита!</b>\n\n"
+            "В середині виявилося <b>50 скибочок кавуна</b> 🍉",
+            parse_mode="HTML",
+            reply_markup=None
+        )
+        
     finally:
         await conn.close()
 
