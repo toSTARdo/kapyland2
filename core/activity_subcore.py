@@ -745,14 +745,14 @@ async def handle_fishing(callback: types.CallbackQuery):
             inventory_note = "🗑 <i>Ти викинув це назад у воду...</i>"
         else:
             if item_type == "loot":
-            path_list = ["equipment", "loot", item_name]
-            current_val_sql = f"COALESCE(meta->'equipment'->'loot'->>'{item_name}', '0')::int"
-        elif item_type == "food":
-            path_list = [item['key']]
-            current_val_sql = f"COALESCE(meta->>'{item['key']}', '0')::int"
-        else:
-            path_list = ["equipment", "loot", item['key']]
-            current_val_sql = f"COALESCE(meta->'equipment'->'loot'->>'{item['key']}', '0')::int"
+                path_list = ["equipment", "loot", item_name]
+                current_val_sql = f"COALESCE(meta->'equipment'->'loot'->>'{item_name}', '0')::int"
+            elif item_type == "food":
+                path_list = [item['key']]
+                current_val_sql = f"COALESCE(meta->>'{item['key']}', '0')::int"
+            else:
+                path_list = ["equipment", "loot", item['key']]
+                current_val_sql = f"COALESCE(meta->'equipment'->'loot'->>'{item['key']}', '0')::int"
 
         await conn.execute(f"""
             UPDATE capybaras 
