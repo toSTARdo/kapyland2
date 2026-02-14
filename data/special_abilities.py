@@ -98,7 +98,7 @@ curse_mark = weapon_ability(1.0)([
 ])
 
 cannon_splash = weapon_ability(0.30)([
-    lambda a, d: 3,
+    lambda a, d: 1.5,
     lambda a, d: setattr(d, 'agi', max(0, d.agi - 1)) or 0
 ])
 
