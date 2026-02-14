@@ -55,7 +55,7 @@ wooden_leg = weapon_ability(0.18)([
 ])
 
 heavy_swing = weapon_ability(0.25)([
-    lambda a, d: 1
+    lambda a, d: 0.5
 ])
 
 mop_wash = weapon_ability(0.22)([
@@ -79,7 +79,7 @@ drunk_fury = weapon_ability(1.0)([
 
 bleed_chance = weapon_ability(0.35)([
     lambda a, d: setattr(a, 'luck', a.luck + 1) or 0,
-    lambda a, d: 1
+    lambda a, d: 0.5
 ])
 
 precision_strike = weapon_ability(0.40)([
@@ -98,7 +98,7 @@ curse_mark = weapon_ability(1.0)([
 ])
 
 cannon_splash = weapon_ability(0.30)([
-    lambda a, d: 1.5,
+    lambda a, d: 1,
     lambda a, d: setattr(d, 'agi', max(0, d.agi - 1)) or 0
 ])
 
@@ -111,7 +111,7 @@ life_steal = weapon_ability(0.40)([
 ])
 
 confuse_hit = weapon_ability(0.35)([
-    lambda a, d: 2,
+    lambda a, d: 1,
     lambda a, d: setattr(d, 'luck', max(0, d.luck - 3)) or 0,
     lambda a, d: setattr(a, 'agi', a.agi + 1) or 0,
     lambda a, d: setattr(d, 'def_', max(0, d.def_ - 2)) or 0
@@ -139,7 +139,7 @@ energy_surge = weapon_ability(1.0)([
 ])
 
 owl_crit = weapon_ability(0.45)([
-    lambda a, d: 3,
+    lambda a, d: 2,
     lambda a, d: setattr(d, 'def_', max(0, d.def_ - 2)) or 0,
     lambda a, d: setattr(a, 'agi', a.agi + 2) or 0,
     lambda a, d: setattr(a, 'luck', a.luck + 5) or 0
@@ -242,7 +242,7 @@ stun_chance = weapon_ability(0.40)([
     lambda a, d: setattr(d, 'atk', max(0, d.atk - 4)) or 0,
     lambda a, d: setattr(d, 'def_', max(0, d.def_ - 2)) or 0,
     lambda a, d: setattr(a, 'luck', a.luck + 2) or 0,
-    lambda a, d: 3,
+    lambda a, d: 2,
     lambda a, d: setattr(a, 'def_', a.def_ + 3) or 0
 ])
 
