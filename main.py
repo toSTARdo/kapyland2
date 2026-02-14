@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import aioschedule
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
 from aiogram.fsm.storage.memory import MemoryStorage
@@ -112,11 +113,37 @@ async def handle_isekai(callback: types.CallbackQuery):
         reply_markup=get_main_kb(layout_type=layout)
     )
     await callback.answer()
+
+async def give_everyday_gift():
+    conn = await get_db_connection()
+    try:
+        await conn.execute('''
+            UPDATE capybaras 
+            SET meta = jsonb_set(
+                meta, 
+                '{inventory, loot, lottery_ticket}', 
+                (COALESCE(meta->'inventory'->'loot'->>'lottery_ticket', '0')::int + 1)::text::jsonb
+            )
+        ''')
+        print("🎁 Щоденний подарунок видано всім гравцям!")
+    except Exception as e:
+        print(f"❌ Помилка видачі подарунків: {e}")
+    finally:
+        await conn.close()
+
+async def scheduler():
+    aioschedule.every().day.at("20:50").do(give_everyday_gift)
+    
+    while True:
+        await aioschedule.run_pending()
+        await asyncio.sleep(1)
+
 async def run_bot():
     await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot)
 
 async def main():
+    asyncio.create_task(scheduler())
     await init_pg()
     config_uvicorn = uvicorn.Config(app=app, host="0.0.0.0", port=8000, log_level="error")
     server = uvicorn.Server(config_uvicorn)
