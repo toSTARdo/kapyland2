@@ -50,7 +50,7 @@ def drunk_fury_effect(att, defe):
 
 @effect_chance(0.35)
 def bleed_effect(att, defe):
-    defe.hp = max(0, defe.hp - 2)
+    defe.hp = max(0, defe.hp - 1)
     att.luck += 1
 
 @effect_chance(0.40)
@@ -141,7 +141,7 @@ def rage_boost_effect(att, defe):
 
 @effect_chance(0.35)
 def ghost_strike_effect(att, defe):
-    defe.hp = max(0, defe.hp - 2)
+    defe.hp = max(0, defe.hp - 1)
     att.agi += 3
     defe.luck = 0
     if getattr(att, 'weapon_lvl', 0) > 0:

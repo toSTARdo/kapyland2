@@ -139,7 +139,7 @@ async def execute_steal_logic(callback: types.CallbackQuery):
                 await conn.execute("UPDATE capybaras SET meta = $1 WHERE owner_id = $2", json.dumps(t_meta), target_id)
                 await conn.execute("UPDATE capybaras SET meta = $1 WHERE owner_id = $2", json.dumps(a_meta), uid)
                 
-                await callback.message.edit_text(f"🥷 <b>НАЙШВИДШІ ЛАПКИ НА АРХІПЕЛАЗІ!</b>\nВи непомітно витягли <b>{{stolen_item['name']}</b> у {target_row['name']}!")
+                await callback.message.edit_text(f"🥷 <b>НАЙШВИДШІ ЛАПКИ НА АРХІПЕЛАЗІ!</b>\nВи непомітно витягли <b>{stolen_item['name']}</b> у {target_row['name']}!")
             else:
                 await callback.message.edit_text("У цієї капібари в торбі тільки висохла шкірка мандаринки...")
         finally: await conn.close()
