@@ -159,8 +159,9 @@ async def handle_move(callback: types.CallbackQuery):
 
         old_disc_count = len(meta.get("discovered", []))
         discovered_set = set(meta.get("discovered", []))
+        
         for dy in range(-1, 2):
-            for dx in range(-1, 2):
+            for dx in range(-2, 3): 
                 scan_x, scan_y = x + dx, y + dy
                 if 0 <= scan_x < MAP_WIDTH and 0 <= scan_y < MAP_HEIGHT:
                     discovered_set.add(f"{scan_x},{scan_y}")
