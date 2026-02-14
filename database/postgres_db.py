@@ -63,7 +63,23 @@ async def init_pg():
                         "mango": 0,
                         "kiwi": 0
                     },
-                    "loot": {"chest": 0, "key": 0, "lottery_ticket": 10},
+                    "materials": {
+                        "carp": 0,
+                        "perch": 0,
+                        "pufferfish": 0,
+                        "octopus": 0,
+                        "crab": 0,
+                        "jellyfish": 0,
+                        "swordfish": 0,
+                        "shark": 0,
+                        "herbs": 0,
+                        "wood": 0
+                    },
+                    "loot": {
+                        "chest": 0, 
+                        "key": 0, 
+                        "lottery_ticket": 10
+                    },
                     "equipment": []
                 },
                 "equipment": {
