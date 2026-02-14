@@ -372,7 +372,7 @@ async def run_battle_logic(callback: types.CallbackQuery, opponent_id: int = Non
         finally:
             await conn.close()
 
-async def render_inventory_page(message, user_id, page="food", is_callback=False):
+async def render_inventory_page(message, user_id, page="food", current_page=0, is_callback=False):
     meta_data = await get_user_inventory(user_id)
     if not meta_data:
         return await message.answer("❌ Профіль не знайдено.")
@@ -521,6 +521,13 @@ async def render_inventory_page(message, user_id, page="food", is_callback=False
     for p_key, p_text in pages_meta.items():
         if page != p_key:
             nav_row.append(types.InlineKeyboardButton(text=p_text, callback_data=f"inv_page:{p_key}:0"))
+    
+    for p_key, p_text in pages_meta.items():
+        if page != p_key:
+            nav_row.append(types.InlineKeyboardButton(
+                text=p_text, 
+                callback_data=f"inv_page:{p_key}:0" 
+            ))
     
     builder.row(*nav_row)
 
