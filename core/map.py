@@ -10,7 +10,8 @@ from config import FULL_MAP, PLAYER_ICON, SHIP_ICON
 router = Router()
 
 COORD_QUESTS = {
-    "15,129": "carpathian_pearl"
+    "15,129": "carpathian_pearl",
+    "75,145": "carpathian_pearl"
 }
 
 MAP_HEIGHT = len(FULL_MAP)
