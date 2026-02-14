@@ -532,6 +532,18 @@ async def render_inventory_page(message, user_id, page="food", is_callback=False
     else:
         await message.answer(text, reply_markup=markup, parse_mode="HTML")
 
+@router.callback_query(F.data.startswith("inv_pagination:"))
+async def handle_inv_pagination(callback: types.CallbackQuery):
+    _, category, p_idx = callback.data.split(":")
+    await render_inventory_page(
+        callback.message, 
+        callback.from_user.id, 
+        page=category, 
+        current_page=int(p_idx), 
+        is_callback=True
+    )
+    await callback.answer()
+
 @router.callback_query(F.data.startswith("sell_item:"))
 async def handle_sell_equipment(callback: types.CallbackQuery):
     _, rarity, item_name = callback.data.split(":")
