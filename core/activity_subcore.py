@@ -590,7 +590,7 @@ async def handle_eat(callback: types.CallbackQuery):
     finally:
         await conn.close()
 
-@dp.callback_query(F.data == "open_chest")
+@router.callback_query(F.data == "open_chest")
 async def handle_open_chest(callback: types.CallbackQuery):
     uid = callback.from_user.id
     conn = await get_db_connection()
