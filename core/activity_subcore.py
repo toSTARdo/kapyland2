@@ -647,18 +647,22 @@ async def handle_fishing(callback: types.CallbackQuery):
             return await callback.answer("🪫 Мало енергії (треба 10)", show_alert=True)
 
         loot_pool = [
-            {"name": "🐟 Океанічний карась", "min_w": 0.3, "max_w": 1.5, "chance": 20, "type": "loot"},
-            {"name": "🐠 Уробороокеанський Окунь", "min_w": 0.2, "max_w": 0.8, "chance": 15, "type": "loot"},
-            {"name": "🐡 Риба-пупупу", "min_w": 0.5, "max_w": 2.0, "chance": 8, "type": "loot"},
-            {"name": "🐙 Восьмирук", "min_w": 1.0, "max_w": 5.0, "chance": 6, "type": "loot"},
-            {"name": "🦀 Бокохід", "min_w": 0.2, "max_w": 1.2, "chance": 7, "type": "loot"},
+            {"name": "🦴 Стара кістка", "min_w": 0.1, "max_w": 0.4, "chance": 12, "type": "trash"},
+            {"name": "📰 Промокла газета", "min_w": 0.05, "max_w": 0.1, "chance": 12, "type": "trash"},
+            {"name": "🥫 Іржава бляшанка", "min_w": 0.1, "max_w": 0.3, "chance": 10, "type": "trash"},
+
+            {"name": "🐟 Океанічний карась", "min_w": 0.3, "max_w": 1.5, "chance": 15, "type": "loot"},
+            {"name": "🐠 Уробороокеанський Окунь", "min_w": 0.2, "max_w": 0.8, "chance": 10, "type": "loot"},
+            {"name": "🐡 Риба-пупупу", "min_w": 0.5, "max_w": 2.0, "chance": 5, "type": "loot"},
+            {"name": "🐙 Восьмирук", "min_w": 1.0, "max_w": 5.0, "chance": 4, "type": "loot"},
+            {"name": "🦀 Бокохід", "min_w": 0.2, "max_w": 1.2, "chance": 5, "type": "loot"},
             {"name": "🦈 Маленька акула", "min_w": 10.0, "max_w": 40.0, "chance": 1, "type": "loot"},
             
+            {"name": "🍉 Скибочка кавуна", "min_w": 0.3, "max_w": 0.6, "chance": 20, "type": "food", "key": "watermelon_slices"},
             {"name": "🍊 Мандарин", "min_w": 0.1, "max_w": 0.2, "chance": 8, "type": "food", "key": "tangerines"},
-            {"name": "🍈 Диня", "min_w": 2.0, "max_w": 4.0, "chance": 5, "type": "food", "key": "melons"},
-            {"name": "🍉 Скибочка кавуна", "min_w": 0.3, "max_w": 0.6, "chance": 12, "type": "food", "key": "watermelon_slices"},
-            {"name": "🥭 Манго", "min_w": 0.4, "max_w": 0.7, "chance": 6, "type": "food", "key": "mango"},
-            {"name": "🥝 Ківі", "min_w": 0.1, "max_w": 0.15, "chance": 7, "type": "food", "key": "kiwi"},
+            {"name": "🥭 Манго", "min_w": 0.4, "max_w": 0.7, "chance": 2, "type": "food", "key": "mango"},
+            {"name": "🥝 Ківі", "min_w": 0.1, "max_w": 0.15, "chance": 2, "type": "food", "key": "kiwi"},
+            {"name": "🍈 Диня", "min_w": 2.0, "max_w": 4.0, "chance": 4, "type": "food", "key": "melons"},
             
             {"name": "🗃 Скриня", "min_w": 5.0, "max_w": 10.0, "chance": 2, "type": "special", "key": "chest"},
             {"name": "🗝️ Ключ", "min_w": 0.1, "max_w": 0.2, "chance": 2, "type": "special", "key": "key"},
@@ -669,36 +673,45 @@ async def handle_fishing(callback: types.CallbackQuery):
         item_name = item['name']
         item_type = item['type']
         fish_weight = round(random.uniform(item['min_w'], item['max_w']), 2)
-        
-        if item_type == "loot":
-            update_query += f", meta = jsonb_set(meta, '{{equipment, loot, {item_name}}}', (COALESCE((meta->'equipment'->'loot'->>'{item_name}')::int, 0) + 1)::text::jsonb)"
-        
-        elif item_type == "food":
-            target_key = item['key']
-            update_query += f", meta = jsonb_set(meta, '{{{target_key}}}', (COALESCE((meta->>'{target_key}')::int, 0) + 1)::text::jsonb)"
-            
-        elif item_type == "special":
-            target_key = item['key']
-            update_query += f", meta = jsonb_set(meta, '{{equipment, loot, {target_key}}}', (COALESCE((meta->'equipment'->'loot'->>'{target_key}')::int, 0) + 1)::text::jsonb)"
 
-        await conn.execute(f"""
-            UPDATE capybaras 
-            SET meta = jsonb_set(
-                jsonb_set(
-                    meta, 
-                    '{{stamina}}', 
+        if item_type == "trash":
+            await conn.execute("""
+                UPDATE capybaras 
+                SET meta = jsonb_set(
+                    meta, '{stamina}', 
                     (GREATEST((meta->>'stamina')::int - 10, 0))::text::jsonb
-                ),
-                '{path}', 
-                (COALESCE({current_val}, 0) + 1)::text::jsonb
-            )
-            WHERE owner_id = $1
-        """, uid)
+                )
+                WHERE owner_id = $1
+            """, uid)
+            inventory_note = "🗑 <i>Ти викинув це назад у воду...</i>"
+        else:
+            if item_type == "loot":
+                path = f"{{equipment, loot, {item_name}}}"
+                current_val = f"(COALESCE(meta->'equipment'->'loot'->>'{item_name}', '0'))::int"
+            elif item_type == "food":
+                path = f"{{{item['key']}}}"
+                current_val = f"(COALESCE(meta->>'{item['key']}', '0'))::int"
+            else: # special
+                path = f"{{equipment, loot, {item['key']}}}"
+                current_val = f"(COALESCE(meta->'equipment'->'loot'->>'{item['key']}', '0'))::int"
+
+            await conn.execute(f"""
+                UPDATE capybaras 
+                SET meta = jsonb_set(
+                    jsonb_set(
+                        meta, '{stamina}', 
+                        (GREATEST((meta->>'stamina')::int - 10, 0))::text::jsonb
+                    ),
+                    '{path}', ({current_val} + 1)::text::jsonb
+                )
+                WHERE owner_id = $1
+            """, uid)
+            inventory_note = "📦 <i>Предмет додано в інвентар!</i>"
 
         await callback.message.edit_text(
             f"Чілимо... Раптом поплавок смикнувся!\n"
             f"Ііііі... Твій улов: <b>{item_name} ({fish_weight} кг)</b>\n"
-            f"📦 <i>Предмет додано в інвентар!</i>\n"
+            f"{inventory_note}\n"
             f"🔋 Залишок енергії: {max(0, stamina - 10)}%",
             parse_mode="HTML"
         )
