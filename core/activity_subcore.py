@@ -628,6 +628,75 @@ async def handle_open_chest(callback: types.CallbackQuery):
     finally:
         await conn.close()
 
+@router.callback_query(F.data == "fish")
+async def handle_fishing(callback: types.CallbackQuery):
+    uid = callback.from_user.id
+    conn = await get_db_connection()
+    
+    try:
+        row = await conn.fetchrow("SELECT name, meta FROM capybaras WHERE owner_id = $1", uid)
+        if not row: return
+        
+        meta = json.loads(row['meta']) if isinstance(row['meta'], str) else row['meta']
+        stamina = meta.get("stamina", 0)
+        
+        if "вудочка" not in meta.get("equipment", {}).get("weapon", "").lower():
+            return await callback.answer("❌ Тобі потрібна вудочка!", show_alert=True)
+        
+        if stamina < 10:
+            return await callback.answer("🪫 Мало енергії (треба 10)", show_alert=True)
+
+        loot_pool = [
+            {"name": "🐟 Карась", "min_w": 0.3, "max_w": 1.5, "chance": 20, "type": "loot"},
+            {"name": "🐠 Окунь", "min_w": 0.2, "max_w": 0.8, "chance": 15, "type": "loot"},
+            {"name": "🐡 Риба-фугу", "min_w": 0.5, "max_w": 2.0, "chance": 8, "type": "loot"},
+            {"name": "🐙 Восьминіг", "min_w": 1.0, "max_w": 5.0, "chance": 6, "type": "loot"},
+            {"name": "🦀 Краб", "min_w": 0.2, "max_w": 1.2, "chance": 7, "type": "loot"},
+            {"name": "🦈 Маленька акула", "min_w": 10.0, "max_w": 40.0, "chance": 1, "type": "loot"},
+            
+            {"name": "🍊 Мандарин", "min_w": 0.1, "max_w": 0.2, "chance": 8, "type": "food", "key": "tangerines"},
+            {"name": "🍈 Диня", "min_w": 2.0, "max_w": 4.0, "chance": 5, "type": "food", "key": "melons"},
+            {"name": "🍉 Скибочка кавуна", "min_w": 0.3, "max_w": 0.6, "chance": 20, "type": "food", "key": "watermelon_slices"},
+            {"name": "🥭 Манго", "min_w": 0.4, "max_w": 0.7, "chance": 4, "type": "food", "key": "mango"},
+            {"name": "🥝 Ківі", "min_w": 0.1, "max_w": 0.15, "chance": 1, "type": "food", "key": "kiwi"},
+            
+            {"name": "🗃 Скриня", "min_w": 5.0, "max_w": 10.0, "chance": 2, "type": "special", "key": "chest"},
+            {"name": "🗝️ Ключ", "min_w": 0.1, "max_w": 0.2, "chance": 2, "type": "special", "key": "key"},
+            {"name": "🎟️ Лотерейний квиток", "min_w": 0.01, "max_w": 0.01, "chance": 1, "type": "special", "key": "lottery_ticket"}
+        ]
+        
+        item = random.choices(loot_pool, weights=[i['chance'] for i in loot_pool])[0]
+        item_name = item['name']
+        item_type = item['type']
+        fish_weight = round(random.uniform(item['min_w'], item['max_w']), 2)
+
+        update_query = "UPDATE capybaras SET meta = jsonb_set(meta, '{stamina}', (GREATEST((meta->>'stamina')::int - 10, 0))::text::jsonb)"
+        
+        if item_type == "loot":
+            update_query += f", meta = jsonb_set(meta, '{{equipment, loot, {item_name}}}', (COALESCE((meta->'equipment'->'loot'->>'{item_name}')::int, 0) + 1)::text::jsonb)"
+        
+        elif item_type == "food":
+            target_key = item['key']
+            update_query += f", meta = jsonb_set(meta, '{{{target_key}}}', (COALESCE((meta->>'{target_key}')::int, 0) + 1)::text::jsonb)"
+            
+        elif item_type == "special":
+            target_key = item['key']
+            update_query += f", meta = jsonb_set(meta, '{{equipment, loot, {target_key}}}', (COALESCE((meta->'equipment'->'loot'->>'{target_key}')::int, 0) + 1)::text::jsonb)"
+
+        await conn.execute(update_query + " WHERE owner_id = $1", uid)
+
+        result_text = (
+            f"Чілимо... Раптом поплавок смикнувся!\n"
+            f"Ііііі... Твій улов: <b>{item_name} ({fish_weight} кг)</b>\n"
+            f"📦 <i>Предмет додано в інвентар!</i>\n"
+            f"🔋 Залишок енергії: {max(0, stamina - 10)}%",
+            parse_mode="HTML"
+        )
+        await callback.answer(f"Зловлено: {item_name}!")
+
+    finally:
+        await conn.close()
+
 @router.message(F.text.startswith("🎒"))
 async def show_inventory_start(message: types.Message):
     await render_inventory_page(message, message.from_user.id, page="food")
