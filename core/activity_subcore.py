@@ -767,7 +767,7 @@ async def handle_fishing(callback: types.CallbackQuery):
             )
             WHERE owner_id = $1
         """, uid, path_list)
-            inventory_note = "📦 <i>Предмет додано в інвентар!</i>"
+        inventory_note = "📦 <i>Предмет додано в інвентар!</i>"
 
         await callback.message.edit_text(
             f"Чілимо... Раптом поплавок смикнувся!\n"
