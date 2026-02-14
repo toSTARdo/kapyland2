@@ -381,6 +381,8 @@ async def render_inventory_page(message, user_id, page="food", is_callback=False
     inv = meta.get("inventory", {})
     builder = InlineKeyboardBuilder()
 
+    ITEMS_PER_PAGE = 5
+
     TYPE_ICONS = {
         "weapon": "🗡️",
         "armor": "🔰",
@@ -449,23 +451,27 @@ async def render_inventory_page(message, user_id, page="food", is_callback=False
         if not all_items:
             content = "<i>Твій трюм порожній...</i>"
         else:
-            unique_items = {}
+            unique_list = []
+            seen = {}
             for item in all_items:
                 name = item['name']
-                if name not in unique_items: 
-                    unique_items[name] = {"data": item, "count": 1}
+                if name not in seen:
+                    seen[name] = len(unique_list)
+                    unique_list.append({"data": item, "count": 1})
                 else:
-                    unique_items[name]["count"] += 1
+                    unique_list[seen[name]]["count"] += 1
             
-            SELL_PRICES = {
-                "Common": 1,
-                "Rare": 2,
-                "Epic": 3,
-                "Legendary": 5
-            }
+            total_items = len(unique_list)
+            max_pages = (total_items - 1) // ITEMS_PER_PAGE
+            start_idx = current_page * ITEMS_PER_PAGE
+            end_idx = start_idx + ITEMS_PER_PAGE
+            items_slice = unique_list[start_idx:end_idx]
 
-            for name, info in unique_items.items():
+            SELL_PRICES = {"Common": 1, "Rare": 2, "Epic": 3, "Legendary": 5}
+
+            for info in items_slice:
                 item = info["data"]
+                name = item['name']
                 count = info["count"]
                 rarity = item.get('rarity', 'Common')
                 
@@ -484,37 +490,47 @@ async def render_inventory_page(message, user_id, page="food", is_callback=False
                     text=f"{r_icon}{t_icon} {name} x{count}{status}", 
                     callback_data=f"equip:{item_type}:{name}"
                 )
-                
                 price = SELL_PRICES.get(rarity, 1)
                 builder.button(
                     text=f"💰 {price}", 
                     callback_data=f"sell_item:{rarity}:{name}"
                 )
 
-            content = "Обери предмет для взаємодії або продажу:"
+            builder.adjust(*(2 for _ in range(len(items_slice))))
             
-            builder.adjust(*(2 for _ in range(len(unique_items))))
+            if total_items > ITEMS_PER_PAGE:
+                control_row = []
+                if current_page > 0:
+                    control_row.append(types.InlineKeyboardButton(
+                        text="⬅️ Назад", callback_data=f"inv_pagination:{page}:{current_page-1}"))
+                
+                control_row.append(types.InlineKeyboardButton(
+                    text=f"📄 {current_page + 1}/{max_pages + 1}", callback_data="none"))
+                
+                if current_page < max_pages:
+                    control_row.append(types.InlineKeyboardButton(
+                        text="Вперед ➡️", callback_data=f"inv_pagination:{page}:{current_page+1}"))
+                
+                builder.row(*control_row)
+
+            content = f"Обери предмет (Сторінка {current_page + 1}):"
 
     nav_row = []
-    pages_meta = {
-        "food": "🍎 Їжа",
-        "loot": "🧳 Лут",
-        "maps": "🗺 Мапи",
-        "items": "⚔️ Речі"
-    }
+    pages_meta = {"food": "🍎 Їжа", "loot": "🧳 Лут", "maps": "🗺 Мапи", "items": "⚔️ Речі"}
     
     for p_key, p_text in pages_meta.items():
         if page != p_key:
-            nav_row.append(types.InlineKeyboardButton(text=p_text, callback_data=f"inv_page:{p_key}"))
+            nav_row.append(types.InlineKeyboardButton(text=p_text, callback_data=f"inv_page:{p_key}:0"))
     
     builder.row(*nav_row)
 
     text = f"{title}\n━━━━━━━━━━━━━━━\n{content}"
-
+    
+    markup = builder.as_markup()
     if is_callback:
-        await message.edit_text(text, reply_markup=builder.as_markup(), parse_mode="HTML")
+        await message.edit_text(text, reply_markup=markup, parse_mode="HTML")
     else:
-        await message.answer(text, reply_markup=builder.as_markup(), parse_mode="HTML")
+        await message.answer(text, reply_markup=markup, parse_mode="HTML")
 
 @router.callback_query(F.data.startswith("sell_item:"))
 async def handle_sell_equipment(callback: types.CallbackQuery):
