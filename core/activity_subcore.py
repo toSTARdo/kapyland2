@@ -452,10 +452,22 @@ async def render_inventory_page(message, user_id, page="food", is_callback=False
             unique_items = {}
             for item in all_items:
                 name = item['name']
-                if name not in unique_items: unique_items[name] = item
+                if name not in unique_items: 
+                    unique_items[name] = {"data": item, "count": 1}
+                else:
+                    unique_items[name]["count"] += 1
             
             content_lines = []
-            for name, item in unique_items.items():
+            SELL_PRICES = {
+                "Common": 1,
+                "Rare": 2,
+                "Epic": 3,
+                "Legendary": 5
+            }
+
+            for name, info in unique_items.items():
+                item = info["data"]
+                count = info["count"]
                 rarity = item.get('rarity', 'Common')
                 
                 item_type = "artifact"
@@ -465,19 +477,26 @@ async def render_inventory_page(message, user_id, page="food", is_callback=False
                         break
                 
                 is_equipped = (name == curr_weapon or name == curr_armor)
-                
                 r_icon = RARITY_META.get(rarity, {}).get('emoji', '⚪')
                 t_icon = TYPE_ICONS.get(item_type, "🧿")
-                status = " ✅" if is_equipped else ""
+                status = " [Вбрано]" if is_equipped else ""
                 
-                content_lines.append(f"{r_icon}{t_icon} <b>{name}</b>{status}")
+                content_lines.append(f"{r_icon}{t_icon} <b>{name}</b> (x{count}){status}")
                 
                 if item_type in ["weapon", "armor"] and not is_equipped:
                     builder.button(
-                        text=f"Взяти {name}", 
+                        text=f"🛡 {r_icon} {name}{status}", 
                         callback_data=f"equip:{item_type}:{name}"
                     )
-            content = "\n".join(content_lines)
+                
+                price = SELL_PRICES.get(rarity, 1)
+                builder.button(
+                    text=f"💰 Продати {name} (+{price})", 
+                    callback_data=f"sell_item:{rarity}:{name}"
+                )
+
+            content = "Твій арсенал:\n" + "\n".join(content_lines)
+        
         builder.adjust(1)
 
     nav_row = []
@@ -500,6 +519,46 @@ async def render_inventory_page(message, user_id, page="food", is_callback=False
         await message.edit_text(text, reply_markup=builder.as_markup(), parse_mode="HTML")
     else:
         await message.answer(text, reply_markup=builder.as_markup(), parse_mode="HTML")
+
+@router.callback_query(F.data.startswith("sell_item:"))
+async def handle_sell_item(callback: types.CallbackQuery):
+    _, rarity, item_name = callback.data.split(":")
+    uid = callback.from_user.id
+    
+    prices = {"Common": 1, "Rare": 2, "Epic": 3, "Legendary": 5}
+    reward = prices.get(rarity, 1)
+    
+    conn = await get_db_connection()
+    try:
+        row = await conn.fetchrow("SELECT inventory, meta FROM capybaras WHERE owner_id = $1", uid)
+        if not row: return
+        
+        inv = json.loads(row['inventory'])
+        meta = json.loads(row['meta'])
+        
+        curr_equip = meta.get("equipment", {})
+        if item_name == curr_equip.get("weapon") or item_name == curr_equip.get("armor"):
+            return await callback.answer("❌ Не можна продати те, що на тобі вбрано!", show_alert=True)
+            
+        items = inv.get("equipment", [])
+        for i, item in enumerate(items):
+            if item['name'] == item_name:
+                items.pop(i)
+                break
+        else:
+            return await callback.answer("❌ Предмет не знайдено.")
+
+        meta['coins'] = meta.get('coins', 0) + reward
+        
+        await conn.execute(
+            "UPDATE capybaras SET inventory = $1, meta = $2 WHERE owner_id = $3",
+            json.dumps(inv), json.dumps(meta), uid
+        )
+        
+        await callback.answer(f"✅ Продано! Отримано {reward} 💰")
+        
+    finally:
+        await conn.close()
 
 @router.callback_query(F.data.startswith("food_choice:"))
 async def handle_food_choice(callback: types.CallbackQuery):
@@ -686,26 +745,28 @@ async def handle_fishing(callback: types.CallbackQuery):
             inventory_note = "🗑 <i>Ти викинув це назад у воду...</i>"
         else:
             if item_type == "loot":
-                path = f"{{equipment, loot, {item_name}}}"
-                current_val = f"(COALESCE(meta->'equipment'->'loot'->>'{item_name}', '0'))::int"
-            elif item_type == "food":
-                path = f"{{{item['key']}}}"
-                current_val = f"(COALESCE(meta->>'{item['key']}', '0'))::int"
-            else: # special
-                path = f"{{equipment, loot, {item['key']}}}"
-                current_val = f"(COALESCE(meta->'equipment'->'loot'->>'{item['key']}', '0'))::int"
+            path_list = ["equipment", "loot", item_name]
+            current_val_sql = f"COALESCE(meta->'equipment'->'loot'->>'{item_name}', '0')::int"
+        elif item_type == "food":
+            path_list = [item['key']]
+            current_val_sql = f"COALESCE(meta->>'{item['key']}', '0')::int"
+        else:
+            path_list = ["equipment", "loot", item['key']]
+            current_val_sql = f"COALESCE(meta->'equipment'->'loot'->>'{item['key']}', '0')::int"
 
-            await conn.execute(f"""
-                UPDATE capybaras 
-                SET meta = jsonb_set(
-                    jsonb_set(
-                        meta, '{stamina}', 
-                        (GREATEST((meta->>'stamina')::int - 10, 0))::text::jsonb
-                    ),
-                    '{path}', ({current_val} + 1)::text::jsonb
-                )
-                WHERE owner_id = $1
-            """, uid)
+        await conn.execute(f"""
+            UPDATE capybaras 
+            SET meta = jsonb_set(
+                jsonb_set(
+                    meta, 
+                    '{{stamina}}', 
+                    (GREATEST((meta->>'stamina')::int - 10, 0))::text::jsonb
+                ),
+                $2, 
+                ({current_val_sql} + 1)::text::jsonb
+            )
+            WHERE owner_id = $1
+        """, uid, path_list)
             inventory_note = "📦 <i>Предмет додано в інвентар!</i>"
 
         await callback.message.edit_text(
