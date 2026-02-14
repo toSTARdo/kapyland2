@@ -261,13 +261,17 @@ async def render_inventory_page(message, user_id, page="food", is_callback=False
         food = inv.get("food", {})
         food_names = {"tangerines": "🍊", "melon": "🍈", "watermelon_slices": "🍉", "mango": "🥭", "kiwi": "🥝"}
         
-        content_lines = []
-        for k, v in food.items():
-            if v > 0:
-                name = food_names.get(k, "🍱")
-                builder.button(text=f"{name} ({v})", callback_data=f"use_food:{k}")
+        has_food = any(v > 0 for v in food.values())
         
-        content = "<i>Натисни на кнопку, щоб поїсти:</i>"
+        if not has_food:
+            content = "<i>Твій кошик порожній... Пошукай щось на мапі!</i>"
+        else:
+            content = "<i>Обери їжу:</i>"
+            for k, v in food.items():
+                if v > 0:
+                    icon = food_names.get(k, "🍱")
+                    builder.button(text=f"{icon} ({v})", callback_data=f"food_choice:{k}")
+        
         builder.adjust(2)
 
     elif page == "loot":
@@ -336,6 +340,95 @@ async def render_inventory_page(message, user_id, page="food", is_callback=False
         await message.edit_text(text, reply_markup=builder.as_markup(), parse_mode="HTML")
     else:
         await message.answer(text, reply_markup=builder.as_markup(), parse_mode="HTML")
+
+@router.callback_query(F.data.startswith("food_choice:"))
+async def handle_food_choice(callback: types.CallbackQuery):
+    food_type = callback.data.split(":")[1]
+    user_id = callback.from_user.id
+    
+    meta_data = await get_user_inventory(user_id)
+    meta = json.loads(meta_data) if isinstance(meta_data, str) else meta_data
+    count = meta.get("inventory", {}).get("food", {}).get(food_type, 0)
+    
+    if count <= 0:
+        return await callback.answer("Нічого немає! Ти бідний, ти жебрак...")
+
+    food_names = {"tangerines": "🍊", "melon": "🍈", "watermelon_slices": "🍉", "mango": "🥭", "kiwi": "🥝"}
+    icon = food_names.get(food_type, "🍱")
+
+    builder = InlineKeyboardBuilder()
+    builder.button(text=f"🍴 З'їсти 1", callback_data=f"eat:one:{food_type}")
+    
+    if count > 1:
+        builder.button(text=f"🍴 З'їсти все ({count})", callback_data=f"eat:all:{food_type}")
+    
+    builder.button(text="🔙 Назад", callback_data="inv_page:food")
+    builder.adjust(1)
+
+    await callback.message.edit_text(
+        f"🍎 <b>Твій вибір: {icon}</b>",
+        reply_markup=builder.as_markup(),
+        parse_mode="HTML"
+    )
+
+@router.callback_query(F.data.startswith("eat:"))
+async def handle_eat(callback: types.CallbackQuery):
+    _, amount_type, food_type = callback.data.split(":")
+    user_id = callback.from_user.id
+    
+    WEIGHT_TABLE = {
+        "tangerines": 0.5,
+        "watermelon_slices": 1.0,
+        "melon": 5.0,
+        "mango": 0.5,
+        "kiwi": 0.5
+    }
+    
+    conn = await get_db_connection()
+    try:
+        row = await conn.fetchrow(
+            "SELECT meta, exp, lvl FROM capybaras WHERE owner_id = $1", 
+            user_id
+        )
+        if not row: return
+        
+        meta = json.loads(row['meta']) if isinstance(row['meta'], str) else row['meta']
+        current_exp = row['exp'] or 0
+        
+        current_count = meta.get("inventory", {}).get("food", {}).get(food_type, 0)
+        
+        if current_count <= 0:
+            await callback.answer("Нічого не залишилося! Ти бідний, ти жебрак...")
+            return await render_inventory_page(callback.message, user_id, page="food", is_callback=True)
+
+        to_eat = 1 if amount_type == "one" else current_count
+        
+        unit_weight = WEIGHT_TABLE.get(food_type, 0.5)
+        total_bonus = to_eat * unit_weight
+        
+        meta["inventory"]["food"][food_type] -= to_eat
+        meta["weight"] = round(min(meta.get("weight", 20.0) + total_bonus, 500.0), 2)
+        
+        new_exp = current_exp + int(total_bonus) 
+        if total_bonus < 1 and random.random() < total_bonus:
+            new_exp += 1
+
+        await conn.execute("""
+            UPDATE capybaras 
+            SET meta = $1, exp = $2 
+            WHERE owner_id = $3
+        """, json.dumps(meta, ensure_ascii=False), new_exp, user_id)
+        
+        await callback.answer(
+            f"Капі-ням!\n"
+            f"Вага: +{total_bonus} кг\n"
+            f"Досвід: +{int(total_bonus) if total_bonus >= 1 else '✨'} EXP"
+        )
+        
+        await render_inventory_page(callback.message, user_id, page="food", is_callback=True)
+
+    finally:
+        await conn.close()
 
 @router.message(F.text.startswith("🎒"))
 async def show_inventory_start(message: types.Message):

@@ -41,9 +41,9 @@ async def health_check():
     return {"status": "OK", "bot_version": config.VERSION}
 
 @dp.message(Command("start"))
-async def cmd_start(message: types.Message, forced_entry: bool = False):
-    uid = message.from_user.id
-    user_name = message.from_user.first_name
+async def cmd_start(message: types.Message, forced_entry: bool = False, user_id: int = None):
+    uid = user_id if user_id else message.from_user.id
+    user_name = message.from_user.first_name if message.from_user else "Капібара"
     
     conn = await get_db_connection()
     try:
@@ -83,18 +83,35 @@ async def cmd_start(message: types.Message, forced_entry: bool = False):
 @dp.callback_query(F.data == "finish_prologue")
 async def handle_isekai(callback: types.CallbackQuery):
     await callback.message.edit_reply_markup(reply_markup=None)
+    uid = callback.from_user.id
+    user_name = callback.from_user.first_name
     
     conn = await get_db_connection()
     try:
-        await conn.execute("UPDATE users SET has_finished_prologue = TRUE WHERE tg_id = $1", callback.from_user.id)
+        await conn.execute("UPDATE users SET has_finished_prologue = TRUE WHERE tg_id = $1", uid)
+        
+        capy_exists = await conn.fetchval("SELECT id FROM capybaras WHERE owner_id = $1", uid)
+        if not capy_exists:
+            await conn.execute(
+                "INSERT INTO capybaras (owner_id, name) VALUES ($1, $2)",
+                uid, "Безіменна булочка"
+            )
+        
+        user_data = await conn.fetchrow("SELECT kb_layout FROM users WHERE tg_id = $1", uid)
+        layout = user_data['kb_layout'] if user_data else 0
     finally:
         await conn.close()
     
     await callback.message.answer("💫 В очах темніє і остання думка це 🍊")
     
-    await cmd_start(callback.message, forced_entry=True)
+    welcome_text = f"🏴‍☠️ Вітаємо на планеті Мофу, {user_name}!"
+    await callback.message.answer(
+        f"{welcome_text}\n\n"
+        f"Версія бота: {config.VERSION}\n"
+        "🍎 /feed | 🧼 /wash | 💤 /sleep",
+        reply_markup=get_main_kb(layout_type=layout)
+    )
     await callback.answer()
-
 async def run_bot():
     await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot)

@@ -21,7 +21,7 @@ async def cmd_feed(event: types.Message | types.CallbackQuery):
     if isinstance(event, types.CallbackQuery):
         await event.answer()
 
-    raw_random_weight = round(random.uniform(0.1, 0.5), 2)
+    raw_random_weight = round(random.uniform(0.1, 5.0), 2)
     result = await feed_capybara_logic(uid, raw_random_weight)
 
     if result == "no_capy":
