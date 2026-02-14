@@ -142,8 +142,12 @@ async def handle_quest_step(callback: types.CallbackQuery):
         if "reward" in option:
             for r in option['reward'].split(","):
                 k, v = r.split(":")
-                if k == "item": state['flags'].append(v)
-                elif k in state['loot']: state['loot'][k] += int(v)
+                if k == "item":
+                    if 'flags' not in state:
+                        state['flags'] = []
+                    state['flags'].append(v)
+                elif k in state['loot']:
+                    state['loot'][k] += int(v)
 
         if option.get("action") == "exit" or option.get("next") == "win":
             await apply_rewards(uid, state)
@@ -185,9 +189,10 @@ async def start_branching_quest(event: types.Message | types.CallbackQuery, ques
     if not quest: return
 
     quest_state = {
-        "id": quest_id,
-        "stage": "0",
-        "loot": {"exp": 0, "watermelon_slices": 0, "key": 0, "chest": 0}
+    "id": quest_id,
+    "stage": "0",
+    "loot": {"exp": 0, "watermelon_slices": 0, "key": 0, "chest": 0, "pearl_of_ehwaz": 0},
+    "flags": []
     }
 
     conn = await get_db_connection()
