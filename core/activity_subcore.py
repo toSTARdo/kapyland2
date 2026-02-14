@@ -457,7 +457,6 @@ async def render_inventory_page(message, user_id, page="food", is_callback=False
                 else:
                     unique_items[name]["count"] += 1
             
-            content_lines = []
             SELL_PRICES = {
                 "Common": 1,
                 "Rare": 2,
@@ -479,25 +478,22 @@ async def render_inventory_page(message, user_id, page="food", is_callback=False
                 is_equipped = (name == curr_weapon or name == curr_armor)
                 r_icon = RARITY_META.get(rarity, {}).get('emoji', '⚪')
                 t_icon = TYPE_ICONS.get(item_type, "🧿")
-                status = " [Вбрано]" if is_equipped else ""
+                status = " ✅" if is_equipped else ""
                 
-                content_lines.append(f"{r_icon}{t_icon} <b>{name}</b> (x{count}){status}")
-                
-                if item_type in ["weapon", "armor"] and not is_equipped:
-                    builder.button(
-                        text=f"🛡 {r_icon} {name}{status}", 
-                        callback_data=f"equip:{item_type}:{name}"
-                    )
+                builder.button(
+                    text=f"{r_icon}{t_icon} {name} x{count}{status}", 
+                    callback_data=f"equip:{item_type}:{name}"
+                )
                 
                 price = SELL_PRICES.get(rarity, 1)
                 builder.button(
-                    text=f"💰 Продати {name} (+{price})", 
+                    text=f"💰 {price}", 
                     callback_data=f"sell_item:{rarity}:{name}"
                 )
 
-            content = "Твій арсенал:\n" + "\n".join(content_lines)
-        
-        builder.adjust(1)
+            content = "Обери предмет для взаємодії або продажу:"
+            
+            builder.adjust(*(2 for _ in range(len(unique_items))))
 
     nav_row = []
     pages_meta = {
