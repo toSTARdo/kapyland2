@@ -69,27 +69,35 @@ class CombatEngine:
             armor_msg = defe.armor_data.get("text", "заблокував удар")
             return f"🔰 {html.bold(defe.name)} {armor_msg}!"
 
-        damage = att.weapon_data.get("power", 1)
-        
+        base_damage = att.weapon_data.get("power", 1)
+        crit_bonus = 0
         crit_text = ""
+        
         if random.random() < (att.luck * STAT_WEIGHTS["luck_to_crit"]):
-            damage += 1
+            crit_bonus = 1
             crit_text = "💥 "
 
+        ability_damage = 0
         special_msg = ""
         special_key = att.weapon_data.get("special")
         
         if special_key in ABILITY_REGISTRY:
-            if ABILITY_REGISTRY[special_key](att, defe):
+            result = ABILITY_REGISTRY[special_key](att, defe)
+            
+            if isinstance(result, (int, float)):
+                ability_damage = int(result)
+            
+            if result:
                 json_special_text = att.weapon_data.get("special_text", "")
                 if json_special_text:
                     special_msg = f"\n{json_special_text}"
 
-        defe.hp = max(0, defe.hp - damage)
+        total_damage = base_damage + crit_bonus + ability_damage
+        defe.hp = max(0, defe.hp - total_damage)
         
         raw_text = random.choice(att.weapon_data["texts"])
         attack_verb = raw_text.replace("{defen}", html.bold(defe.name))
         
         return (f"{crit_text}{att.color} {html.bold(att.name)} {attack_verb}!\n"
-                f"➔ Шкода: {html.bold('-' + str(damage) + ' HP')}"
+                f"➔ Шкода: {html.bold('-' + str(total_damage) + ' HP')}"
                 f"{special_msg}")

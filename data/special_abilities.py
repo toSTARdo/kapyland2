@@ -9,9 +9,8 @@ def effect_chance(base_prob):
             final_chance = max(0, min(0.98, base_prob + luck_bonus + lvl_bonus))
             
             if random.random() < final_chance:
-                func(att, defe)
-                return True
-            return False
+                return func(att, defe)
+            return 0
         return wrapper
     return decorator
 
@@ -19,59 +18,68 @@ def effect_chance(base_prob):
 @effect_chance(0.20)
 def hook_snag(att, defe):
     defe.agi = max(0, defe.agi - 1)
-    att.agi += 1 
+    att.agi += 1
+    return 0
 
 @effect_chance(0.18)
 def wooden_leg_effect(att, defe):
     defe.atk = max(0, defe.atk - 2)
+    return 0
 
 @effect_chance(0.25)
 def heavy_swing_effect(att, defe):
-    defe.hp = max(0, defe.hp - 1)
+    return 1
 
 @effect_chance(0.22)
 def mop_wash_effect(att, defe):
     defe.luck = max(0, defe.luck - 3)
+    return 0
 
 @effect_chance(0.25)
 def yorshik_effect(att, defe):
     defe.def_ = max(0, defe.def_ - 1)
+    return 0
 
 #RARE
 @effect_chance(1.0) 
 def entangle_effect(att, defe):
     defe.agi = max(0, defe.agi - 2) 
     defe.atk = max(0, defe.atk - 1) 
+    return 0
 
 @effect_chance(1.0)
 def drunk_fury_effect(att, defe):
     att.atk += 2
     att.def_ = max(0, att.def_ - 2)
+    return 0
 
 @effect_chance(0.35)
 def bleed_effect(att, defe):
-    defe.hp = max(0, defe.hp - 1)
     att.luck += 1
+    return 1
 
 @effect_chance(0.40)
 def precision_strike_effect(att, defe):
     defe.def_ = max(0, defe.def_ - 2) 
     att.luck += 2 
+    return 0
 
 @effect_chance(1.0)
 def parry_effect(att, defe):
     att.def_ += 2
     att.agi += 1 
+    return 0
 
 @effect_chance(1.0)
 def curse_mark_effect(att, defe):
     defe.luck = 0  
     defe.def_ = max(0, defe.def_ - 1) 
+    return 0
 
 @effect_chance(0.30)
 def cannon_splash_effect(att, defe):
-    defe.hp = max(0, defe.hp - 3)  
     defe.agi = max(0, defe.agi - 1) 
+    return 3
 
 #EPIC
 @effect_chance(0.40)
@@ -79,16 +87,16 @@ def life_steal_effect(att, defe):
     att.hp = min(att.max_hp, att.hp + 2)
     defe.atk = max(0, defe.atk - 1)
     att.luck += 1
-    if getattr(att, 'weapon_lvl', 0) > 0:
-        defe.hp = max(0, defe.hp - 1)
+    return 1 if getattr(att, 'weapon_lvl', 0) > 0 else 0
 
 @effect_chance(0.35)
 def confuse_hit_effect(att, defe):
-    defe.hp = max(0, defe.hp - 2)
     defe.luck = max(0, defe.luck - 3)
     att.agi += 1
+    bonus = 2
     if getattr(att, 'weapon_lvl', 0) > 0:
         defe.def_ = max(0, defe.def_ - 2)
+    return bonus
 
 @effect_chance(1.0)
 def freeze_debuff_effect(att, defe):
@@ -97,6 +105,7 @@ def freeze_debuff_effect(att, defe):
     att.def_ += 1
     if getattr(att, 'weapon_lvl', 0) > 0:
         defe.atk = max(0, defe.atk - 2)
+    return 0
 
 @effect_chance(1.0)
 def fear_debuff_effect(att, defe):
@@ -105,6 +114,7 @@ def fear_debuff_effect(att, defe):
     att.atk += 1
     if getattr(att, 'weapon_lvl', 0) > 0:
         defe.agi = max(0, defe.agi - 2)
+    return 0
 
 @effect_chance(1.0)
 def energy_surge_effect(att, defe):
@@ -114,22 +124,22 @@ def energy_surge_effect(att, defe):
     if getattr(att, 'weapon_lvl', 0) > 0:
         att.hp = max(1, att.hp - 1)
         att.atk += 3
+    return 0
 
 @effect_chance(0.45)
 def owl_crit_effect(att, defe):
-    defe.hp = max(0, defe.hp - 3)
     defe.def_ = max(0, defe.def_ - 2)
     att.agi += 2
     if getattr(att, 'weapon_lvl', 0) > 0:
         att.luck += 5
+    return 3
 
 @effect_chance(1.0)
 def auto_attack_effect(att, defe):
     att.atk += 2
     defe.def_ = max(0, defe.def_ - 2)
     att.def_ += 2
-    if getattr(att, 'weapon_lvl', 0) > 0:
-        defe.hp = max(0, defe.hp - 2)
+    return 2 if getattr(att, 'weapon_lvl', 0) > 0 else 0
 
 @effect_chance(1.0)
 def rage_boost_effect(att, defe):
@@ -138,22 +148,23 @@ def rage_boost_effect(att, defe):
     defe.atk = max(0, defe.atk - 1)
     if getattr(att, 'weapon_lvl', 0) > 0:
         att.def_ += 2
+    return 0
 
 @effect_chance(0.35)
 def ghost_strike_effect(att, defe):
-    defe.hp = max(0, defe.hp - 1)
     att.agi += 3
     defe.luck = 0
     if getattr(att, 'weapon_lvl', 0) > 0:
         att.hp = min(att.max_hp, att.hp + 2)
+    return 1
 
 @effect_chance(0.55)
 def crit_5_effect(att, defe):
-    defe.hp = max(0, defe.hp - 4)
     att.luck += 3
     defe.agi = max(0, defe.agi - 2)
     if getattr(att, 'weapon_lvl', 0) > 0:
         att.atk += 2
+    return 4
 
 #LEGENDARY
 @effect_chance(0.40)
@@ -166,6 +177,7 @@ def cat_life_effect(att, defe):
         defe.agi = max(0, defe.agi - 3)
     if getattr(att, 'weapon_lvl', 0) >= 2:
         att.atk += 2
+    return 0
 
 @effect_chance(1.0)
 def tea_mastery_effect(att, defe):
@@ -177,21 +189,22 @@ def tea_mastery_effect(att, defe):
         defe.luck = 0
     if getattr(att, 'weapon_lvl', 0) >= 2:
         att.agi += 2
+    return 0
 
 @effect_chance(0.35)
 def double_strike_effect(att, defe):
-    defe.hp = max(0, defe.hp - 2)
     att.atk += 1
     att.agi += 2
     defe.def_ = max(0, defe.def_ - 1)
+    bonus = 2
     if getattr(att, 'weapon_lvl', 0) >= 1:
-        defe.hp = max(0, defe.hp - 2)
+        bonus += 2
     if getattr(att, 'weapon_lvl', 0) >= 2:
         defe.agi = 0
+    return bonus
 
 @effect_chance(0.20)
 def crit_20_effect(att, defe):
-    defe.hp = 0
     att.luck += 5
     att.atk += 5
     att.def_ += 5
@@ -199,17 +212,18 @@ def crit_20_effect(att, defe):
         att.hp = att.max_hp
     if getattr(att, 'weapon_lvl', 0) >= 2:
         defe.luck = 0
+    return 99
 
 @effect_chance(1.0)
 def pierce_armor_effect(att, defe):
     defe.def_ = 0
-    defe.hp = max(0, defe.hp - 2)
     att.atk += 2
     att.luck += 1
     if getattr(att, 'weapon_lvl', 0) >= 1:
         defe.atk = max(0, defe.atk - 3)
     if getattr(att, 'weapon_lvl', 0) >= 2:
         defe.agi = max(0, defe.agi - 2)
+    return 2
 
 @effect_chance(1.0)
 def heavy_weight_effect(att, defe):
@@ -217,10 +231,12 @@ def heavy_weight_effect(att, defe):
     att.atk += 5
     att.def_ += 4
     defe.def_ = max(0, defe.def_ - 3)
+    bonus = 0
     if getattr(att, 'weapon_lvl', 0) >= 1:
-        defe.hp = max(0, defe.hp - 3)
+        bonus = 3
     if getattr(att, 'weapon_lvl', 0) >= 2:
         att.luck += 4
+    return bonus
 
 @effect_chance(1.0)
 def range_attack_effect(att, defe):
@@ -232,6 +248,7 @@ def range_attack_effect(att, defe):
         att.atk += 3
     if getattr(att, 'weapon_lvl', 0) >= 2:
         defe.def_ = max(0, defe.def_ - 2)
+    return 0
 
 @effect_chance(0.40)
 def stun_chance_effect(att, defe):
@@ -239,10 +256,12 @@ def stun_chance_effect(att, defe):
     defe.atk = max(0, defe.atk - 4)
     defe.def_ = max(0, defe.def_ - 2)
     att.luck += 2
+    bonus = 0
     if getattr(att, 'weapon_lvl', 0) >= 1:
-        defe.hp = max(0, defe.hp - 3)
+        bonus = 3
     if getattr(att, 'weapon_lvl', 0) >= 2:
         att.def_ += 3
+    return bonus
 
 @effect_chance(0.60)
 def rubber_choke_effect(att, defe):
@@ -250,10 +269,12 @@ def rubber_choke_effect(att, defe):
     defe.agi = max(0, defe.agi - 4)
     defe.luck = 0
     att.luck += 4
+    bonus = 0
     if getattr(att, 'weapon_lvl', 0) >= 1:
         defe.def_ = 0
     if getattr(att, 'weapon_lvl', 0) >= 2:
-        defe.hp = max(0, defe.hp - 2)
+        bonus = 2
+    return bonus
 
 ABILITY_REGISTRY = {
     "none": lambda a, d: False,
