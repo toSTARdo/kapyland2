@@ -159,11 +159,9 @@ async def show_profile(message: types.Message):
     builder.button(text="🍎 Годувати", callback_data="feed_capy")
     builder.button(text="🧼 Мити", callback_data="wash_capy")
     builder.button(text="💤 Сон (2 год)", callback_data="sleep_capy")
-    builder.button(text="🧤 Красти", callback_data="steal")
-    builder.button(text="🪵 Таран", callback_data="ram")
     builder.button(text="🎣 Рибалити", callback_data="fish")
     
-    builder.adjust(1, 3, 3)
+    builder.adjust(1, 3, 1)
 
     await message.answer(
         get_general_profile_text(data, meta), 
