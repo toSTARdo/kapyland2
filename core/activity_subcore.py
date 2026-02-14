@@ -730,39 +730,25 @@ async def handle_fishing(callback: types.CallbackQuery):
         fish_weight = round(random.uniform(item['min_w'], item['max_w']), 2)
 
         if item_type == "trash":
-            await conn.execute("""
+            sql = "UPDATE capybaras SET meta = jsonb_set(meta, '{stamina}', (GREATEST((meta->>'stamina')::int - 10, 0))::text::jsonb) WHERE owner_id = $1"
+            args = [uid]
+        else:
+            if item_type == "food":
+                path = ['inventory', 'food', item['key']]
+                current_val = f"COALESCE(meta->'inventory'->'food'->>'{item['key']}', '0')::int"
+            else:
+                target_key = item.get('key', item_name)
+                path = ['inventory', 'loot', target_key]
+                current_val = f"COALESCE(meta->'inventory'->'loot'->>'{target_key}', '0')::int"
+
+            sql = f"""
                 UPDATE capybaras 
                 SET meta = jsonb_set(
-                    meta, '{stamina}', 
-                    (GREATEST((meta->>'stamina')::int - 10, 0))::text::jsonb
-                )
-                WHERE owner_id = $1
-            """, uid)
-            inventory_note = "🗑 <i>Ти викинув це назад у воду...</i>"
-        else:
-            if item_type == "loot":
-                path_list = ["equipment", "loot", item_name]
-                current_val_sql = f"COALESCE(meta->'equipment'->'loot'->>'{item_name}', '0')::int"
-            elif item_type == "food":
-                path_list = [item['key']]
-                current_val_sql = f"COALESCE(meta->>'{item['key']}', '0')::int"
-            else:
-                path_list = ["equipment", "loot", item['key']]
-                current_val_sql = f"COALESCE(meta->'equipment'->'loot'->>'{item['key']}', '0')::int"
-
-        await conn.execute(f"""
-            UPDATE capybaras 
-            SET meta = jsonb_set(
-                jsonb_set(
-                    meta, 
-                    '{{stamina}}', 
-                    (GREATEST((meta->>'stamina')::int - 10, 0))::text::jsonb
-                ),
-                $2, 
-                ({current_val_sql} + 1)::text::jsonb
-            )
-            WHERE owner_id = $1
-        """, uid, path_list)
+                    jsonb_set(meta, '{{stamina}}', (GREATEST((meta->>'stamina')::int - 10, 0))::text::jsonb),
+                    $2, ({current_val} + 1)::text::jsonb
+                ) WHERE owner_id = $1
+            """
+            args = [uid, path]
         inventory_note = "📦 <i>Предмет додано в інвентар!</i>"
 
         await callback.message.edit_text(
