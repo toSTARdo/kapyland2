@@ -50,20 +50,20 @@ async def init_pg():
                 "mood": "Normal",
                 "stats": {
                     "hp": 3,
-                    "attack": 1,
-                    "defense": 1,
-                    "luck": 1,
-                    "agility": 1
+                    "attack": 0,
+                    "defense": 0,
+                    "luck": 0,
+                    "agility": 0
                 },
                 "inventory": {
                     "food": {
                         "tangerines": 5,
-                        "melon": 1,
-                        "watermelon_slices": 14,
-                        "mango": 7,
-                        "kiwi": 2
+                        "melon": 0,
+                        "watermelon_slices": 0,
+                        "mango": 0,
+                        "kiwi": 0
                     },
-                    "loot": {"chest": 0, "key": 0, "lottery_ticket": 5},
+                    "loot": {"chest": 0, "key": 0, "lottery_ticket": 10},
                     "equipment": []
                 },
                 "equipment": {

@@ -28,7 +28,7 @@ async def render_story_node(message: types.Message, node_id: str):
     # Якщо це фінал
     if node.get("status") in ["dead", "win"]:
         title = node.get("title", "Невідома доля")
-        display_text += f"\n\n🔚 {html.bold('Отримано нову зав\'язку:')} {html.italic(title)}"
+        display_text += f"\n\n🏆 {html.bold('Отримано нову зав\'язку:')} {html.italic(title)}"
         display_text += (
             f"\n\n✨ {html.bold('Богиня Капібар зʼявляється перед тобою і промовляє через свої розкішні локони:')}\n"
             f"«Твоє життя у цьому світі завершене, але на планеті Мофу ти можеш стати ким завгодно. "
@@ -51,7 +51,7 @@ async def render_story_node(message: types.Message, node_id: str):
     except Exception:
         await message.answer(display_text, reply_markup=builder.as_markup(), parse_mode="HTML")
 
-@dp.callback_query(F.data.startswith("gift_"))
+@router.callback_query(F.data.startswith("gift_"))
 async def handle_goddess_gift(callback: types.CallbackQuery):
     stat_map = {
         "gift_attack": "attack",
