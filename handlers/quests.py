@@ -22,7 +22,6 @@ async def cmd_quests_board(message: types.Message):
     q_name = QUEST_PLOTS[q_id]['name']
 
     builder = InlineKeyboardBuilder()
-    builder.button(text=f"✅ {q_name}", callback_data=f"q_start:{q_id}")
     builder.button(text="🗺 Купити карту (50 🍉)", callback_data="buy_treasure_map")
     builder.adjust(1)
 
@@ -129,6 +128,9 @@ async def handle_quest_step(callback: types.CallbackQuery):
         if not row or not row['current_quest']: return
 
         state = row['current_quest']
+        if isinstance(state, str):
+            state = json.loads(state)
+
         quest = QUEST_PLOTS[state['id']]
         stage = quest['stages'][str(state['stage'])]
         option = stage['options'][opt_idx]
