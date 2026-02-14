@@ -6,7 +6,7 @@ from aiogram.filters import Command
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from core.capybara_mechanics import get_user_profile, calculate_dynamic_stats, feed_capybara_logic, wash_db_operation, sleep_db_operation
-from utils.helpers import format_time
+from utils.helpers import format_time, calculate_lvl_data
 from database.postgres_db import get_db_connection
 from config import MOODS
 
@@ -108,18 +108,19 @@ def get_stamina_icons(current_stamina):
 def get_general_profile_text(data, meta):
     mood = "ദ്ദി₍ᐢ•(ܫ)•ᐢ₎"
     stamina_val = meta.get('stamina', 100)
+    _, lvl = calculate_lvl_data(data['exp'], 0)
     
     return (
         f"<b>{mood} {data['name']}</b>\n"
         f"________________________________\n\n"
-        f"🌟 Рівень: <b>{data['lvl']}</b>\n"
+        f"🌟 Рівень: <b>{lvl}</b>\n"
         f"✳️ Капі-дзен: <b>{data['zen']}</b>\n"
         f"✴️ Капі-карма: <b>{data['karma']}</b>\n"
         f"⚖️ Вага: <b>{meta.get('weight', 20.0):.2f} кг</b>\n\n"
         f"ХП: {create_scale(meta.get('stats', {}).get('hp', 3), 3, '♥️', '🖤')}\n"
         f"Ситість: {create_scale(meta.get('hunger', 3), 3, '🍏', '●')}\n"
         f"Гігієна: {create_scale(meta.get('cleanness', 3), 3, '🧼', '🦠')}\n"
-        f"⚡ Енергія: <b>{get_stamina_icons(stamina_val)}</b>"
+        f"Енергія: <b>{get_stamina_icons(stamina_val)}</b>"
     )
 
 def get_fight_stats_text(data, meta):
@@ -160,7 +161,7 @@ async def show_profile(message: types.Message):
     builder.button(text="💤 Сон", callback_data="sleep_capy")
     builder.button(text="🧤 Красти", callback_data="steal")
     builder.button(text="🪵 Таран", callback_data="ram")
-    builder.button(text="🎣 Риба", callback_data="fish")
+    builder.button(text="🎣 Рибалити", callback_data="fish")
     
     builder.adjust(1, 3, 3)
 
@@ -200,7 +201,7 @@ async def profile_back_callback(callback: types.CallbackQuery):
     builder.button(text="💤 Сон", callback_data="sleep_capy")
     builder.button(text="🧤 Красти", callback_data="steal")
     builder.button(text="🪵 Таран", callback_data="ram")
-    builder.button(text="🎣 Риба", callback_data="fish")
+    builder.button(text="🎣 Рибалити", callback_data="fish")
     builder.adjust(1, 3, 3)
 
     await callback.message.edit_text(
