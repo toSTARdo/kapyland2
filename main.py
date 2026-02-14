@@ -1,6 +1,7 @@
 import asyncio
 import logging
-import aioschedule
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from datetime import datetime
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
 from aiogram.fsm.storage.memory import MemoryStorage
@@ -131,20 +132,15 @@ async def give_everyday_gift():
     finally:
         await conn.close()
 
-async def scheduler():
-    aioschedule.every().day.at("20:50").do(give_everyday_gift)
-    
-    while True:
-        await aioschedule.run_pending()
-        await asyncio.sleep(1)
-
 async def run_bot():
     await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot)
 
 async def main():
-    asyncio.create_task(scheduler())
     await init_pg()
+    scheduler = AsyncIOScheduler(timezone="Europe/Kyiv")
+    scheduler.add_job(give_everyday_gift, 'cron', hour=21, minute=0)
+    scheduler.start()
     config_uvicorn = uvicorn.Config(app=app, host="0.0.0.0", port=8000, log_level="error")
     server = uvicorn.Server(config_uvicorn)
 
