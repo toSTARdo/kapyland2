@@ -517,7 +517,7 @@ async def render_inventory_page(message, user_id, page="food", is_callback=False
         await message.answer(text, reply_markup=builder.as_markup(), parse_mode="HTML")
 
 @router.callback_query(F.data.startswith("sell_item:"))
-async def handle_sell_item(callback: types.CallbackQuery):
+async def handle_sell_equipment(callback: types.CallbackQuery):
     _, rarity, item_name = callback.data.split(":")
     uid = callback.from_user.id
     
@@ -526,33 +526,42 @@ async def handle_sell_item(callback: types.CallbackQuery):
     
     conn = await get_db_connection()
     try:
-        row = await conn.fetchrow("SELECT inventory, meta FROM capybaras WHERE owner_id = $1", uid)
+        row = await conn.fetchrow("SELECT meta FROM capybaras WHERE owner_id = $1", uid)
         if not row: return
         
-        inv = json.loads(row['inventory'])
-        meta = json.loads(row['meta'])
+        meta = json.loads(row['meta']) if isinstance(row['meta'], str) else row['meta']
         
-        curr_equip = meta.get("equipment", {})
-        if item_name == curr_equip.get("weapon") or item_name == curr_equip.get("armor"):
-            return await callback.answer("❌ Не можна продати те, що на тобі вбрано!", show_alert=True)
-            
-        items = inv.get("equipment", [])
-        for i, item in enumerate(items):
-            if item['name'] == item_name:
-                items.pop(i)
-                break
-        else:
-            return await callback.answer("❌ Предмет не знайдено.")
+        curr_eq = meta.get("equipment", {})
+        if item_name in [curr_eq.get("weapon"), curr_eq.get("armor"), curr_eq.get("artifact")]:
+            return await callback.answer("❌ Спочатку зніми цей предмет!", show_alert=True)
 
-        meta['coins'] = meta.get('coins', 0) + reward
+        inventory_eq = meta.get("inventory", {}).get("equipment", [])
         
+        found_index = -1
+        for i, it in enumerate(inventory_eq):
+            if it.get("name") == item_name:
+                found_index = i
+                break
+        
+        if found_index == -1:
+            return await callback.answer("❌ Предмет не знайдено в інвентарі.")
+
+        inventory_eq.pop(found_index)
+        
+        food_dict = meta.get("inventory", {}).get("food", {})
+        current_slices = food_dict.get("watermelon_slices", 0)
+        
+        food_dict["watermelon_slices"] = current_slices + reward
+        meta["inventory"]["food"] = food_dict
+        meta["inventory"]["equipment"] = inventory_eq
+
         await conn.execute(
-            "UPDATE capybaras SET inventory = $1, meta = $2 WHERE owner_id = $3",
-            json.dumps(inv), json.dumps(meta), uid
+            "UPDATE capybaras SET meta = $1 WHERE owner_id = $2", 
+            json.dumps(meta), uid
         )
-        
-        await callback.answer(f"✅ Продано! Отримано {reward} 💰")
-        
+
+        await callback.answer(f"🍉 Продано! Отримано {reward} скибочок кавуна.")
+
     finally:
         await conn.close()
 
