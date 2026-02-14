@@ -16,7 +16,7 @@ class Fighter:
         self.luck = stats.get("luck", 0)
 
         self.w_name = capy.get("equipped_weapon", "Лапки")
-        self.a_name = capy.get("equipped_armor", "")
+        self.a_name = capy.get("equipped_armor", "Хутро")
         
         self.weapon_data = config_data["WEAPONS"].get(self.w_name, {
             "texts": ["вдаряє лапками {defen}"], "hit_bonus": 0, "power": 1
@@ -25,7 +25,9 @@ class Fighter:
             "text": "отримала удар", "defense": 0
         })
 
-        extra_heart = 2 if "Котяче життя" in capy.get("artifacts", []) else 0
+        equipment = capy.get("meta", {}).get("equipment", [])
+        has_cat_life = any(item.get("name") == "Котяче життя" for item in equipment)
+        extra_heart = 2 if has_cat_life else 0
         self.max_hp = (BASE_HEARTS * UNITS_PER_HEART) + extra_heart
         self.hp = self.max_hp
 
@@ -56,9 +58,10 @@ class Fighter:
     def get_block_chance(self):
         return BASE_BLOCK_CHANCE + (self.def_ * STAT_WEIGHTS["def_to_block"]) + self.armor_data.get("defense", 0)
 
+        
 class CombatEngine:
     @staticmethod
-    def resolve_turn(att: Fighter, defe: Fighter):
+    def resolve_turn(att: Fighter, defe: Fighter, round_num: int):
         if random.random() > att.get_hit_chance():
             return f"💨 {att.color} {html.bold(att.name)} промахнувся!"
 
@@ -82,12 +85,11 @@ class CombatEngine:
         special_key = att.weapon_data.get("special")
         
         if special_key in ABILITY_REGISTRY:
-            result = ABILITY_REGISTRY[special_key](att, defe)
+            res_dmg, is_active = ABILITY_REGISTRY[special_key](att, defe, round_num)
             
-            if isinstance(result, (int, float)):
-                ability_damage = int(result)
+            ability_damage = int(res_dmg)
             
-            if result:
+            if is_active:
                 json_special_text = att.weapon_data.get("special_text", "")
                 if json_special_text:
                     special_msg = f"\n{json_special_text}"
