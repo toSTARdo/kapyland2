@@ -647,6 +647,7 @@ async def handle_fishing(callback: types.CallbackQuery):
             return await callback.answer("🪫 Мало енергії (треба 10)", show_alert=True)
 
         loot_pool = [
+            # Риба та морські жителі (loot)
             {"name": "🐟 Карась", "min_w": 0.3, "max_w": 1.5, "chance": 20, "type": "loot"},
             {"name": "🐠 Окунь", "min_w": 0.2, "max_w": 0.8, "chance": 15, "type": "loot"},
             {"name": "🐡 Риба-фугу", "min_w": 0.5, "max_w": 2.0, "chance": 8, "type": "loot"},
@@ -654,12 +655,14 @@ async def handle_fishing(callback: types.CallbackQuery):
             {"name": "🦀 Краб", "min_w": 0.2, "max_w": 1.2, "chance": 7, "type": "loot"},
             {"name": "🦈 Маленька акула", "min_w": 10.0, "max_w": 40.0, "chance": 1, "type": "loot"},
             
+            # Фрукти (food)
             {"name": "🍊 Мандарин", "min_w": 0.1, "max_w": 0.2, "chance": 8, "type": "food", "key": "tangerines"},
             {"name": "🍈 Диня", "min_w": 2.0, "max_w": 4.0, "chance": 5, "type": "food", "key": "melons"},
-            {"name": "🍉 Скибочка кавуна", "min_w": 0.3, "max_w": 0.6, "chance": 20, "type": "food", "key": "watermelon_slices"},
-            {"name": "🥭 Манго", "min_w": 0.4, "max_w": 0.7, "chance": 4, "type": "food", "key": "mango"},
-            {"name": "🥝 Ківі", "min_w": 0.1, "max_w": 0.15, "chance": 1, "type": "food", "key": "kiwi"},
+            {"name": "🍉 Скибочка кавуна", "min_w": 0.3, "max_w": 0.6, "chance": 12, "type": "food", "key": "watermelon_slices"},
+            {"name": "🥭 Манго", "min_w": 0.4, "max_w": 0.7, "chance": 6, "type": "food", "key": "mango"},
+            {"name": "🥝 Ківі", "min_w": 0.1, "max_w": 0.15, "chance": 7, "type": "food", "key": "kiwi"},
             
+            # Скарби (special)
             {"name": "🗃 Скриня", "min_w": 5.0, "max_w": 10.0, "chance": 2, "type": "special", "key": "chest"},
             {"name": "🗝️ Ключ", "min_w": 0.1, "max_w": 0.2, "chance": 2, "type": "special", "key": "key"},
             {"name": "🎟️ Лотерейний квиток", "min_w": 0.01, "max_w": 0.01, "chance": 1, "type": "special", "key": "lottery_ticket"}
@@ -685,7 +688,7 @@ async def handle_fishing(callback: types.CallbackQuery):
 
         await conn.execute(update_query + " WHERE owner_id = $1", uid)
 
-        result_text = (
+        await callback.message.edit_text(
             f"Чілимо... Раптом поплавок смикнувся!\n"
             f"Ііііі... Твій улов: <b>{item_name} ({fish_weight} кг)</b>\n"
             f"📦 <i>Предмет додано в інвентар!</i>\n"
