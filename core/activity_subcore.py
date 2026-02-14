@@ -372,8 +372,6 @@ async def run_battle_logic(callback: types.CallbackQuery, opponent_id: int = Non
         finally:
             await conn.close()
 
-Python
-
 async def render_inventory_page(message, user_id, page="food", current_page=0, is_callback=False):
     meta_data = await get_user_inventory(user_id)
     if not meta_data:
