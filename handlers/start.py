@@ -2,6 +2,7 @@ import json
 import logging
 from aiogram import Router, F, types, html
 from aiogram.utils.keyboard import InlineKeyboardBuilder
+from database.postgres_db import get_db_connection
 
 router = Router()
 
