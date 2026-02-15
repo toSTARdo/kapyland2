@@ -273,11 +273,11 @@ async def ship_final_confirm(callback: types.CallbackQuery, state: FSMContext):
             UPDATE capybaras 
             SET meta = jsonb_set(
                 meta, 
-                '{inventory, materials, Дерево}', 
-                ((meta->'inventory'->'materials'->>'Дерево')::int - 10)::text::jsonb
+                '{inventory, materials, wood}', 
+                ((meta->'inventory'->'materials'->>'wood')::int - 10)::text::jsonb
             )
             WHERE owner_id = $1 
-            AND (meta->'inventory'->'materials'->>'Дерево')::int >= 10
+            AND (meta->'inventory'->'materials'->>'wood')::int >= 10
         """, uid)
 
         if res == "UPDATE 0":
