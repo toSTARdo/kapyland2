@@ -21,9 +21,11 @@ async def is_eligible_for_lega(meta: dict) -> bool:
     return datetime.datetime.now() >= last_lega_date + datetime.timedelta(days=7)
 
 @router.message(F.text.startswith("🎟️"))
-@router.message(Command("lottery"))
-async def cmd_lottery_start(message: types.Message):
-    uid = message.from_user.id
+@router.callback_query(F.data == "lottery_menu")
+async def cmd_lottery_start(event: types.Message | types.CallbackQuery):
+    is_callback = isinstance(event, types.CallbackQuery)
+    uid = event.from_user.id
+    
     conn = await get_db_connection()
     row = await conn.fetchrow("SELECT meta FROM capybaras WHERE owner_id = $1", uid)
     await conn.close()
@@ -33,27 +35,34 @@ async def cmd_lottery_start(message: types.Message):
         meta = json.loads(row['meta']) if isinstance(row['meta'], str) else row['meta']
         can_get_lega = await is_eligible_for_lega(meta)
 
-    guaranteed_label = "LEGENDARY" if can_get_lega else "EPIC"
-    guaranteed_text = f"🔥 10+1 / 100% {guaranteed_label} (10🎟)"
-
-    builder = InlineKeyboardBuilder()
-    builder.button(text="🏴‍☠️ Крутити (1🎟 або 5кг)", callback_data="gacha_spin")
-    builder.button(text=guaranteed_text, callback_data="gacha_guaranteed_10")
-    builder.adjust(1)
+    label = "LEGENDARY" if can_get_lega else "EPIC"
     
+    builder = InlineKeyboardBuilder()
+    builder.row(types.InlineKeyboardButton(text="🏴‍☠️ Крутити (1🎟 / 5кг)", callback_data="gacha_spin"))
+    builder.row(types.InlineKeyboardButton(text=f"🔥 10+1 / 100% {label} (10🎟)", callback_data="gacha_guaranteed_10"))
+    builder.row(types.InlineKeyboardButton(text="⬅️ Назад", callback_data="open_inventory_main"))
+
     c, r, e, l = RARITY_META['Common'], RARITY_META['Rare'], RARITY_META['Epic'], RARITY_META['Legendary']
 
-    await message.answer(
-        f"🎰 <b>ГАЗИНО</b>\n\n"
-        f"Ціна: 1 лотерейний квиток 🎟\n"
-        f"<i>Або 5 кг власної ваги, якщо квитків немає!</i>\n\n"
+    text = (
+        f"🎰 <b>ГАЗИНО «ФОРТУНА КАПІ»</b>\n"
+        f"━━━━━━━━━━━━━━━\n"
+        f"Ціна: 1 🎟 або <b>5 кг</b> ваги\n\n"
         f"{c['emoji']} {c['label']}: 60%\n"
         f"{r['emoji']} {r['label']}: 25%\n"
         f"{e['emoji']} {e['label']}: 12%\n"
-        f"{l['emoji']} {l['label']}: 3%\n",
-        reply_markup=builder.as_markup(),
-        parse_mode="HTML"
+        f"{l['emoji']} {l['label']}: 3%\n\n"
+        f"<i>Удача посміхається сміливим!</i>"
     )
+
+    if is_callback:
+        try:
+            await event.message.edit_text(text, reply_markup=builder.as_markup(), parse_mode="HTML")
+        except:
+            pass
+        await event.answer()
+    else:
+        await event.answer(text, reply_markup=builder.as_markup(), parse_mode="HTML")
 
 @router.callback_query(F.data == "gacha_spin")
 async def handle_gacha_spin(callback: types.CallbackQuery):

@@ -182,8 +182,26 @@ async def handle_sell_equipment(callback: types.CallbackQuery):
         await conn.close()
 
 @router.message(F.text.startswith("🎒"))
-async def show_inventory_start(message: types.Message):
-    await render_inventory_page(message, message.from_user.id, page="food")
+@router.callback_query(F.data == "open_inventory_main")
+async def show_inventory_start(event: types.Message | types.CallbackQuery):
+    is_callback = isinstance(event, types.CallbackQuery)
+    message = event.message if is_callback else event
+    
+    builder = InlineKeyboardBuilder()
+    
+    builder.row(types.InlineKeyboardButton(text="🧺 Відкрити інвентар", callback_data="inv_page:food:0"))
+    builder.row(types.InlineKeyboardButton(text="🎟️ Відкрити Газино", callback_data="lottery_menu"))
+
+    text = ""
+
+    if is_callback:
+        try:
+            await event.message.edit_text(text, reply_markup=builder.as_markup(), parse_mode="HTML")
+        except:
+            pass
+        await event.answer()
+    else:
+        await message.answer(text, reply_markup=builder.as_markup(), parse_mode="HTML")
 
 @router.callback_query(F.data.startswith("equip:"))
 async def handle_equip_item(callback: types.CallbackQuery):
