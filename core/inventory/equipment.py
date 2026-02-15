@@ -192,7 +192,7 @@ async def show_inventory_start(event: types.Message | types.CallbackQuery):
     builder.row(types.InlineKeyboardButton(text="🧺 Відкрити інвентар", callback_data="inv_page:food:0"))
     builder.row(types.InlineKeyboardButton(text="🎟️ Відкрити Газино", callback_data="lottery_menu"))
 
-    text = ""
+    text = "<i>Тут всі твої предмети та можна відвідати казино</i>"
 
     if is_callback:
         try:

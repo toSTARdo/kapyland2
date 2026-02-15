@@ -28,7 +28,7 @@ async def cmd_port(message: types.Message):
     )
 
     await message.answer(
-        "⚓ Порт Ліворн-Бей\n\n",
+        "⚓ Порт Ліворн-Бей\n\n <i>Життя тут вирує. Відвідай таверну та хутчіш на борт корабля!</i>",
         reply_markup=builder.as_markup(),
         parse_mode="HTML"
     )
