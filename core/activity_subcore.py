@@ -13,10 +13,13 @@ router = Router()
 
 #ВИКЛИКИ
 
-@router.message(F.text.startswith("🌐"))
-@router.callback_query(F.data=="social")
-async def cmd_arena_hub(message: types.Message | types.CallbackQuery):
-    uid = message.from_user.id
+@router.message(F.text.startswith("🍻"))
+@router.callback_query(F.data == "social")
+async def cmd_arena_hub(event: types.Message | types.CallbackQuery):
+    is_callback = isinstance(event, types.CallbackQuery)
+    uid = event.from_user.id
+    message = event.message if is_callback else event
+
     conn = await get_db_connection()
     try:
         players = await conn.fetch("""
@@ -33,23 +36,31 @@ async def cmd_arena_hub(message: types.Message | types.CallbackQuery):
 
     if players:
         for p in players:
-            builder.button(
-                text=f"🐾 {p['username']} (Lvl {p['lvl']})", 
-                callback_data=f"user_menu:{p['tg_id']}"
+            name = p['username'][:15]
+            builder.row(types.InlineKeyboardButton(
+                text=f"🐾 {name} (Lvl {p['lvl']})", 
+                callback_data=f"user_menu:{p['tg_id']}")
             )
     
-    builder.button(text="🤖 Побитися з ботом", callback_data="fight_bot")
-    builder.button(text="🏆 Таблиця лідерів", callback_data="leaderboard")
-    
-    builder.adjust(1) 
+    builder.row(
+        types.InlineKeyboardButton(text="🤖 Бій з ботом", callback_data="fight_bot"),
+        types.InlineKeyboardButton(text="🏆 Топ", callback_data="leaderboard")
+    )
+    builder.row(types.InlineKeyboardButton(text="⬅️ Назад до Порту", callback_data="open_port"))
 
     text = (
-        "⚔️ <b>Архіпелаг</b>\n"
+        "⚔️ <b>Таверна «Гнилий Апельсин»</b>\n"
         "━━━━━━━━━━━━━━━\n"
-        "Обери капібару зі списку для взаємодії:"
     )
 
-    await message.answer(text, reply_markup=builder.as_markup(), parse_mode="HTML")
+    if is_callback:
+        try:
+            await event.message.edit_text(text, reply_markup=builder.as_markup(), parse_mode="HTML")
+        except:
+            pass
+        await event.answer()
+    else:
+        await message.answer(text, reply_markup=builder.as_markup(), parse_mode="HTML")
 
 @router.callback_query(F.data.startswith("user_menu:"))
 async def user_menu_handler(callback: types.CallbackQuery):
