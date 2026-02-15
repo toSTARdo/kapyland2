@@ -41,3 +41,34 @@ async def meditation_menu(callback: types.CallbackQuery):
         await callback.message.edit_text(text, reply_markup=builder.as_markup(), parse_mode="HTML")
     finally:
         await conn.close()
+
+@router.callback_query(F.data.startswith("upgrade_stat:"))
+async def process_stat_upgrade(callback: types.CallbackQuery):
+    stat_to_boost = callback.data.split(":")[1]
+    user_id = callback.from_user.id
+    
+    conn = await get_db_connection()
+    try:
+        row = await conn.fetchrow("SELECT zen, meta FROM capybaras WHERE owner_id = $1", user_id)
+        if not row or (row['zen'] or 0) < 1:
+            return await callback.answer("Твоя чакра порожня... (Треба хоча б 1 капі-дзен)", show_alert=True)
+
+        meta = json.loads(row['meta']) if isinstance(row['meta'], str) else row['meta']
+        
+        if "stats" not in meta:
+            meta["stats"] = {"atk": 0, "def": 0, "agi": 0, "luck": 0}
+        
+        meta["stats"][stat_to_boost] = meta["stats"].get(stat_to_boost, 0) + 1
+        
+        await conn.execute("""
+            UPDATE capybaras 
+            SET zen = zen - 1, meta = $1 
+            WHERE owner_id = $2
+        """, json.dumps(meta, ensure_ascii=False), user_id)
+        
+        await callback.answer(f"✨ Характеристика {stat_to_boost.upper()} покращена!")
+        
+        await meditation_menu(callback)
+        
+    finally:
+        await conn.close()

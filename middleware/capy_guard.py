@@ -47,9 +47,20 @@ class CapyGuardMiddleware(BaseMiddleware):
                     if wake_up_str:
                         wake_time = datetime.datetime.fromisoformat(wake_up_str)
                         if datetime.datetime.now() < wake_time:
-                            if event.message and event.message.text in ["/start", "🐾 Профіль", "⚙️ Налаштування", "🎒 Інвентар"]:
+
+                            safe_commands = ["/start", "🐾 Профіль", "⚙️ Налаштування", "🎒 Інвентар", "🎟️ Лотерея"]
+                            if event.message and event.message.text in safe_commands:
                                 return await handler(event, data)
-                            
+
+                            if event.callback_query:
+                                call_data = event.callback_query.data
+                                safe_callbacks = ["profile", "inv_page", "profile_back", "settings",
+                                "change_name_start", "toggle_layout", "stats_page", "gacha_spin", "gacha_guaranteed_10",
+                                "equip:", "sell_item:", "inv_pagination:", "inv_page:"
+                                ]
+                                if any(call_data.startswith(cb) for cb in safe_callbacks):
+                                    return await handler(event, data)
+
                             warning = "💤 Твоя капібара бачить десятий сон... Не турбуй її."
                             if event.callback_query:
                                 return await event.callback_query.answer(warning, show_alert=True)
