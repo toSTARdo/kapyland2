@@ -19,6 +19,10 @@ from handlers.lottery import router as lottery_router
 from core.map import router as map_router
 from handlers.start import router as prolog_router
 from handlers.quests import router as quest_router
+from core.inventory.food import router as food_router
+from core.inventory.loot import router as loot_router
+from core.inventory.equipment import router as eq_router
+from core.fishing import router as fish_router
 from handlers.start import render_story_node
 from middleware.capy_guard import CapyGuardMiddleware
 
@@ -35,6 +39,10 @@ dp.include_router(settings_router)
 dp.include_router(lottery_router)
 dp.include_router(map_router)
 dp.include_router(quest_router)
+dp.include_router(food_router)
+dp.include_router(loot_router)
+dp.include_router(eq_router)
+dp.include_router(fish_router)
 
 dp.update.middleware(CapyGuardMiddleware())
 
