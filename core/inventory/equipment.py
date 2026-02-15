@@ -122,7 +122,7 @@ async def render_inventory_page(message, user_id, page="food", current_page=0, i
         nav_builder.adjust(2)
         builder.attach(nav_builder)
 
-    builder.row(types.InlineKeyboardButton(text="⬅️ Назад до Трюму", callback_data="back_to_main"))
+    builder.row(types.InlineKeyboardButton(text="⬅️ Назад до Трюму", callback_data="open_inventory_main"))
     
     text = f"{title}\n━━━━━━━━━━━━━━━\n{content}"
     markup = builder.as_markup()
@@ -134,7 +134,7 @@ async def render_inventory_page(message, user_id, page="food", current_page=0, i
             pass
     else:
         await message.answer(text, reply_markup=markup, parse_mode="HTML")
-        
+
 @router.callback_query(F.data.startswith("inv_pagination:"))
 async def handle_inv_pagination(callback: types.CallbackQuery):
     _, category, p_idx = callback.data.split(":")
@@ -158,41 +158,29 @@ async def handle_sell_equipment(callback: types.CallbackQuery):
     conn = await get_db_connection()
     try:
         row = await conn.fetchrow("SELECT meta FROM capybaras WHERE owner_id = $1", uid)
-        if not row: return
-        
         meta = json.loads(row['meta']) if isinstance(row['meta'], str) else row['meta']
         
         curr_eq = meta.get("equipment", {})
         if item_name in [curr_eq.get("weapon"), curr_eq.get("armor"), curr_eq.get("artifact")]:
             return await callback.answer("❌ Спочатку зніми цей предмет!", show_alert=True)
 
-        inventory_eq = meta.get("inventory", {}).get("equipment", [])
+        inv_eq = meta.get("inventory", {}).get("equipment", [])
         
-        found_index = -1
-        for i, it in enumerate(inventory_eq):
+        found = False
+        for i, it in enumerate(inv_eq):
             if it.get("name") == item_name:
-                found_index = i
+                inv_eq.pop(i)
+                found = True
                 break
         
-        if found_index == -1:
-            return await callback.answer("❌ Предмет не знайдено в інвентарі.")
+        if not found: return await callback.answer("❌ Предмет зник...")
 
-        inventory_eq.pop(found_index)
+        food = meta.get("inventory", {}).get("food", {})
+        food["watermelon_slices"] = food.get("watermelon_slices", 0) + reward
         
-        food_dict = meta.get("inventory", {}).get("food", {})
-        current_slices = food_dict.get("watermelon_slices", 0)
-        
-        food_dict["watermelon_slices"] = current_slices + reward
-        meta["inventory"]["food"] = food_dict
-        meta["inventory"]["equipment"] = inventory_eq
-
-        await conn.execute(
-            "UPDATE capybaras SET meta = $1 WHERE owner_id = $2", 
-            json.dumps(meta), uid
-        )
-
-        await callback.answer(f"🍉 Продано! Отримано {reward} скибочок кавуна.")
-
+        await conn.execute("UPDATE capybaras SET meta = $1 WHERE owner_id = $2", json.dumps(meta), uid)
+        await callback.answer(f"🍉 +{reward} скибочок за {item_name}")
+        await render_inventory_page(callback.message, uid, page="items", is_callback=True)
     finally:
         await conn.close()
 
@@ -231,13 +219,12 @@ async def handle_equip_item(callback: types.CallbackQuery):
         meta = json.loads(row['meta']) if isinstance(row['meta'], str) else row['meta']
         
         if "equipment" not in meta:
-            meta["equipment"] = {"weapon": "Лапки", "armor": ""}
+            meta["equipment"] = {"weapon": "Лапки", "armor": "", "artifact": ""}
             
         current_item = meta["equipment"].get(itype)
         
         if current_item == iname:
-            default_val = "Лапки" if itype == "weapon" else ""
-            meta["equipment"][itype] = default_val
+            meta["equipment"][itype] = "Лапки" if itype == "weapon" else ""
             msg = f"❌ Знято: {iname}"
         else:
             meta["equipment"][itype] = iname
@@ -249,6 +236,7 @@ async def handle_equip_item(callback: types.CallbackQuery):
         )
         
         await callback.answer(msg)
+
         await render_inventory_page(callback.message, user_id, page="items", is_callback=True)
         
     finally:
@@ -256,6 +244,15 @@ async def handle_equip_item(callback: types.CallbackQuery):
 
 @router.callback_query(F.data.startswith("inv_page:"))
 async def handle_inventory_pagination(callback: types.CallbackQuery):
-    page = callback.data.split(":")[1]
-    await render_inventory_page(callback.message, callback.from_user.id, page=page, is_callback=True)
+    data = callback.data.split(":")
+    category = data[1]
+    p_idx = int(data[2]) if len(data) > 2 else 0
+    
+    await render_inventory_page(
+        callback.message, 
+        callback.from_user.id, 
+        page=category, 
+        current_page=p_idx, 
+        is_callback=True
+    )
     await callback.answer()

@@ -60,6 +60,7 @@ async def cmd_ship_menu(event: types.Message | types.CallbackQuery, state: FSMCo
         )
         builder.button(text="🔨 Збудувати корабель", callback_data="ship_create_init")
         builder.button(text="🔍 Пошук команди", callback_data="leaderboard:mass:0")
+        builder.row(types.InlineKeyboardButton(text="⬅️ Назад в порт", callback_data="back_to_main"))
     else:
         engine_data = ship['engine'] if isinstance(ship['engine'], dict) else json.loads(ship['engine'] or '{}')
         engine_name = engine_data.get('name', 'Відсутній')
