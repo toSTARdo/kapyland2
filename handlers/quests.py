@@ -35,7 +35,6 @@ async def cmd_adventure(event: types.Message | types.CallbackQuery):
         await event.answer()
     else:
         await event.answer(text, reply_markup=builder.as_markup(), parse_mode="HTML")
-    )
 
 @router.callback_query(F.data == "open_quests")
 async def cmd_quests_board(callback: types.CallbackQuery):
