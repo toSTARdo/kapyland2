@@ -98,12 +98,16 @@ async def handle_fishing(callback: types.CallbackQuery):
             await conn.execute(sql, uid, path)
             inventory_note = f"📦 <i>{item_name} додано в інвентар ({folder})!</i>"
 
+        builder = InlineKeyboardBuilder()
+        builder.button(text="🔙 Назад", callback_data="profile_back")
+
         await callback.message.edit_text(
             f"🎣 <b>Риболовля</b>\n━━━━━━━━━━━━━━━\n"
             f"Чілимо... Раптом поплавок смикнувся!\n"
             f"Твій улов: <b>{item_name}</b> ({fish_weight} кг)\n\n"
             f"{inventory_note}\n"
             f"🔋 Залишок енергії: {max(0, stamina - 10)}%",
+            reply_markup=builder.as_markup(),
             parse_mode="HTML"
         )
         await callback.answer(f"Зловлено: {item_name}!")
