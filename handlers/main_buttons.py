@@ -1,96 +1,36 @@
-from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
+from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.utils.keyboard import ReplyKeyboardBuilder, InlineKeyboardBuilder
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
-def get_main_kb(layout_type: int = 0) -> ReplyKeyboardMarkup:
+def get_main_kb() -> ReplyKeyboardMarkup:
     builder = ReplyKeyboardBuilder()
     
-    main = ["🐾 Профіль", "🎒 Інвентар"]
-    actions = ["🌿 Їсти", "💤 Відпочити", "🧼 Покупатися"]
-    adventure = ["🗺️ Карта", "⚓ Корабель", "📜 Квести"]
-    activities = ["🌐 Капісоціум", "🎣 Рибалити", "🎟️ Лотерея"]
-    utils = ["⚙️ Налаштування"]
-
-    if layout_type == 1:
-        all_btns = main + adventure + ["⚙️"]
-        for btn in all_btns:
-            builder.add(KeyboardButton(text=btn))
-        builder.adjust(2)
-
-    elif layout_type == 2:
-        icons = ["🐾", "🎒", "🎟️", "🌐", "🗺️", "📜", "⚓", "⚙️"]
-        for icon in icons:
-            builder.add(KeyboardButton(text=icon))
-        builder.adjust(8)
-
-    elif layout_type == 3:
-        builder.row(*(KeyboardButton(text=btn) for btn in actions))
-        builder.row(KeyboardButton(text="🐾 Профіль"), KeyboardButton(text="🎒 Інвентар"))
-        builder.row(KeyboardButton(text="⚙️ Налаштування"))
-
-    elif layout_type == 4:
-        builder.row(KeyboardButton(text="🌐 Капісоціум"), KeyboardButton(text="🎒 Інвентар"))
-        builder.row(KeyboardButton(text="🐾 Профіль"), KeyboardButton(text="🎟️ Лотерея"))
-        builder.row(KeyboardButton(text="⚙️ Налаштування"))
-
-    elif layout_type == 5:
-        builder.row(KeyboardButton(text="🗺️ Карта"), KeyboardButton(text="⚓ Корабель"))
-        builder.row(KeyboardButton(text="📜 Квести"), KeyboardButton(text="🎣 Рибалити"))
-        builder.row(KeyboardButton(text="🐾 Профіль"), KeyboardButton(text="⚙️"))
-
-    elif layout_type == 6: #for now same as the standart
-        builder.row(KeyboardButton(text="🐾 Профіль"), KeyboardButton(text="🎒 Інвентар"), KeyboardButton(text="🎟️ Лотерея"))
-        builder.row(KeyboardButton(text="🌐 Капісоціум"), KeyboardButton(text="🗺️ Карта"), KeyboardButton(text="📜 Квести"))
-        builder.row(KeyboardButton(text="⚓ Корабель"), KeyboardButton(text="⚙️ Налаштування"))
-
-    else:
-        builder.row(KeyboardButton(text="🐾 Профіль"), KeyboardButton(text="🎒 Інвентар"), KeyboardButton(text="🎟️ Лотерея"))
-        builder.row(KeyboardButton(text="🌐 Капісоціум"), KeyboardButton(text="🗺️ Карта"), KeyboardButton(text="📜 Квести"))
-        builder.row(KeyboardButton(text="⚓ Корабель"), KeyboardButton(text="⚙️ Налаштування"))
-
+    builder.row(
+        KeyboardButton(text="🐾 Капібара"),
+        KeyboardButton(text="🎒 Трюм")
+    )
+    builder.row(
+        KeyboardButton(text="🧭 Пригоди"),
+        KeyboardButton(text="⚓ Порт")
+    )
+    
     return builder.as_markup(resize_keyboard=True)
 
 def get_settings_kb() -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     
-    builder.row(InlineKeyboardButton(
-        text="📝 Змінити ім'я", 
-        callback_data="change_name_start")
-    )
+    builder.button(text="📝 Змінити ім'я", callback_data="change_name_start")
     
-    builder.row(InlineKeyboardButton(
-        text="🔄 Змінити вигляд меню", 
-        callback_data="toggle_layout")
-    )
+    builder.row(InlineKeyboardButton(text="⬅️ Назад до Порту", callback_data="open_port"))
     
     return builder.as_markup()
 
 """
-🎒 Інвентар
-⚔️ Бої
-⚙️ Налаштування
-⚓ Моя команда
-📜 Квести
-🎣 Рибалити | 🦀/🐟/🦈/🪼/🐡/
-🧭 І
-🗺️ Карта
-🐾 Мій профіль
-
-🌿 Їсти 💤 Відпочити 🧼 Покупатися | 💰 Продати
-🥭🍊🍉🍈🥝 - Їсти з ефектами
 🍄‍🟫 - Їсти гриб
 
-🎟️ Лотерея
 ⚗️ Синтез
-🗃 - Скриня 🔑 - Ключі
-🔮
-Головні напрями розвитку
-⚡
-🍀
-💪
-🛡️
 
-----
+🔮
+
 🗡️
 🔰
 🧿
