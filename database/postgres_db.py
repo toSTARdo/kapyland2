@@ -133,7 +133,7 @@ async def init_pg():
             "time_of_day": "zenith", 
             "cycle_count": 1,
             "is_eclipse": false
-        }'),
+        }')
         ON CONFLICT (key) DO NOTHING
     ''')
     
