@@ -44,40 +44,51 @@ async def cmd_fight_lobby(message: types.Message):
 
 @router.callback_query(F.data.startswith("challenge_"))
 async def send_challenge(callback: types.CallbackQuery):
-    opponent_id = int(callback.data.split("_")[1])
+    data = callback.data.split("_")
+    opponent_id = int(data[1])
     challenger_id = callback.from_user.id
     challenger_name = callback.from_user.first_name
 
+    if opponent_id == challenger_id:
+        return await callback.answer("Ви не можете викликати самого себе!", show_alert=True)
+
     builder = InlineKeyboardBuilder()
-    builder.button(text="🤝 ПРИЙНЯТИ", callback_data=f"accept_{challenger_id}")
-    builder.button(text="🏳️ ВІДМОВИТИСЯ", callback_data=f"decline_{challenger_id}")
+    builder.button(text="🤝 ПРИЙНЯТИ", callback_data=f"accept_{challenger_id}_{opponent_id}")
+    builder.button(text="🏳️ ВІДМОВИТИСЯ", callback_data=f"decline_{challenger_id}_{opponent_id}")
     builder.adjust(2)
 
-    try:
-        await callback.bot.send_message(
-            opponent_id,
-            f"⚔️ <b>ВИКЛИК!</b>\nПірабара <b>{challenger_name}</b> викликає тебе на дуель!",
-            reply_markup=builder.as_markup(),
-            parse_mode="HTML"
-        )
-        await callback.answer("✅ Виклик надіслано!")
-    except Exception:
-        await callback.answer("❌ Не вдалося надіслати виклик.", show_alert=True)
+    await callback.message.answer(
+        f"⚔️ <b>ПУБЛІЧНИЙ ВИКЛИК!</b>\n"
+        f"Пірабара {html.bold(challenger_name)} кидає рукавичку <a href='tg://user?id={opponent_id}'>опоненту</a>!\n\n"
+        f"<i>Тільки викликаний гравець може прийняти бій.</i>",
+        reply_markup=builder.as_markup(),
+        parse_mode="HTML"
+    )
+    await callback.answer("Виклик кинуто в чат!")
 
 @router.callback_query(F.data.startswith("decline_"))
 async def battle_declined(callback: types.CallbackQuery):
-    challenger_id = int(callback.data.split("_")[1])
-    await callback.message.edit_text("🏳️ Ти відхилив бій.")
-    try:
-        await callback.bot.send_message(challenger_id, "❌ Суперник відмовився від бою.")
-    except: pass
+    data = callback.data.split("_")
+    opponent_id = int(data[2])
+
+    if callback.from_user.id != opponent_id:
+        return await callback.answer("Ти не можеш відмовитися за іншого!", show_alert=True)
+
+    await callback.message.edit_text(f"🏳️ Опонент злякався і втік у кущі.", parse_mode="HTML")
 
 #ЗАПУСК БОЮ
 
 @router.callback_query(F.data.startswith("accept_"))
 async def handle_accept(callback: types.CallbackQuery):
-    challenger_id = int(callback.data.split("_")[1])
-    await callback.message.edit_text("🚀 Бій прийнято! Починаємо (-5 ⚡)...")
+    data = callback.data.split("_")
+    challenger_id = int(data[1])
+    opponent_id = int(data[2])
+    
+    if callback.from_user.id != opponent_id:
+        return await callback.answer("Це виклик не для тебе! ⛔", show_alert=True)
+
+    await callback.message.edit_text("🚀 Бій прийнято! Капібари виходять на дуель... (-5 ⚡)")
+    
     asyncio.create_task(run_battle_logic(callback, opponent_id=challenger_id))
     await callback.answer()
 
