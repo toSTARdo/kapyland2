@@ -566,7 +566,7 @@ async def execute_gift_transfer(callback: types.CallbackQuery):
             await conn.execute("UPDATE capybaras SET karma = karma + 1 WHERE owner_id = $1", uid)
             item_name = item_key
 
-        await callback.message.edit_text(f"✨ <b>Успіх!</b>\nВи подарували <b>{item_name}</b> та покращили свою карму.")
+        await callback.message.edit_text(f"✨ <b>Успіх!</b>\nВи подарували <b>{item_name}</b> та покращили свою карму.", parse_mode="HTML")
         
         try:
             await callback.bot.send_message(target_id, f"🎁 Гей! Тобі прийшов подарунок: <b>{item_name}</b>!")
