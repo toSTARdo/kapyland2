@@ -215,18 +215,33 @@ async def ship_create_start(callback: types.CallbackQuery, state: FSMContext):
     uid = callback.from_user.id
     conn = await get_db_connection()
     try:
-        zen = await conn.fetchval("SELECT zen FROM capybaras WHERE owner_id = $1", uid)
-        if zen < 1000:
-            return await callback.answer("❌ Тобі потрібно 1000 Zen!", show_alert=True)
+        row = await conn.fetchrow("SELECT meta FROM capybaras WHERE owner_id = $1", uid)
+        
+        if not row:
+            return await callback.answer("❌ Капібару не знайдено!", show_alert=True)
+
+        meta = json.loads(row['meta']) if isinstance(row['meta'], str) else row['meta']
+        
+        inventory = meta.get("inventory", {})
+        materials = inventory.get("materials", {})
+        wood_count = materials.get("wood", 0)
+
+        if wood_count < 10:
+            return await callback.answer(
+                f"❌ Тобі потрібно 10 🪵 Дерева! (Зараз у тебе: {wood_count})", 
+                show_alert=True
+            )
         
         await state.set_state(ShipCreation.waiting_for_name)
         await callback.message.edit_text(
-            "🔨 <b>Початок будівництва!</b>\n\nНапиши назву свого корабля:",
-            reply_markup=InlineKeyboardBuilder().button(text="❌ Скасувати", callback_data="ship_main").as_markup()
+            "🔨 <b>Верф готова до роботи!</b>\n\n"
+            "У тебе достатньо дерева для каркасу. Напиши назву свого майбутнього корабля:",
+            reply_markup=InlineKeyboardBuilder()
+                .button(text="❌ Скасувати", callback_data="ship_main")
+                .as_markup()
         )
     finally:
         await conn.close()
-
 @router.message(ShipCreation.waiting_for_name)
 async def ship_name_received(message: types.Message, state: FSMContext):
     ship_name = message.text.strip()
