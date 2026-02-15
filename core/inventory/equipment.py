@@ -19,73 +19,65 @@ async def render_inventory_page(message, user_id, page="food", current_page=0, i
     inv = meta.get("inventory", {})
     builder = InlineKeyboardBuilder()
 
-    ITEMS_PER_PAGE = 5
-
-    TYPE_ICONS = {
-        "weapon": "🗡️",
-        "armor": "🔰",
-        "artifact": "🧿"
+    pages_meta = {
+        "food": "🍎 Їжа", 
+        "loot": "🧳 Лут", 
+        "maps": "🗺 Мапи", 
+        "items": "⚔️ Речі", 
+        "materials": "🌱 Матеріали"
     }
+
+    for p_key, p_text in pages_meta.items():
+        display_text = f"· {p_text} ·" if page == p_key else p_text
+        builder.button(text=display_text, callback_data=f"inv_page:{p_key}:0")
+    builder.adjust(2, 2, 1)
+
+    title = ""
+    content = ""
+    ITEMS_PER_PAGE = 5
 
     if page == "food":
         title = "🍎 <b>Провізія</b>"
         food = inv.get("food", {})
         food_names = {"tangerines": "🍊", "melon": "🍈", "watermelon_slices": "🍉", "mango": "🥭", "kiwi": "🥝"}
+        active_food = {k: v for k, v in food.items() if v > 0}
         
-        has_food = any(v > 0 for v in food.values())
-        
-        if not has_food:
-            content = "<i>Твій кошик порожній... Пошукай щось на мапі!</i>"
+        if not active_food:
+            content = "<i>Твій кошик порожній...</i>"
         else:
             content = "<i>Обери їжу:</i>"
-            for k, v in food.items():
-                if v > 0:
-                    icon = food_names.get(k, "🍱")
-                    builder.button(text=f"{icon} ({v})", callback_data=f"food_choice:{k}")
-        
-        builder.adjust(2)
+            for k, v in active_food.items():
+                icon = food_names.get(k, "🍱")
+                builder.row(types.InlineKeyboardButton(text=f"{icon} З'їсти {k} ({v})", callback_data=f"food_choice:{k}"))
 
     elif page == "loot":
         title = "🧳 <b>Скарби та ресурси</b>"
         loot = inv.get("loot", {})
-        
-        chests = loot.get('chest', 0)
-        keys = loot.get('key', 0)
-        
         loot_lines = []
         if loot.get('lottery_ticket', 0) > 0: loot_lines.append(f"🎟️ Квитки: <b>{loot['lottery_ticket']}</b>")
-        if keys > 0: loot_lines.append(f"🗝️ Ключі: <b>{keys}</b>")
-        if chests > 0: loot_lines.append(f"🗃 Скрині: <b>{chests}</b>")
+        if loot.get('key', 0) > 0: loot_lines.append(f"🗝️ Ключі: <b>{loot['key']}</b>")
+        if loot.get('chest', 0) > 0: loot_lines.append(f"🗃 Скрині: <b>{loot['chest']}</b>")
         
         content = "\n".join(loot_lines) if loot_lines else "<i>Твій сейф порожній...</i>"
-        
-        if chests > 0 and keys > 0:
-            builder.button(text="🔓 Відкрити скриню", callback_data="open_chest")
-        
-        builder.adjust(1)
+        if loot.get('chest', 0) > 0 and loot.get('key', 0) > 0:
+            builder.row(types.InlineKeyboardButton(text="🔓 Відкрити скриню", callback_data="open_chest"))
 
     elif page == "maps":
         title = "🗺 <b>Карти скарбів</b>"
         maps = inv.get("loot", {}).get("treasure_maps", [])
-        
         if not maps:
-            content = "<i>У тебе немає жодної карти. Купи їх у таверні!</i>"
+            content = "<i>У тебе немає жодної карти.</i>"
         else:
             content = "<i>Твої замітки:</i>\n\n"
-            map_lines = []
-            for m in maps:
-                map_lines.append(f"📍 <b>Карта {m['id']}</b>\n╰ Координати: <code>{m['pos']}</code>")
-            content += "\n\n".join(map_lines)
-        builder.adjust(1)
+            content += "\n\n".join([f"📍 <b>Карта {m['id']}</b>\n╰ <code>{m['pos']}</code>" for m in maps])
 
     elif page == "items":
         title = "⚔️ <b>Амуніція</b>"
         curr_equip = meta.get("equipment", {})
         curr_weapon = curr_equip.get("weapon", "Лапки")
         curr_armor = curr_equip.get("armor", "")
-        
         all_items = inv.get("equipment", [])
-        
+
         if not all_items:
             content = "<i>Твій трюм порожній...</i>"
         else:
@@ -101,103 +93,52 @@ async def render_inventory_page(message, user_id, page="food", current_page=0, i
             
             total_items = len(unique_list)
             max_pages = (total_items - 1) // ITEMS_PER_PAGE
-            start_idx = current_page * ITEMS_PER_PAGE
-            end_idx = start_idx + ITEMS_PER_PAGE
-            items_slice = unique_list[start_idx:end_idx]
-
+            items_slice = unique_list[current_page * ITEMS_PER_PAGE : (current_page + 1) * ITEMS_PER_PAGE]
+            
             SELL_PRICES = {"Common": 1, "Rare": 2, "Epic": 3, "Legendary": 5}
+            TYPE_ICONS = {"weapon": "🗡️", "armor": "🔰", "artifact": "🧿"}
 
             for info in items_slice:
-                item = info["data"]
-                name = item['name']
-                count = info["count"]
-                rarity = item.get('rarity', 'Common')
-                
-                item_type = "artifact"
-                for g_item in GACHA_ITEMS.get(rarity, []):
-                    if g_item["name"] == name:
-                        item_type = g_item["type"]
-                        break
-                
+                item, count = info["data"], info["count"]
+                name, rarity = item['name'], item.get('rarity', 'Common')
                 is_equipped = (name == curr_weapon or name == curr_armor)
+                
                 r_icon = RARITY_META.get(rarity, {}).get('emoji', '⚪')
-                t_icon = TYPE_ICONS.get(item_type, "🧿")
                 status = " ✅" if is_equipped else ""
-                
-                builder.button(
-                    text=f"{r_icon}{t_icon} {name} x{count}{status}", 
-                    callback_data=f"equip:{item_type}:{name}"
-                )
                 price = SELL_PRICES.get(rarity, 1)
-                builder.button(
-                    text=f"💰 {price}", 
-                    callback_data=f"sell_item:{rarity}:{name}"
+
+                builder.row(
+                    types.InlineKeyboardButton(text=f"{r_icon} {name} x{count}{status}", callback_data=f"equip:item:{name}"),
+                    types.InlineKeyboardButton(text=f"💰 {price}", callback_data=f"sell:{rarity}:{name}")
                 )
 
-            builder.adjust(*(2 for _ in range(len(items_slice))))
-            
             if total_items > ITEMS_PER_PAGE:
-                control_row = []
+                nav_btns = []
                 if current_page > 0:
-                    control_row.append(types.InlineKeyboardButton(
-                        text="⬅️ Назад", callback_data=f"inv_pagination:{page}:{current_page-1}"))
-                
-                control_row.append(types.InlineKeyboardButton(
-                    text=f"📄 {current_page + 1}/{max_pages + 1}", callback_data="none"))
-                
+                    nav_btns.append(types.InlineKeyboardButton(text="⬅️", callback_data=f"inv_page:{page}:{current_page-1}"))
+                nav_btns.append(types.InlineKeyboardButton(text=f"{current_page+1}/{max_pages+1}", callback_data="none"))
                 if current_page < max_pages:
-                    control_row.append(types.InlineKeyboardButton(
-                        text="Вперед ➡️", callback_data=f"inv_pagination:{page}:{current_page+1}"))
-                
-                builder.row(*control_row)
-
-            content = f"Обери предмет (Сторінка {current_page + 1}):"
+                    nav_btns.append(types.InlineKeyboardButton(text="➡️", callback_data=f"inv_page:{page}:{current_page+1}"))
+                builder.row(*nav_btns)
+            content = "Обери спорядження:"
 
     elif page == "materials":
-        title = "📦 <b>Ресурси та Здобич</b>"
+        title = "📦 <b>Ресурси</b>"
         mats = inv.get("materials", {})
-        
-        DISPLAY_NAMES = {
-            "carp": "🐟 Океанічний карась",
-            "perch": "🐠 Океанічний окунь",
-            "pufferfish": "🐡 Риба-пупупу",
-            "octopus": "🐙 Восьмирук",
-            "shark": "🦈 Маленька акула",
-            "herbs": "🌿 Трави",
-            "wood": "🪵 Дерево"
-        }
-        
-        mat_lines = []
-        for key, count in mats.items():
-            if count > 0:
-                name = DISPLAY_NAMES.get(key, key.replace("_", " ").capitalize())
-                mat_lines.append(f"{name}: <b>{count}</b>")
-        
-        if not mat_lines:
-            content = "<i>Твій трюм порожній... Пора на риболовлю та прогулянку лісами!</i>"
-        else:
-            content = "Твої запаси:\n\n" + "\n".join(mat_lines)
-        
-        builder.adjust(1)
+        names = {"carp": "🐟 Карась", "perch": "🐠 Окунь", "herbs": "🌿 Трави", "wood": "🪵 Дерево"}
+        mat_lines = [f"{names.get(k, k)}: <b>{v}</b>" for k, v in mats.items() if v > 0]
+        content = "Твої запаси:\n\n" + "\n".join(mat_lines) if mat_lines else "<i>Трюм порожній.</i>"
 
-    pages_meta = {
-        "food": "🍎 Їжа", 
-        "loot": "🧳 Лут", 
-        "maps": "🗺 Мапи", 
-        "items": "⚔️ Речі", 
-        "materials": "🌱 Матеріали"
-    }
-
-    for p_key, p_text in pages_meta.items():
-        display_text = f"· {p_text} ·" if page == p_key else p_text
-        builder.button(text=display_text, callback_data=f"inv_page:{p_key}:0")
-    builder.adjust(2, 2, 1)
-
-    text = f"{title}\n━━━━━━━━━━━━━━━\n{content}"
+    builder.row(types.InlineKeyboardButton(text="⬅️ Назад до Трюму", callback_data="back_to_main"))
     
+    text = f"{title}\n━━━━━━━━━━━━━━━\n{content}"
     markup = builder.as_markup()
+
     if is_callback:
-        await message.edit_text(text, reply_markup=markup, parse_mode="HTML")
+        try:
+            await message.edit_text(text, reply_markup=markup, parse_mode="HTML")
+        except:
+            pass
     else:
         await message.answer(text, reply_markup=markup, parse_mode="HTML")
 
