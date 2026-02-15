@@ -92,7 +92,7 @@ async def cmd_start(message: types.Message, forced_entry: bool = False, user_id:
         f"{welcome_text}\n\n"
         f"Версія бота: {config.VERSION}\n"
         "🍎 /feed | 🧼 /wash | 💤 /sleep",
-        reply_markup=get_main_kb(layout_type=layout)
+        reply_markup=get_main_kb()
     )
 
 @dp.callback_query(F.data == "finish_prologue")
@@ -124,7 +124,7 @@ async def handle_isekai(callback: types.CallbackQuery):
         f"{welcome_text}\n\n"
         f"Версія бота: {config.VERSION}\n"
         "🍎 /feed | 🧼 /wash | 💤 /sleep",
-        reply_markup=get_main_kb(layout_type=layout)
+        reply_markup=get_main_kb()
     )
     await callback.answer()
 
