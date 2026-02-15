@@ -72,7 +72,7 @@ class CombatEngine:
             armor_msg = defe.armor_data.get("text", "заблокував удар")
             return f"🔰 {html.bold(defe.name)} {armor_msg}!"
 
-        base_damage = att.weapon_data.get("power", 1)
+        base_damage = 1
         crit_bonus = 0
         crit_text = ""
         

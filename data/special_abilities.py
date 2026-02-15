@@ -146,14 +146,14 @@ owl_crit = weapon_ability(0.15)([
 ])
 
 auto_attack = weapon_ability(0.15)([
-    lambda a, d: setattr(a, 'atk', a.atk + 2) or 0,
+    lambda a, d: setattr(a, 'atk', a.atk + 0.5) or 0,
     lambda a, d: setattr(d, 'def_', max(0, d.def_ - 2)) or 0,
     lambda a, d: setattr(a, 'def_', a.def_ + 2) or 0,
     lambda a, d: 2
 ])
 
 rage_boost = weapon_ability(0.15)([
-    lambda a, d: setattr(a, 'atk', a.atk + 2) or 0,
+    lambda a, d: setattr(a, 'atk', a.atk + 0.5) or 0,
     lambda a, d: setattr(a, 'luck', a.luck + 1) or 0,
     lambda a, d: setattr(d, 'atk', max(0, d.atk - 1)) or 0,
     lambda a, d: setattr(a, 'def_', a.def_ + 2) or 0
@@ -239,7 +239,7 @@ range_attack = weapon_ability(0.2)([
 
 stun_chance = weapon_ability(0.2)([
     lambda a, d: setattr(d, 'agi', 0) or 0,
-    lambda a, d: setattr(d, 'atk', max(0, d.atk - 4)) or 0,
+    lambda a, d: setattr(d, 'atk', max(0, d.atk - 0.5)) or 0,
     lambda a, d: setattr(d, 'def_', max(0, d.def_ - 2)) or 0,
     lambda a, d: setattr(a, 'luck', a.luck + 2) or 0,
     lambda a, d: 2,
@@ -259,13 +259,13 @@ scissor_sever = weapon_ability(0.2)([
     lambda a, d: setattr(d, 'def_', max(0, d.def_ - 5)) or 0,      
     lambda a, d: setattr(a, 'agi', a.agi + 4) or 0, 
     lambda a, d: 2,
-    lambda a, d: setattr(d, 'atk', max(0, d.atk - 2)) or 0, 
+    lambda a, d: setattr(d, 'atk', max(0, d.atk - 0.5)) or 0, 
     lambda a, d: setattr(a, 'luck', a.luck + 2) or 0,
     lambda a, d: setattr(d, 'def_', 0) or 0
 ])
 
 gaulish_might = weapon_ability(0.2)([
-    lambda a, d: setattr(a, 'atk', a.atk + 8) or 0,
+    lambda a, d: setattr(a, 'atk', a.atk + 1) or 0,
     lambda a, d: setattr(a, 'def_', a.def_ + 5) or 0, 
     lambda a, d: setattr(d, 'agi', max(0, d.agi - 2)) or 0, 
     lambda a, d: 2,
