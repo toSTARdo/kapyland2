@@ -96,7 +96,7 @@ async def cmd_map(callback: types.CallbackQuery):
             f"🔋 Енергія: {stamina}/100\n\n"
             f"{map_display}")
     
-    await callback.message.answer(text, reply_markup=get_map_keyboard(px, py, mode), parse_mode="HTML")
+    await callback.message.edit_text(text, reply_markup=get_map_keyboard(px, py, mode), parse_mode="HTML")
 
 @router.callback_query(F.data.startswith("mv:"))
 async def handle_move(callback: types.CallbackQuery):

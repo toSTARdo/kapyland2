@@ -23,7 +23,6 @@ async def cmd_adventure(event: types.Message | types.CallbackQuery):
         types.InlineKeyboardButton(text="📜 Квести", callback_data="open_quests"),
         types.InlineKeyboardButton(text="🎣 Риболовля", callback_data="fish")
     )
-    builder.row(types.InlineKeyboardButton(text="⬅️ Назад", callback_data="back_to_main"))
 
     text = "🧭 <b>Морські пригоди</b>\n\nКуди відправимо твою капібару сьогодні?"
 
@@ -51,7 +50,7 @@ async def cmd_quests_board(callback: types.CallbackQuery):
     builder.button(text="🔙 Назад", callback_data="open_adventure")
     builder.adjust(1)
 
-    await callback.message.answer(
+    await callback.message.edit_text(
         f"📌 <b>ДОШКА ОГОЛОШЕНЬ ТАВЕРНИ</b>\n"
         f"--------------------------------\n"
         f"<i>{intro}</i>\n\n"
