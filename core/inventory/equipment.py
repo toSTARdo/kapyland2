@@ -190,15 +190,8 @@ async def render_inventory_page(message, user_id, page="food", current_page=0, i
 
     for p_key, p_text in pages_meta.items():
         display_text = f"· {p_text} ·" if page == p_key else p_text
-        
-        builder.button(
-            text=display_text, 
-            callback_data=f"inv_page:{p_key}:0"
-        )
-    
+        builder.button(text=display_text, callback_data=f"inv_page:{p_key}:0")
     builder.adjust(2, 2, 1)
-    
-    return builder.as_markup()
 
     text = f"{title}\n━━━━━━━━━━━━━━━\n{content}"
     
