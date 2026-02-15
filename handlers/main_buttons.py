@@ -8,7 +8,7 @@ def get_main_kb(layout_type: int = 0) -> ReplyKeyboardMarkup:
     main = ["🐾 Профіль", "🎒 Інвентар"]
     actions = ["🌿 Їсти", "💤 Відпочити", "🧼 Покупатися"]
     adventure = ["🗺️ Карта", "⚓ Корабель", "📜 Квести"]
-    activities = ["⚔️ Бій", "🎣 Рибалити", "🎟️ Лотерея"]
+    activities = ["🌐 Капісоціум", "🎣 Рибалити", "🎟️ Лотерея"]
     utils = ["⚙️ Налаштування"]
 
     if layout_type == 1:
@@ -18,7 +18,7 @@ def get_main_kb(layout_type: int = 0) -> ReplyKeyboardMarkup:
         builder.adjust(2)
 
     elif layout_type == 2:
-        icons = ["🐾", "🎒", "🎟️", "⚔️", "🗺️", "📜", "⚓", "⚙️"]
+        icons = ["🐾", "🎒", "🎟️", "🌐", "🗺️", "📜", "⚓", "⚙️"]
         for icon in icons:
             builder.add(KeyboardButton(text=icon))
         builder.adjust(8)
@@ -29,7 +29,7 @@ def get_main_kb(layout_type: int = 0) -> ReplyKeyboardMarkup:
         builder.row(KeyboardButton(text="⚙️ Налаштування"))
 
     elif layout_type == 4:
-        builder.row(KeyboardButton(text="⚔️ Бій"), KeyboardButton(text="🎒 Інвентар"))
+        builder.row(KeyboardButton(text="🌐 Капісоціум"), KeyboardButton(text="🎒 Інвентар"))
         builder.row(KeyboardButton(text="🐾 Профіль"), KeyboardButton(text="🎟️ Лотерея"))
         builder.row(KeyboardButton(text="⚙️ Налаштування"))
 
@@ -40,12 +40,12 @@ def get_main_kb(layout_type: int = 0) -> ReplyKeyboardMarkup:
 
     elif layout_type == 6: #for now same as the standart
         builder.row(KeyboardButton(text="🐾 Профіль"), KeyboardButton(text="🎒 Інвентар"), KeyboardButton(text="🎟️ Лотерея"))
-        builder.row(KeyboardButton(text="⚔️ Бій"), KeyboardButton(text="🗺️ Карта"), KeyboardButton(text="📜 Квести"))
+        builder.row(KeyboardButton(text="🌐 Капісоціум"), KeyboardButton(text="🗺️ Карта"), KeyboardButton(text="📜 Квести"))
         builder.row(KeyboardButton(text="⚓ Корабель"), KeyboardButton(text="⚙️ Налаштування"))
 
     else:
         builder.row(KeyboardButton(text="🐾 Профіль"), KeyboardButton(text="🎒 Інвентар"), KeyboardButton(text="🎟️ Лотерея"))
-        builder.row(KeyboardButton(text="⚔️ Бій"), KeyboardButton(text="🗺️ Карта"), KeyboardButton(text="📜 Квести"))
+        builder.row(KeyboardButton(text="🌐 Капісоціум"), KeyboardButton(text="🗺️ Карта"), KeyboardButton(text="📜 Квести"))
         builder.row(KeyboardButton(text="⚓ Корабель"), KeyboardButton(text="⚙️ Налаштування"))
 
     return builder.as_markup(resize_keyboard=True)

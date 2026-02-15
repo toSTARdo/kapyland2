@@ -126,7 +126,7 @@ def get_general_profile_text(data, meta):
 def get_fight_stats_text(data, meta):
     stats = meta.get('stats', {})
     equip = meta.get('equipment', {})
-    win_rate = (data['wins'] / (data['wins'] + data['total_fights']) * 100) if (data['wins'] + data['total_fights']) > 0 else 0
+    win_rate = (data['wins'] / data['total_fights']) * 100) if data['total_fights'] != 0 else 0
     
     return (
         f"<b>⚔️ БОЙОВІ ХАРАКТЕРИСТИКИ</b>\n"

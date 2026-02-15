@@ -13,7 +13,7 @@ router = Router()
 
 #ВИКЛИКИ
 
-@router.message(F.text.startswith("⚔️"))
+@router.message(F.text.startswith("🌐"))
 @router.message(Command("fight"))
 async def cmd_arena_hub(message: types.Message):
     uid = message.from_user.id
@@ -54,33 +54,50 @@ async def cmd_arena_hub(message: types.Message):
 @router.callback_query(F.data.startswith("user_menu:"))
 async def user_menu_handler(callback: types.CallbackQuery):
     target_id = int(callback.data.split(":")[1])
+    uid = callback.from_user.id
     
     conn = await get_db_connection()
     try:
-        target = await conn.fetchrow("""
-            SELECT u.username, c.lvl, (c.meta->>'weight')::float as weight
-            FROM users u 
-            JOIN capybaras c ON u.tg_id = c.owner_id 
-            WHERE u.tg_id = $1
-        """, target_id)
+        players = await conn.fetch("""
+            SELECT u.tg_id, u.username, c.lvl 
+            FROM users u
+            JOIN capybaras c ON u.tg_id = c.owner_id
+            WHERE u.tg_id != $1 
+            ORDER BY c.lvl DESC LIMIT 8
+        """, uid)
     finally:
         await conn.close()
 
-    if not target:
-        return await callback.answer("Ця капібара кудись зникла...")
-
-    text = "Капі-капі"
-
     builder = InlineKeyboardBuilder()
-    builder.button(text="⚔️", callback_data=f"challenge_{target_id}")
-    builder.button(text="🎁", callback_data=f"gift_to:{target_id}")
-    builder.button(text="🧤", callback_data=f"steal_from:{target_id}")
-    builder.button(text="🪵", callback_data=f"ram:{target_id}")
-    builder.button(text="🔍", callback_data=f"inspect:{target_id}")
-    
-    builder.adjust(5)
 
-    await callback.message.edit_text(text, reply_markup=builder.as_markup(), parse_mode="HTML")
+    for p in players:
+        builder.button(
+            text=f"🐾 {p['username']} (Lvl {p['lvl']})", 
+            callback_data=f"user_menu:{p['tg_id']}"
+        )
+        
+        if p['tg_id'] == target_id:
+            builder.button(text="⚔️", callback_data=f"challenge_{target_id}")
+            builder.button(text="🎁", callback_data=f"gift_to:{target_id}")
+            builder.button(text="🧤", callback_data=f"steal_from:{target_id}")
+            builder.button(text="🪵", callback_data=f"ram:{target_id}")
+            builder.button(text="🔍", callback_data=f"inspect:{target_id}")
+
+    builder.button(text="🤖 Побитися з ботом", callback_data="fight_bot")
+    builder.button(text="🏆 Таблиця лідерів", callback_data="leaderboard")
+
+    layout = []
+    for p in players:
+        layout.append(1)
+        if p['tg_id'] == target_id:
+            layout.append(5)
+    layout.append(1)
+    layout.append(1)
+    
+    builder.adjust(*layout)
+
+    await callback.message.edit_reply_markup(reply_markup=builder.as_markup())
+    await callback.answer()
 
 @router.callback_query(F.data.startswith("challenge_"))
 async def send_challenge(callback: types.CallbackQuery):
@@ -138,34 +155,7 @@ async def handle_fight_bot(callback: types.CallbackQuery):
     asyncio.create_task(run_battle_logic(callback, bot_type="parrotbot"))
     await callback.answer()
 
-@router.callback_query(F.data == "steal")
-async def handle_steal_search(callback: types.CallbackQuery):
-    uid = callback.from_user.id
-    conn = await get_db_connection()
-    try:
-        target = await conn.fetchrow(
-            "SELECT owner_id, name FROM capybaras WHERE owner_id != $1 ORDER BY RANDOM() LIMIT 1", 
-            uid
-        )
-        if not target:
-            return await callback.answer("🏝 На архіпелазі нікого грабувати...")
-
-        builder = InlineKeyboardBuilder()
-        builder.button(text=f"🧤 Обікрасти {target['name']}", callback_data=f"do_steal:{target['owner_id']}")
-        builder.button(text="🔙 Назад", callback_data="back_to_fight")
-        builder.adjust(1)
-
-        await callback.message.edit_text(
-            f"<b>Ти підкрадаєшся до {target['name']}...</b>\n\n"
-            f"• 5% — вкрасти випадкову річ\n"
-            f"• 5% — розбудити ціль і получити в баняк\n"
-            f"• 90% — втекти ні з чим",
-            reply_markup=builder.as_markup(),
-            parse_mode="HTML"
-        )
-    finally: await conn.close()
-
-@router.callback_query(F.data.startswith("do_steal:"))
+@router.callback_query(F.data.startswith("steal_from:"))
 async def execute_steal_logic(callback: types.CallbackQuery):
     target_id = int(callback.data.split(":")[1])
     uid = callback.from_user.id
@@ -177,8 +167,8 @@ async def execute_steal_logic(callback: types.CallbackQuery):
             target_row = await conn.fetchrow("SELECT meta, name FROM capybaras WHERE owner_id = $1", target_id)
             actor_row = await conn.fetchrow("SELECT meta FROM capybaras WHERE owner_id = $1", uid)
             
-            t_meta = json.loads(target_row['meta'])
-            a_meta = json.loads(actor_row['meta'])
+            t_meta = json.loads(target_row['meta']) if isinstance(target_row['meta'], str) else target_row['meta']
+            a_meta = json.loads(actor_row['meta']) if isinstance(actor_row['meta'], str) else actor_row['meta']
             
             t_items = t_meta.get("inventory", {}).get("equipment", [])
             
@@ -187,61 +177,46 @@ async def execute_steal_logic(callback: types.CallbackQuery):
                 t_meta["inventory"]["equipment"] = [i for i in t_items if i != stolen_item]
                 a_meta.setdefault("inventory", {}).setdefault("equipment", []).append(stolen_item)
                 
-                await conn.execute("UPDATE capybaras SET meta = $1 WHERE owner_id = $2", json.dumps(t_meta), target_id)
-                await conn.execute("UPDATE capybaras SET meta = $1 WHERE owner_id = $2", json.dumps(a_meta), uid)
+                await conn.execute("UPDATE capybaras SET meta = $1 WHERE owner_id = $2", json.dumps(t_meta, ensure_ascii=False), target_id)
+                await conn.execute("UPDATE capybaras SET meta = $1 WHERE owner_id = $2", json.dumps(a_meta, ensure_ascii=False), uid)
                 
-                await callback.message.edit_text(f"🥷 <b>НАЙШВИДШІ ЛАПКИ НА АРХІПЕЛАЗІ!</b>\nВи непомітно витягли <b>{stolen_item['name']}</b> у {target_row['name']}!")
+                await callback.message.edit_text(
+                    f"🥷 <b>НАЙШВИДШІ ЛАПКИ НА АРХІПЕЛАЗІ!</b>\n"
+                    f"Ви непомітно витягли <b>{stolen_item['name']}</b> у {target_row['name']}!"
+                )
             else:
-                await callback.message.edit_text("У цієї капібари в торбі тільки висохла шкірка мандаринки...")
+                await callback.message.edit_text(f"🧤 Ти обшукав кишені {target_row['name']}, але там лише пісок та морська сіль...")
         finally: await conn.close()
 
     elif chance < 0.10:
-        await callback.message.edit_text(f"😱 <b>ЧОРТ! ВАС ПІЙМАЛИ!</b>\nКапі прокинулась і схопила тебе за вухо! Починається бій...")
+        await callback.message.edit_text(f"😱 <b>ЧОРТ! ВАС ПІЙМАЛИ!</b>\nЦіль прокинулась і схопила тебе за лапу! Починається бій...")
         asyncio.create_task(run_battle_logic(callback, opponent_id=target_id))
     
     else:
-        await callback.message.edit_text("💨 Ти злякався шурхоту і втік ні з чим. Буває...")
+        await callback.answer("💨 Ти злякався шурхоту і втік ні з чим. Буває...", show_alert=True)
+        await cmd_arena_hub(callback.message)
 
-@router.callback_query(F.data == "ram")
-async def handle_ram_search(callback: types.CallbackQuery):
+@router.callback_query(F.data.startswith("ram:"))
+async def execute_ram_logic(callback: types.CallbackQuery):
+    target_id = int(callback.data.split(":")[1])
     uid = callback.from_user.id
+    
     conn = await get_db_connection()
     try:
         row = await conn.fetchrow("SELECT meta FROM capybaras WHERE owner_id = $1", uid)
-        meta = json.loads(row['meta'])
-        items = [i['name'] for i in meta.get("inventory", {}).get("equipment", [])]
+        meta = json.loads(row['meta']) if isinstance(row['meta'], str) else row['meta']
         
-        if "Таран" not in items and "Бур Лаганна" not in items:
-            return await callback.answer("❌ Тобі потрібен 'Таран' або 'Бур Лаганна'!", show_alert=True)
+        inv_items = [i['name'].lower() for i in meta.get("inventory", {}).get("equipment", [])]
+        has_ram = any("таран" in item or "бур лаганна" in item for item in inv_items)
+        
+        if not has_ram:
+            return await callback.answer("❌ Тобі потрібен 'Таран' або 'Бур Лаганна' в інвентарі!", show_alert=True)
 
-        target = await conn.fetchrow(
-            "SELECT owner_id, name FROM capybaras WHERE owner_id != $1 ORDER BY RANDOM() LIMIT 1", 
-            uid
-        )
-        if not target: return await callback.answer("Нікого тарантити...")
-
-        builder = InlineKeyboardBuilder()
-        builder.button(text=f"💥 Вдарити {target['name']}", callback_data=f"do_ram:{target['owner_id']}")
-        builder.button(text="🔙 Назад", callback_data="back_to_fight")
-        builder.adjust(1)
-
-        await callback.message.edit_text(
-            f"🚜 <b>Повний вперед!</b>\nТаран ініціює миттєвий бій без згоди цілі.",
-            reply_markup=builder.as_markup(),
-            parse_mode="HTML"
-        )
+        await callback.message.edit_text("💥 <b>БА-БАХ!</b>\nТи влетів у суперника на повному ходу! Бій починається негайно!")
+        
+        asyncio.create_task(run_battle_logic(callback, opponent_id=target_id))
+        
     finally: await conn.close()
-
-@router.callback_query(F.data.startswith("do_ram:"))
-async def execute_ram_logic(callback: types.CallbackQuery):
-    target_id = int(callback.data.split(":")[1])
-    await callback.message.edit_text("💥 <b>БА-БАХ!</b>\nТаран таранить таранобеззахисну капібару.")
-    asyncio.create_task(run_battle_logic(callback, opponent_id=target_id))
-
-@router.callback_query(F.data == "back_to_fight")
-async def back_to_fight(callback: types.CallbackQuery):
-    await callback.message.delete()
-    await cmd_fight_lobby(callback.message)
 
 async def run_battle_logic(callback: types.CallbackQuery, opponent_id: int = None, bot_type: str = None):
     bot = callback.bot
@@ -416,3 +391,186 @@ async def run_battle_logic(callback: types.CallbackQuery, opponent_id: int = Non
 
         finally:
             await conn.close()
+
+@router.callback_query(F.data.startswith("inspect:"))
+async def handle_inspect_player(callback: types.CallbackQuery):
+    target_id = int(callback.data.split(":")[1])
+    
+    conn = await get_db_connection()
+    try:
+        target = await conn.fetchrow("""
+            SELECT u.username, c.name as capy_name, c.lvl, c.karma, c.zen, c.meta, s.name as ship_name
+            FROM users u 
+            JOIN capybaras c ON u.tg_id = c.owner_id 
+            LEFT JOIN ships s ON c.ship_id = s.id
+            WHERE u.tg_id = $1
+        """, target_id)
+        
+        if not target:
+            return await callback.answer("Капібара зникла у тумані...")
+
+        meta = json.loads(target['meta']) if isinstance(target['meta'], str) else target['meta']
+        
+        weight = meta.get("weight", 0.0)
+        status = meta.get("status", "active")
+        mood = meta.get("mood", "Normal")
+        equip = meta.get("equipment", {})
+        
+        status_text = "💤 Спить" if status == "sleep" else "🐾 Гуляє архіпелагом"
+        karma_title = "😇 Свята булочка" if target['karma'] > 50 else "😈 Мародерна капі" if target['karma'] < -50 else "😐 Нейтральна капі"
+        
+        text = (
+            f"📜 <b>Детальне досьє: {target['capy_name']}</b>\n"
+            f"👤 Власник: {target['username']}\n"
+            f"🚢 Човен: <b>{target['ship_name'] or 'Самотній плавець'}</b>\n"
+            f"━━━━━━━━━━━━━━━\n"
+            f"🔹 <b>Статус:</b> {status_text}\n"
+            f"🔹 <b>Карма:</b> {karma_title} ({target['karma']})\n"
+            f"🔹 <b>Настрій:</b> {mood}\n"
+            f"━━━━━━━━━━━━━━━\n"
+            f"🎖 <b>Рівень:</b> {target['lvl']}\n"
+            f"⚖️ <b>Вага:</b> {weight} кг\n"
+            f"━━━━━━━━━━━━━━━\n"
+            f"⚔️ <b>Арсенал:</b>\n"
+            f"└ Снаряда: <b>{equip.get('weapon', 'Лапки')}</b>\n"
+            f"└ Захист: <b>{equip.get('armor', 'Хутро')}</b>\n"
+            f"└ Реліквія: <b>{equip.get('artifact') or 'Порожньо'}</b>\n\n"
+            f"<i>Капібара виглядає {mood.lower()}, здається, вона готова до пригод.</i>"
+        )
+
+        builder = InlineKeyboardBuilder()
+        builder.button(text="⚔️ Виклик", callback_data=f"challenge_{target_id}")
+        builder.button(text="🎁 Подарунок", callback_data=f"gift_to:{target_id}")
+        builder.button(text="🔙 Назад", callback_data="fight")
+        builder.adjust(2, 1)
+
+        await callback.message.edit_text(text, reply_markup=builder.as_markup(), parse_mode="HTML")
+        
+    finally:
+        await conn.close()
+
+@router.callback_query(F.data.startswith("gift_to:"))
+async def gift_category_select(callback: types.CallbackQuery):
+    target_id = int(callback.data.split(":")[1])
+    
+    builder = InlineKeyboardBuilder()
+    builder.button(text="🍎 Їжа", callback_data=f"send_cat:food:{target_id}")
+    builder.button(text="💎 Ресурси", callback_data=f"send_cat:materials:{target_id}")
+    builder.button(text="⚔️ Спорядження", callback_data=f"send_cat:equipment:{target_id}")
+    builder.button(text="🔙 Назад", callback_data=f"user_menu:{target_id}")
+    builder.adjust(2, 1, 1)
+
+    await callback.message.edit_text(
+        "🎁 <b>Меню подарунків</b>\nОберіть категорію предметів для передачі:",
+        reply_markup=builder.as_markup(),
+        parse_mode="HTML"
+    )
+
+@router.callback_query(F.data.startswith("send_cat:"))
+async def gift_item_select(callback: types.CallbackQuery):
+    parts = callback.data.split(":")
+    category = parts[1]
+    target_id = int(parts[2])
+    uid = callback.from_user.id
+    
+    conn = await get_db_connection()
+    try:
+        row = await conn.fetchrow("SELECT meta FROM capybaras WHERE owner_id = $1", uid)
+        meta = json.loads(row['meta']) if isinstance(row['meta'], str) else row['meta']
+        
+        builder = InlineKeyboardBuilder()
+        has_items = False
+        
+        if category == "equipment":
+            equipment_list = meta.get("inventory", {}).get("equipment", [])
+            current_equip = meta.get("equipment", {}).values()
+            
+            for idx, item in enumerate(equipment_list):
+                if item['name'] not in current_equip:
+                    builder.button(
+                        text=f"📦 {item['name']}", 
+                        callback_data=f"gift_exec:equip:{idx}:{target_id}"
+                    )
+                    has_items = True
+        else:
+            items = meta.get("inventory", {}).get(category, {})
+            for item_key, count in items.items():
+                if count > 0:
+                    builder.button(
+                        text=f"{item_key} ({count})", 
+                        callback_data=f"gift_exec:stack:{category}:{item_key}:{target_id}"
+                    )
+                    has_items = True
+        
+        if not has_items:
+            return await callback.answer("У вас немає доступних предметів у цій категорії", show_alert=True)
+            
+        builder.button(text="🔙 Назад", callback_data=f"gift_to:{target_id}")
+        builder.adjust(1)
+
+        await callback.message.edit_text(
+            f"🎁 <b>Ваш інвентар ({category}):</b>",
+            reply_markup=builder.as_markup(),
+            parse_mode="HTML"
+        )
+    finally:
+        await conn.close()
+
+@router.callback_query(F.data.startswith("gift_exec:"))
+async def execute_gift_transfer(callback: types.CallbackQuery):
+    parts = callback.data.split(":")
+    gift_type = parts[1]
+    uid = callback.from_user.id
+    
+    conn = await get_db_connection()
+    try:
+        if gift_type == "equip":
+            item_idx = int(parts[2])
+            target_id = int(parts[3])
+            
+            a_data = await conn.fetchrow("SELECT meta FROM capybaras WHERE owner_id = $1", uid)
+            t_data = await conn.fetchrow("SELECT meta FROM capybaras WHERE owner_id = $1", target_id)
+            
+            a_meta = json.loads(a_data['meta']) if isinstance(a_data['meta'], str) else a_data['meta']
+            t_meta = json.loads(t_data['meta']) if isinstance(t_data['meta'], str) else t_data['meta']
+            
+            inv = a_meta.get("inventory", {}).get("equipment", [])
+            if item_idx >= len(inv): return await callback.answer("Помилка індексу")
+            
+            gift_item = inv.pop(item_idx)
+            t_meta.setdefault("inventory", {}).setdefault("equipment", []).append(gift_item)
+            
+            await conn.execute("UPDATE capybaras SET meta = $1, karma = karma + 5 WHERE owner_id = $2", json.dumps(a_meta), uid)
+            await conn.execute("UPDATE capybaras SET meta = $1 WHERE owner_id = $2", json.dumps(t_meta), target_id)
+            item_name = gift_item['name']
+
+        else:
+            category = parts[2]
+            item_key = parts[3]
+            target_id = int(parts[4])
+            
+            res = await conn.execute(f"""
+                UPDATE capybaras SET meta = jsonb_set(meta, '{{inventory, {category}, {item_key}}}', 
+                (GREATEST((meta->'inventory'->'{category}'->>'{item_key}')::int - 1, 0))::text::jsonb)
+                WHERE owner_id = $1 AND (meta->'inventory'->'{category}'->>'{item_key}')::int > 0
+            """, uid)
+
+            if res == "UPDATE 0": return await callback.answer("Предмет закінчився")
+
+            await conn.execute(f"""
+                UPDATE capybaras SET meta = jsonb_set(meta, '{{inventory, {category}, {item_key}}}', 
+                (COALESCE(meta->'inventory'->'{category}'->>'{item_key}', '0')::int + 1)::text::jsonb)
+                WHERE owner_id = $1
+            """, target_id)
+            
+            await conn.execute("UPDATE capybaras SET karma = karma + 1 WHERE owner_id = $1", uid)
+            item_name = item_key
+
+        await callback.message.edit_text(f"✨ <b>Успіх!</b>\nВи подарували <b>{item_name}</b> та покращили свою карму.")
+        
+        try:
+            await callback.bot.send_message(target_id, f"🎁 Гей! Тобі прийшов подарунок: <b>{item_name}</b>!")
+        except: pass
+
+    finally:
+        await conn.close()
