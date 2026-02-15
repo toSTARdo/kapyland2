@@ -1,9 +1,3 @@
-import json
-import datetime
-from typing import Any, Awaitable, Callable, Dict
-from aiogram import BaseMiddleware, types
-from database.postgres_db import get_db_connection
-
 class CapyGuardMiddleware(BaseMiddleware):
     async def __call__(
         self,
@@ -23,6 +17,19 @@ class CapyGuardMiddleware(BaseMiddleware):
             if msg.reply_to_message and msg.reply_to_message.from_user.id != user_id:
                 return await event.callback_query.answer("Ах ти підступна капібара! 🐾 Це не твій профіль!", show_alert=True)
 
+        is_game_command = False
+        if event.message and event.message.text:
+            text = event.message.text
+            game_triggers = ["/", "⚔️", "🗺️", "🧼", "📜", "🎣", "🍎", "💤"]
+            if any(text.startswith(trigger) for trigger in game_triggers):
+                is_game_command = True
+        
+        if event.callback_query:
+            is_game_command = True
+
+        if not is_game_command:
+            return await handler(event, data)
+
         conn = await get_db_connection()
         try:
             row = await conn.fetchrow("SELECT meta FROM capybaras WHERE owner_id = $1", user_id)
@@ -34,7 +41,7 @@ class CapyGuardMiddleware(BaseMiddleware):
                     if wake_up_str:
                         wake_time = datetime.datetime.fromisoformat(wake_up_str)
                         if datetime.datetime.now() < wake_time:
-                            if event.message and event.message.text in ["/start", "🐾 Профіль"]:
+                            if event.message and event.message.text in ["/start", "🐾 Профіль", "⚙️ Налаштування", "🎒 Інвентар"]:
                                 return await handler(event, data)
                             
                             warning = "💤 Твоя капібара бачить десятий сон... Не турбуй її."
