@@ -67,7 +67,7 @@ async def handle_open_chest(callback: types.CallbackQuery):
         new_maps = []
         if random.random() < 0.2:
             map_id = random.randint(100, 999)
-            new_maps.append({"id": map_id, "pos": f"{random.randint(0,200)},{random.randint(0,200)}"})
+            new_maps.append({"id": map_id, "pos": f"{random.randint(0,149)},{random.randint(0,149)}"})
             rewards.append(f"🗺️ Карта #{map_id}")
 
         new_equip = []

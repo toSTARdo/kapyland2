@@ -23,14 +23,15 @@ async def cmd_quests_board(message: types.Message):
     q_name = QUEST_PLOTS[q_id]['name']
 
     builder = InlineKeyboardBuilder()
-    builder.button(text="🗺 Купити карту (50 🍉)", callback_data="buy_treasure_map")
+    builder.button(text="🗺 Купити карту (25 🍉)", callback_data="buy_treasure_map")
     builder.adjust(1)
 
     await message.answer(
         f"📌 <b>ДОШКА ОГОЛОШЕНЬ ТАВЕРНИ</b>\n"
         f"--------------------------------\n"
         f"<i>{intro}</i>\n\n"
-        f"📜 «...{hint} {mood}»",
+        f"📜 «...{hint} {mood}»\n\n"
+        f"Також можна за кілька кавунів купити стару мапу яка приведе до скарбів ⤵︎",
         reply_markup=builder.as_markup(),
         parse_mode="HTML"
     )
@@ -49,10 +50,10 @@ async def handle_buy_map(callback: types.CallbackQuery):
         loot = inventory.setdefault('loot', {})
         current_slices = food.get('watermelon_slices', 0)
 
-        if current_slices < 50:
-            return await callback.answer(f"❌ Тобі бракує кавунів! (Є: {current_slices}/50)", show_alert=True)
+        if current_slices < 25:
+            return await callback.answer(f"❌ Тобі бракує кавунів! (Є: {current_slices}/25)", show_alert=True)
 
-        food['watermelon_slices'] = current_slices - 50
+        food['watermelon_slices'] = current_slices - 25
         
         map_num = random.randint(100, 999)
         coords = f"{random.randint(0, 149)},{random.randint(0, 149)}"
@@ -74,7 +75,7 @@ async def handle_buy_map(callback: types.CallbackQuery):
         
         await callback.message.answer(
             f"🗺 <b>Куплено в сумнівного пірата!</b>\n"
-            f"Ви віддали 50 🍉 за карту #{map_num}.\n"
+            f"Ви віддали 25 🍉 за карту #{map_num}.\n"
             f"Координати: <code>{coords}</code>", 
             parse_mode="HTML"
         )

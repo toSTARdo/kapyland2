@@ -50,7 +50,8 @@ async def handle_fishing(callback: types.CallbackQuery):
             
             {"name": "🗃 Скриня", "min_w": 5.0, "max_w": 10.0, "chance": 2, "type": "special", "key": "chest"},
             {"name": "🗝️ Ключ", "min_w": 0.1, "max_w": 0.2, "chance": 2, "type": "special", "key": "key"},
-            {"name": "🎟️ Лотерейний квиток", "min_w": 0.01, "max_w": 0.01, "chance": 1, "type": "special", "key": "lottery_ticket"}
+            {"name": "🎟️ Лотерейний квиток", "min_w": 0.01, "max_w": 0.01, "chance": 1, "type": "special", "key": "lottery_ticket"},
+            {"name": "🫙 Стара мапа", "min_w": 0.1, "max_w": 0.1, "chance": 2, "type": "treasure_map", "key": "treasure_maps"}
         ]
         
         item = random.choices(loot_pool, weights=[i['chance'] for i in loot_pool])[0]
@@ -63,6 +64,20 @@ async def handle_fishing(callback: types.CallbackQuery):
             sql = "UPDATE capybaras SET meta = jsonb_set(meta, '{stamina}', (GREATEST((meta->>'stamina')::int - 10, 0))::text::jsonb) WHERE owner_id = $1"
             await conn.execute(sql, uid)
             inventory_note = "🗑️ <i>Це просто сміття, ти викинув його назад.</i>"
+        elif item_type == "treasure_map":
+            map_id = random.randint(100, 999)
+            new_map = [{"id": map_id, "pos": f"{random.randint(0,149)},{random.randint(0,149)}"}]
+            
+            sql = f"""
+                UPDATE capybaras 
+                SET meta = jsonb_set(
+                    {base_meta_sql}, 
+                    '{{inventory, loot, treasure_maps}}', 
+                    (COALESCE(meta->'inventory'->'loot'->'treasure_maps', '[]'::jsonb) || '{json.dumps(new_map)}'::jsonb)
+                ) WHERE owner_id = $1
+            """
+            await conn.execute(sql, uid)
+            inventory_note = f"🗺️ <b>Виудив стару мапу #{map_id}! Координати додано в торбу.</b>"
         else:
             if item_type == "food":
                 folder = "food"
