@@ -65,9 +65,10 @@ def get_map_keyboard(px, py, mode):
         types.InlineKeyboardButton(text="⬇️", callback_data=f"mv:down:{px}:{py}:{mode}"),
         types.InlineKeyboardButton(text="➡️", callback_data=f"mv:right:{px}:{py}:{mode}")
     )
+    builder.row(types.InlineKeyboardButton(text="🔙 Назад", callback_data="open_adventure"))
     return builder.as_markup()
 
-@router.callback_query(F.data=="map")
+@router.callback_query(F.data=="open_map")
 async def cmd_map(callback: types.CallbackQuery):
     uid = callback.message.from_user.id
     conn = await get_db_connection()

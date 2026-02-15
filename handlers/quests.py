@@ -13,20 +13,28 @@ with open("data/quests_narrative.json", "r", encoding="utf-8") as f:
     RUMOR_COMPONENTS = DATA["RUMOR_COMPONENTS"]
 
 @router.message(F.text.contains("🧭"))
-async def cmd_adventure(message: types.Message):
+@router.callback_query(F.data == "open_adventure")
+async def cmd_adventure(event: types.Message | types.CallbackQuery):
+    is_callback = isinstance(event, types.CallbackQuery)
     builder = InlineKeyboardBuilder()
     
-    builder.row(types.InlineKeyboardButton(
-        text="🗺️ Карта світу", callback_data="open_map")
-    )
+    builder.row(types.InlineKeyboardButton(text="🗺️ Карта світу", callback_data="open_map"))
     builder.row(
         types.InlineKeyboardButton(text="📜 Квести", callback_data="open_quests"),
         types.InlineKeyboardButton(text="🎣 Риболовля", callback_data="fish")
     )
+    builder.row(types.InlineKeyboardButton(text="⬅️ Назад", callback_data="back_to_main"))
 
-    await message.answer(
-        "Куди відправимо твою капібару сьогодні?\n",
-        reply_markup=builder.as_markup()
+    text = "🧭 <b>Морські пригоди</b>\n\nКуди відправимо твою капібару сьогодні?"
+
+    if is_callback:
+        try:
+            await event.message.edit_text(text, reply_markup=builder.as_markup(), parse_mode="HTML")
+        except:
+            pass
+        await event.answer()
+    else:
+        await event.answer(text, reply_markup=builder.as_markup(), parse_mode="HTML")
     )
 
 @router.callback_query(F.data == "open_quests")
@@ -41,6 +49,7 @@ async def cmd_quests_board(callback: types.CallbackQuery):
 
     builder = InlineKeyboardBuilder()
     builder.button(text="🗺 Купити карту (25 🍉)", callback_data="buy_treasure_map")
+    builder.button(text="🔙 Назад", callback_data="open_adventure")
     builder.adjust(1)
 
     await callback.message.answer(

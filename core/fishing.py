@@ -99,7 +99,8 @@ async def handle_fishing(callback: types.CallbackQuery):
             inventory_note = f"📦 <i>{item_name} додано в інвентар ({folder})!</i>"
 
         builder = InlineKeyboardBuilder()
-        builder.button(text="🔙 Назад", callback_data="profile_back")
+        builder.button(text="Закинути повторно", callback_data="fish")
+        builder.button(text="🔙 Назад", callback_data="open_adventure")
 
         await callback.message.edit_text(
             f"🎣 <b>Риболовля</b>\n━━━━━━━━━━━━━━━\n"
