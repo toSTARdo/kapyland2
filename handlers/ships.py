@@ -5,7 +5,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from core.capybara_mechanics import get_user_inventory
 from database.postgres_db import get_db_connection
 from aiogram.fsm.state import StatesGroup, State
-from aiogram.fsm.context import FContext
+from aiogram.fsm.context import FSMContext
 from data.game_items import KANJI_DICT
 
 class ShipCreation(StatesGroup):
