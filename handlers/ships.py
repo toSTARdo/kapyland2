@@ -15,11 +15,15 @@ class ShipCreation(StatesGroup):
 router = Router()
 
 @router.message(F.text.contains("⚓"))
-async def cmd_port(message: types.Message):
+@router.callback_query(F.data == "open_port")
+async def cmd_port(event: types.Message | types.CallbackQuery):
+    is_callback = isinstance(event, types.CallbackQuery)
+    message = event.message if is_callback else event
+    
     builder = InlineKeyboardBuilder()
     
     builder.row(
-        types.InlineKeyboardButton(text="🍻 Таверна", callback_data="social"),
+        types.InlineKeyboardButton(text="🍻 Таверна", callback_data="open_society"), # Змінив на твій існуючий social-хендлер
         types.InlineKeyboardButton(text="⛵ Мій Корабель", callback_data="ship_main")
     )
     
@@ -27,11 +31,16 @@ async def cmd_port(message: types.Message):
         types.InlineKeyboardButton(text="⚙️ Налаштування", callback_data="open_settings")
     )
 
-    await message.answer(
-        "⚓ Порт Ліворн-Бей\n\n <i>Життя тут вирує. Відвідай таверну та хутчіш на борт корабля!</i>",
-        reply_markup=builder.as_markup(),
-        parse_mode="HTML"
-    )
+    text = "⚓ <b>Порт Ліворн-Бей</b>\n\n<i>Життя тут вирує. Відвідай таверну та хутчіш на борт корабля!</i>"
+
+    if is_callback:
+        try:
+            await event.message.edit_text(text, reply_markup=builder.as_markup(), parse_mode="HTML")
+        except:
+            pass
+        await event.answer()
+    else:
+        await message.answer(text, reply_markup=builder.as_markup(), parse_mode="HTML")
 
 
 @router.callback_query(F.data == "ship_main")
@@ -60,7 +69,7 @@ async def cmd_ship_menu(event: types.Message | types.CallbackQuery, state: FSMCo
         )
         builder.button(text="🔨 Збудувати корабель", callback_data="ship_create_init")
         builder.button(text="🔍 Пошук команди", callback_data="leaderboard:mass:0")
-        builder.row(types.InlineKeyboardButton(text="⬅️ Назад в порт", callback_data="back_to_main"))
+        builder.row(types.InlineKeyboardButton(text="⬅️ Назад в порт", callback_data="open_port"))
     else:
         engine_data = ship['engine'] if isinstance(ship['engine'], dict) else json.loads(ship['engine'] or '{}')
         engine_name = engine_data.get('name', 'Відсутній')
