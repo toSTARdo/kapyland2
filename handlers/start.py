@@ -36,10 +36,10 @@ async def render_story_node(message: types.Message, node_id: str):
             f"Який дар ти візьмеш із собою?»"
         )
         
-        builder.button(text="⚔️ Сила", callback_data="gift_attack")
-        builder.button(text="💨 Спритність", callback_data="gift_agility")
-        builder.button(text="🛡 Захист", callback_data="gift_defense")
-        builder.button(text="🍀 Удача", callback_data="gift_luck")
+        builder.button(text="⚔️ Сила", callback_data="godgift_attack")
+        builder.button(text="💨 Спритність", callback_data="godgift_agility")
+        builder.button(text="🛡 Захист", callback_data="godgift_defense")
+        builder.button(text="🍀 Удача", callback_data="godgift_luck")
     
     elif "options" in node:
         for opt in node["options"]:
@@ -52,13 +52,13 @@ async def render_story_node(message: types.Message, node_id: str):
     except Exception:
         await message.answer(display_text, reply_markup=builder.as_markup(), parse_mode="HTML")
 
-@router.callback_query(F.data.startswith("gift_"))
+@router.callback_query(F.data.startswith("godgift_"))
 async def handle_goddess_gift(callback: types.CallbackQuery):
     stat_map = {
-        "gift_attack": "attack",
-        "gift_agility": "agility",
-        "gift_defense": "defense",
-        "gift_luck": "luck"
+        "godgift_attack": "attack",
+        "godgift_agility": "agility",
+        "godgift_defense": "defense",
+        "godgift_luck": "luck"
     }
     chosen_stat = stat_map.get(callback.data)
     uid = callback.from_user.id

@@ -14,6 +14,7 @@ router = Router()
 #ВИКЛИКИ
 
 @router.message(F.text.startswith("🌐"))
+@router.callback_query(F.data.startswith("social"))
 @router.message(Command("fight"))
 async def cmd_arena_hub(message: types.Message):
     uid = message.from_user.id
@@ -457,7 +458,7 @@ async def gift_category_select(callback: types.CallbackQuery):
     builder.button(text="🍎 Їжа", callback_data=f"send_cat:food:{target_id}")
     builder.button(text="💎 Ресурси", callback_data=f"send_cat:materials:{target_id}")
     builder.button(text="⚔️ Спорядження", callback_data=f"send_cat:equipment:{target_id}")
-    builder.button(text="🔙 Назад", callback_data=f"user_menu:{target_id}")
+    builder.button(text="🔙 Назад", callback_data=f"social")
     builder.adjust(2, 1, 1)
 
     await callback.message.edit_text(
@@ -572,5 +573,73 @@ async def execute_gift_transfer(callback: types.CallbackQuery):
             await callback.bot.send_message(target_id, f"🎁 Гей! Тобі прийшов подарунок: <b>{item_name}</b>!")
         except: pass
 
+    finally:
+        await conn.close()
+
+@router.callback_query(F.data.startswith("leaderboard"))
+async def show_leaderboard(callback: types.CallbackQuery):
+    parts = callback.data.split(":")
+    criteria = parts[1] if len(parts) > 1 else "mass"
+    page = int(parts[2]) if len(parts) > 2 else 0
+    offset = page * 5
+
+    conn = await get_db_connection()
+    try:
+        if criteria == "mass":
+            title = "⚖️ Топ Найважчих"
+            label = "кг"
+            query = """
+                SELECT u.username, (c.meta->>'weight')::float as val 
+                FROM users u JOIN capybaras c ON u.tg_id = c.owner_id 
+                ORDER BY val DESC LIMIT 5 OFFSET $1
+            """
+        elif criteria == "lvl":
+            title = "🎖 Топ Наймудріших"
+            label = "Lvl"
+            query = """
+                SELECT u.username, c.lvl as val 
+                FROM users u JOIN capybaras c ON u.tg_id = c.owner_id 
+                ORDER BY val DESC LIMIT 5 OFFSET $1
+            """
+        else: # winrate
+            title = "⚔️ Топ Найсильніших"
+            label = "%"
+            query = """
+                SELECT u.username, 
+                ROUND((c.wins::float / GREATEST(c.total_fights, 1)) * 100) as val
+                FROM users u JOIN capybaras c ON u.tg_id = c.owner_id 
+                WHERE c.total_fights > 0
+                ORDER BY val DESC, c.wins DESC LIMIT 5 OFFSET $1
+            """
+
+        rows = await conn.fetch(query, offset)
+        
+        text = f"<b>{title}</b>\n━━━━━━━━━━━━━━━\n"
+        for i, row in enumerate(rows):
+            pos = i + offset + 1
+            medal = {1: "🥇", 2: "🥈", 3: "🥉"}.get(pos, "🐾")
+            text += f"{medal} {pos}. <b>{row['username']}</b> — {row['val']}{label}\n"
+
+        if not rows:
+            text += "<i>На цій сторінці порожньо...</i>"
+
+        builder = InlineKeyboardBuilder()
+        
+        builder.button(text="⚖️ Вага", callback_data=f"leaderboard:mass:0")
+        builder.button(text="🎖 Рівень", callback_data=f"leaderboard:lvl:0")
+        builder.button(text="⚔️ Бій", callback_data=f"leaderboard:winrate:0")
+        
+        nav_btns = []
+        if page > 0:
+            nav_btns.append(types.InlineKeyboardButton(text="⬅️", callback_data=f"leaderboard:{criteria}:{page-1}"))
+        nav_btns.append(types.InlineKeyboardButton(text="➡️", callback_data=f"leaderboard:{criteria}:{page+1}"))
+        
+        if nav_btns:
+            builder.row(*nav_btns)
+            
+        builder.row(types.InlineKeyboardButton(text="🔙 Назад", callback_data="social"))
+        builder.adjust(3, len(nav_btns), 1)
+
+        await callback.message.edit_text(text, reply_markup=builder.as_markup(), parse_mode="HTML")
     finally:
         await conn.close()
