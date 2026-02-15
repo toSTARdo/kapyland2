@@ -6,6 +6,7 @@ from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
 from aiogram.fsm.storage.memory import MemoryStorage
 import config
+from aiogram.exceptions import TelegramForbiddenError, TelegramRetryAfter
 #==============================================================#
 from fastapi import FastAPI
 import uvicorn
@@ -127,9 +128,11 @@ async def handle_isekai(callback: types.CallbackQuery):
     )
     await callback.answer()
 
-async def give_everyday_gift():
+async def give_everyday_gift(bot: Bot):
     conn = await get_db_connection()
     try:
+        players = await conn.fetch("SELECT owner_id FROM capybaras")
+        
         await conn.execute('''
             UPDATE capybaras 
             SET meta = jsonb_set(
@@ -138,9 +141,36 @@ async def give_everyday_gift():
                 (COALESCE(meta->'inventory'->'loot'->>'lottery_ticket', '0')::int + 1)::text::jsonb
             )
         ''')
-        print("🎁 Щоденний подарунок видано всім гравцям!")
+        
+        print(f"🎁 Подарунок нараховано в БД для {len(players)} гравців.")
+
+        sent_count = 0
+        for player in players:
+            uid = player['owner_id']
+            try:
+                await bot.send_message(
+                    chat_id=uid,
+                    text=(
+                        "🎁 <b>Ранкова пошта Архіпелагу!</b>\n\n"
+                        "Поки ви спали, чайки-поштарі принесли вам 🎟 <b>Лотерейний квиток</b>.\n"
+                        "Він уже чекає у вашому інвентарі. Гарного дня!"
+                    ),
+                    parse_mode="HTML"
+                )
+                sent_count += 1
+                await asyncio.sleep(0.05) 
+                
+            except TelegramForbiddenError:
+                print(f"🚫 Користувач {uid} заблокував бота.")
+            except TelegramRetryAfter as e:
+                await asyncio.sleep(e.retry_after)
+            except Exception as e:
+                print(f"⚠️ Помилка надсилання до {uid}: {e}")
+
+        print(f"📢 Розсилка завершена. Успішно надіслано: {sent_count} повідомлень.")
+
     except Exception as e:
-        print(f"❌ Помилка видачі подарунків: {e}")
+        print(f"❌ Критична помилка у give_everyday_gift: {e}")
     finally:
         await conn.close()
 
@@ -151,7 +181,7 @@ async def run_bot():
 async def main():
     await init_pg()
     scheduler = AsyncIOScheduler(timezone="Europe/Kyiv")
-    scheduler.add_job(give_everyday_gift, 'cron', hour=21, minute=0)
+    scheduler.add_job(give_everyday_gift, 'cron', hour=8, minute=0, args=[bot])
     scheduler.start()
     config_uvicorn = uvicorn.Config(app=app, host="0.0.0.0", port=8000, log_level="error")
     server = uvicorn.Server(config_uvicorn)
