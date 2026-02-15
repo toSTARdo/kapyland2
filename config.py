@@ -88,7 +88,7 @@ ARMOR = GAME_ITEMS.get("ARMOR", {})
 KANJI_DICT = GAME_ITEMS.get("FLAGS", {})
 
 #MISC:
-VERSION = "1.4.0"
+VERSION = "2.0 open beta"
 
 #BAD WORDS LIST:
 BAD_WORDS = load_game_data("data/bad_words.json").get("ukrainian", ["капілайка"])

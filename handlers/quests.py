@@ -12,8 +12,25 @@ with open("data/quests_narrative.json", "r", encoding="utf-8") as f:
     QUEST_PLOTS = DATA["QUEST_PLOTS"]
     RUMOR_COMPONENTS = DATA["RUMOR_COMPONENTS"]
 
-@router.message(F.text.contains("📜"))
-async def cmd_quests_board(message: types.Message):
+@router.message(F.text.contains("🧭"))
+async def cmd_adventure(message: types.Message):
+    builder = InlineKeyboardBuilder()
+    
+    builder.row(types.InlineKeyboardButton(
+        text="🗺️ Карта світу", callback_data="open_map")
+    )
+    builder.row(
+        types.InlineKeyboardButton(text="📜 Квести", callback_data="open_quests"),
+        types.InlineKeyboardButton(text="🎣 Риболовля", callback_data="fish")
+    )
+
+    await message.answer(
+        "Куди відправимо твою капібару сьогодні?\n",
+        reply_markup=builder.as_markup()
+    )
+
+@router.callback_query(F.data == "open_quests")
+async def cmd_quests_board(callback: types.CallbackQuery):
     intro = random.choice(RUMOR_COMPONENTS["intros"])
     hint = random.choice(RUMOR_COMPONENTS["hints"])
     mood = random.choice(RUMOR_COMPONENTS["mood"])
@@ -26,7 +43,7 @@ async def cmd_quests_board(message: types.Message):
     builder.button(text="🗺 Купити карту (25 🍉)", callback_data="buy_treasure_map")
     builder.adjust(1)
 
-    await message.answer(
+    await callback.message.answer(
         f"📌 <b>ДОШКА ОГОЛОШЕНЬ ТАВЕРНИ</b>\n"
         f"--------------------------------\n"
         f"<i>{intro}</i>\n\n"
