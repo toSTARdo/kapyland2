@@ -143,7 +143,7 @@ def get_fight_stats_text(data, meta):
         f"🛡️ DEF: <b>{stats.get('defense', 1)}</b>\n"
         f"💨 AGI: <b>{stats.get('agility', 1)}</b>  |  "
         f"🍀 LCK: <b>{stats.get('luck', 1)}</b>\n"
-        f"♥️ HP: <b>{stats.get('hp', 3)}</b>"
+        f"♥️ HP: <b>{stats.get('hp', 3)*2}</b>"
     )
 
 @router.message(F.text.startswith("🐾"))
