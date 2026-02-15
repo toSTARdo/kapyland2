@@ -4,7 +4,7 @@ from aiogram.filters import Command
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from core.models import Fighter, CombatEngine
-from core.capybara_mechanics import get_user_inventory
+from core.capybara_mechanics import get_user_inventory, grant_exp_and_lvl
 from database.postgres_db import get_db_connection
 from config import BASE_HITPOINTS, ARTIFACTS, RARITY_META, WEAPON, ARMOR
 GACHA_ITEMS = ARTIFACTS
@@ -339,46 +339,40 @@ async def run_battle_logic(callback: types.CallbackQuery, opponent_id: int = Non
     if winner and loser:
         conn = await get_db_connection()
         try:
-            if winner_id:
+            res_winner = await grant_exp_and_lvl(winner_id, exp_gain=3, weight_gain=3.0)
+            
+            if winner_id and res_winner:
                 await conn.execute("""
                     UPDATE capybaras 
                     SET 
                         wins = wins + 1,
                         total_fights = total_fights + 1,
-                        exp = exp + 3,
-                        meta = meta || jsonb_build_object(
-                            'weight', (meta->>'weight')::float + 3.0,
-                            'stamina', GREATEST((meta->>'stamina')::int - 5, 0)
-                        ) 
+                        meta = jsonb_set(meta, '{stamina}', (GREATEST((meta->>'stamina')::int - 5, 0))::text::jsonb)
                     WHERE owner_id = $1
                 """, winner_id)
 
+            res_loser = None
             if loser_id and not bot_type:
+                res_loser = await grant_exp_and_lvl(loser_id, exp_gain=0, weight_gain=-3.0)
+                
                 await conn.execute("""
                     UPDATE capybaras 
                     SET 
                         total_fights = total_fights + 1,
-                        meta = meta || jsonb_build_object(
-                            'weight', LEAST(GREATEST((meta->>'weight')::float - 3.0, 1.0), 500.0),
-                            'stamina', GREATEST((meta->>'stamina')::int - 5, 0)
-                        ) 
+                        meta = jsonb_set(meta, '{stamina}', (GREATEST((meta->>'stamina')::int - 5, 0))::text::jsonb)
                     WHERE owner_id = $1
                 """, loser_id)
             
-            reward_msg = f"📈 <b>Підсумки бою:</b>\n🥇 {winner.name}: +3 кг, +3 EXP\n🥈 {loser.name}: -3 кг"
+            reward_msg = (
+                f"📈 <b>Підсумки бою:</b>\n"
+                f"🥇 {winner.name}: +3 кг, +3 EXP (Lvl: {res_winner['new_lvl']})\n"
+                f"🥈 {loser.name}: -3 кг"
+            )
+
             await msg1.answer(reward_msg, parse_mode="HTML")
             if msg2:
                 try: await msg2.answer(reward_msg, parse_mode="HTML")
                 except: pass
 
-        finally:
-            await conn.close()
-            
-    elif not winner: 
-        conn = await get_db_connection()
-        try:
-            await conn.execute("UPDATE capybaras SET total_fights = total_fights + 1 WHERE owner_id = $1", uid)
-            if opponent_id and not bot_type:
-                await conn.execute("UPDATE capybaras SET total_fights = total_fights + 1 WHERE owner_id = $1", opponent_id)
         finally:
             await conn.close()

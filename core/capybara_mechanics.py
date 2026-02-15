@@ -30,7 +30,7 @@ async def feed_capybara_logic(tg_id: int, weight_gain: float):
     conn = await get_db_connection()
     try:
         row = await conn.fetchrow('''
-            SELECT c.meta, c.exp, u.reincarnation_multiplier 
+            SELECT c.meta, u.reincarnation_multiplier 
             FROM capybaras c 
             JOIN users u ON c.owner_id = u.tg_id 
             WHERE c.owner_id = $1
@@ -39,8 +39,7 @@ async def feed_capybara_logic(tg_id: int, weight_gain: float):
         if not row: return "no_capy"
 
         meta = json.loads(row['meta']) if isinstance(row['meta'], str) else row['meta']
-        multiplier = row['reincarnation_multiplier']
-        current_exp = row['exp'] or 0
+        multiplier = row.get('reincarnation_multiplier', 1.0)
 
         last_feed_str = meta.get("last_feed")
         if last_feed_str:
@@ -52,24 +51,21 @@ async def feed_capybara_logic(tg_id: int, weight_gain: float):
         actual_gain = round((weight_gain * multiplier) * 2) / 2
         exp_gain = int(actual_gain)
         
-        new_total_exp, new_lvl = calculate_lvl_data(current_exp, exp_gain)
-
-        meta["weight"] = round(meta.get("weight", 20.0) + actual_gain, 1)
         meta["hunger"] = min(meta.get("hunger", 0) + 1, 3)
         meta["last_feed"] = datetime.datetime.now().isoformat()
-
-        await conn.execute('''
-            UPDATE capybaras 
-            SET meta = $1, exp = $2, lvl = $3 
-            WHERE owner_id = $4
-        ''', json.dumps(meta, ensure_ascii=False), new_total_exp, new_lvl, tg_id)
         
+        await conn.execute("UPDATE capybaras SET meta = $1 WHERE owner_id = $2", 
+                           json.dumps(meta, ensure_ascii=False), tg_id)
+
+        res = await grant_exp_and_lvl(tg_id, exp_gain=exp_gain, weight_gain=actual_gain)
+
         return {
             "status": "success", 
             "gain": actual_gain, 
             "exp_gain": exp_gain,
-            "lvl": new_lvl,
-            "total_weight": meta["weight"],
+            "lvl": res["new_lvl"],
+            "lvl_up": res["lvl_up"],
+            "total_weight": res["new_weight"],
             "hunger": meta["hunger"] 
         }
     finally:
@@ -167,5 +163,56 @@ async def sleep_db_operation(tg_id: int):
             json.dumps(meta, ensure_ascii=False), tg_id
         )
         return "success", None
+    finally:
+        await conn.close()
+
+async def grant_exp_and_lvl(tg_id: int, exp_gain: int, weight_gain: float = 0, bot=None):
+    conn = await get_db_connection()
+    try:
+        row = await conn.fetchrow(
+            "SELECT exp, lvl, zen, meta FROM capybaras WHERE owner_id = $1", 
+            tg_id
+        )
+        if not row: return None
+
+        old_lvl = row['lvl'] or 1
+        current_exp = row['exp'] or 0
+        current_zen = row['zen'] or 0
+        meta = json.loads(row['meta']) if isinstance(row['meta'], str) else row['meta']
+
+        new_total_exp, new_lvl = calculate_lvl_data(current_exp, exp_gain)
+        
+        lvl_diff = new_lvl - old_lvl
+        new_zen = current_zen + max(0, lvl_diff)
+
+        if weight_gain != 0:
+            current_weight = meta.get("weight", 20.0)
+            meta["weight"] = round(max(1.0, current_weight + weight_gain), 1)
+
+        await conn.execute('''
+            UPDATE capybaras 
+            SET exp = $1, lvl = $2, zen = $3, meta = $4
+            WHERE owner_id = $5
+        ''', new_total_exp, new_lvl, new_zen, json.dumps(meta, ensure_ascii=False), tg_id)
+
+        if lvl_diff > 0 and bot:
+            try:
+                await bot.send_message(
+                    tg_id, 
+                    f"🎊 <b>LEVEL UP!</b>\n"
+                    f"Твоя капібара досягла <b>{new_lvl} рівня</b>!\n"
+                    f"Отримано Zen-очок: <b>+{lvl_diff}</b> 💠\n\n"
+                    f"<i>Поточний запас Zen: {new_zen}</i>",
+                    parse_mode="HTML"
+                )
+            except: pass
+
+        return {
+            "new_lvl": new_lvl,
+            "lvl_up": lvl_diff > 0,
+            "added_zen": lvl_diff,
+            "total_zen": new_zen,
+            "new_weight": meta.get("weight")
+        }
     finally:
         await conn.close()
