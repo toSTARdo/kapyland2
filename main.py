@@ -24,6 +24,7 @@ from core.inventory.food import router as food_router
 from core.inventory.loot import router as loot_router
 from core.inventory.equipment import router as eq_router
 from core.fishing import router as fish_router
+from handlers.ships import router as ship_router
 from handlers.start import render_story_node
 from middleware.capy_guard import CapyGuardMiddleware
 
@@ -45,6 +46,7 @@ dp.include_router(loot_router)
 dp.include_router(eq_router)
 dp.include_router(fish_router)
 dp.include_router(zen_router)
+dp.include_router(ship_router)
 
 dp.update.middleware(CapyGuardMiddleware())
 
