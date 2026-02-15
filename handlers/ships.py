@@ -37,7 +37,7 @@ async def cmd_ship_menu(event: types.Message | types.CallbackQuery, state: FSMCo
     if not ship or ship['id'] is None:
         text = (
             "🌊 <b>Ти — вільний плавець</b>\n\n"
-            "У тебе поки немає корабля. Ти можеш заснувати власний флот за 1000 Zen."
+            "У тебе поки немає корабля. Ти можеш заснувати власний флот за 10 дерева."
         )
         builder.button(text="🔨 Збудувати корабель", callback_data="ship_create_init")
         builder.button(text="🔍 Пошук команди", callback_data="leaderboard:mass:0")
@@ -269,18 +269,38 @@ async def ship_final_confirm(callback: types.CallbackQuery, state: FSMContext):
     
     conn = await get_db_connection()
     try:
-        res = await conn.execute("UPDATE capybaras SET zen = zen - 1000 WHERE owner_id = $1 AND zen >= 1000", uid)
+        res = await conn.execute("""
+            UPDATE capybaras 
+            SET meta = jsonb_set(
+                meta, 
+                '{inventory, materials, Дерево}', 
+                ((meta->'inventory'->'materials'->>'Дерево')::int - 10)::text::jsonb
+            )
+            WHERE owner_id = $1 
+            AND (meta->'inventory'->'materials'->>'Дерево')::int >= 10
+        """, uid)
+
         if res == "UPDATE 0":
-            return await callback.answer("❌ Недостатньо Zen!", show_alert=True)
+            return await callback.answer("❌ Недостатньо дерева! Потрібно 10 🪵", show_alert=True)
 
         ship_id = await conn.fetchval("""
             INSERT INTO ships (name, captain_id, lvl, gold, meta) 
             VALUES ($1, $2, 1, 0, $3) RETURNING id
-        """, ship_name, uid, json.dumps({"flag": kanji}))
+        """, ship_name, uid, json.dumps({"flag": kanji}, ensure_ascii=False))
 
         await conn.execute("UPDATE capybaras SET ship_id = $1 WHERE owner_id = $2", ship_id, uid)
         
-        await callback.message.edit_text(f"🎊 <b>Вітаємо, Капітане!</b>\n\nКорабель <b>{kanji} {ship_name}</b> спущено на воду!", parse_mode="HTML")
+        await callback.message.edit_text(
+            f"🎊 <b>Вітаємо, Капітане!</b>\n\n"
+            f"Корабель {kanji} <b>«{ship_name}»</b> успішно збудовано з 10 🪵 і спущено на воду!", 
+            parse_mode="HTML"
+        )
         await state.clear()
+        
+    except Exception as e:
+        if "unique constraint" in str(e).lower():
+            await callback.answer("❌ Корабель з такою назвою вже існує!", show_alert=True)
+        else:
+            raise e
     finally:
         await conn.close()
