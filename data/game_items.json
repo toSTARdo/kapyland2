@@ -157,14 +157,23 @@
             },
             "Хмарорізи": {
                 "texts": ["розполовинила броню одним клацанням", "зірвала з ворога всі нитки гідності"],
-                "hit_bonus": 0.15, "power": 3, "special": "owl_crit", "pattern": "sequential",
+                "hit_bonus": 0.15, "power": 3, "special": "scissor_sever", "pattern": "sequential",
                 "special_text": "Засадила по самі гланди!"
             },
             "Зілля Обелікса": {
                 "texts": ["нагодувала кабаном прямо з розбігу", "переїхала ворога своєю масою", "прописала такий аперкот, що ворог полетів у стратосферу"],
-                "hit_bonus": 0.15, "power": 3, "special": "owl_crit", "pattern": "sequential",
+                "hit_bonus": 0.15, "power": 3, "special": "gaulish_might", "pattern": "sequential",
                 "special_text": "Засадила по самі гланди!"
-            }
+            },
+            "Тенза Зангетсу": {
+                "texts": ["зникає у спалаху швидкості та з'являється за спиною",  "випускає чорну енергію", "наносить серію розрізів, які майже неможливо помітити"
+                    ],
+                    "hit_bonus": 0.2, 
+                    "power": 4, 
+                    "special": "getsuga_tensho", 
+                    "pattern": "sequential",
+                    "special_text": "КАПІ-БАН-КАІ!"
+                }
         },
     "ARMOR": {
         "Стара бочка": {"text": "заховалася в бочку, пом'якшивши удар", "defense": 0.15, "special": "none"},

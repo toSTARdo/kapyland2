@@ -255,6 +255,33 @@ latex_choke = weapon_ability(0.2)([
     lambda a, d: 2
 ])
 
+scissor_sever = weapon_ability(0.2)([
+    lambda a, d: setattr(d, 'def_', max(0, d.def_ - 5)) or 0,      
+    lambda a, d: setattr(a, 'agi', a.agi + 4) or 0, 
+    lambda a, d: 2,
+    lambda a, d: setattr(d, 'atk', max(0, d.atk - 2)) or 0, 
+    lambda a, d: setattr(a, 'luck', a.luck + 2) or 0,
+    lambda a, d: setattr(d, 'def_', 0) or 0
+])
+
+gaulish_might = weapon_ability(0.2)([
+    lambda a, d: setattr(a, 'atk', a.atk + 8) or 0,
+    lambda a, d: setattr(a, 'def_', a.def_ + 5) or 0, 
+    lambda a, d: setattr(d, 'agi', max(0, d.agi - 2)) or 0, 
+    lambda a, d: 2,
+    lambda a, d: setattr(a, 'hp', min(a.max_hp, a.hp + 3)) or 0, 
+    lambda a, d: setattr(d, 'def_', max(0, d.def_ - 3)) or 0
+])
+
+getsuga_tensho = weapon_ability(0.2)([
+    lambda a, d: setattr(a, 'agi', a.agi + 10) or 0,
+    lambda a, d: 2,
+    lambda a, d: setattr(d, 'def_', max(0, d.def_ - 4)) or 0,
+    lambda a, d: setattr(a, 'luck', a.luck + 5) or 0, 
+    lambda a, d: setattr(d, 'atk', max(0, d.atk - 3)) or 0, 
+    lambda a, d: 5
+])
+
 ABILITY_REGISTRY = {
     "none": lambda a, t, r: (0, False),
     "hook_snag": hook_snag,
@@ -287,5 +314,8 @@ ABILITY_REGISTRY = {
     "heavy_weight": heavy_weight,
     "range_attack": range_attack,
     "stun_chance": stun_chance,
-    "latex_choke": latex_choke
+    "latex_choke": latex_choke,
+    "scissor_sever": scissor_sever,
+    "gaulish_might": gaulish_might,
+    "getsuga_tensho": getsuga_tensho
 }
