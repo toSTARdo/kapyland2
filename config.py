@@ -84,6 +84,8 @@ WEAPON = GAME_ITEMS.get("WEAPONS", {})
     #ARMOR:
 ARMOR = GAME_ITEMS.get("ARMOR", {})
 
+    #FLAGS:
+KANJI_DICT = GAME_ITEMS.get("FLAGS", {})
 
 #MISC:
 VERSION = "1.4.0"

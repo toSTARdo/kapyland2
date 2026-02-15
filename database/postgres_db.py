@@ -103,6 +103,8 @@ async def init_pg():
             lvl INTEGER DEFAULT 1,
             exp INTEGER DEFAULT 0,
             gold BIGINT DEFAULT 0,
+            engine JSONB DEFAULT NULL,
+            meta JSONB DEFAULT '{"flag": "🏴‍☠️"}'::jsonb,
             stats JSONB DEFAULT '{
                 "hull": 100, 
                 "cannons": 2, 
@@ -111,10 +113,13 @@ async def init_pg():
             cargo JSONB DEFAULT '{
                 "wood": 0,
                 "iron": 0,
-                "gold_bars": 0
+                "watermelons": 0
             }'::jsonb,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
+        );
+
+        ALTER TABLE capybaras 
+        ADD COLUMN IF NOT EXISTS ship_id INTEGER REFERENCES ships(id) ON DELETE SET NULL;
     ''')
 
     await conn.execute('''
