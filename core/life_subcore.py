@@ -155,13 +155,13 @@ async def show_profile(message: types.Message):
     meta = json.loads(data['meta']) if isinstance(data['meta'], str) else data['meta']
     
     builder = InlineKeyboardBuilder()
-    builder.button(text="⚔️ Бойові характеристики", callback_data="stats_page")
     builder.button(text="🍎 Годувати", callback_data="feed_capy")
     builder.button(text="🧼 Мити", callback_data="wash_capy")
     builder.button(text="💤 Сон (2 год)", callback_data="sleep_capy")
-    builder.button(text="🎣 Рибалити", callback_data="fish")
+    builder.button(text="⚔️ Бойові характеристики", callback_data="stats_page")
+    builder.button(text="🪷 Медитація", callback_data="zen_upgrade")
     
-    builder.adjust(1, 3, 1)
+    builder.adjust(3, 1, 1)
 
     await message.answer(
         get_general_profile_text(data, meta), 
@@ -177,7 +177,6 @@ async def show_stats_callback(callback: types.CallbackQuery):
     
     builder = InlineKeyboardBuilder()
     builder.button(text="🔙 Назад", callback_data="profile_back")
-    builder.button(text="🪷 Медитація", callback_data="zen_upgrade")
     builder.adjust(1)
 
     await callback.message.edit_text(
@@ -193,14 +192,13 @@ async def profile_back_callback(callback: types.CallbackQuery):
     meta = json.loads(data['meta']) if isinstance(data['meta'], str) else data['meta']
     
     builder = InlineKeyboardBuilder()
-    builder.button(text="⚔️ Бойові характеристики", callback_data="stats_page")
     builder.button(text="🍎 Годувати", callback_data="feed_capy")
     builder.button(text="🧼 Мити", callback_data="wash_capy")
     builder.button(text="💤 Сон (2 год)", callback_data="sleep_capy")
-    builder.button(text="🧤 Красти", callback_data="steal")
-    builder.button(text="🪵 Таран", callback_data="ram")
-    builder.button(text="🎣 Рибалити", callback_data="fish")
-    builder.adjust(1, 3, 3)
+    builder.button(text="⚔️ Бойові характеристики", callback_data="stats_page")
+    builder.button(text="🪷 Медитація", callback_data="zen_upgrade")
+    
+    builder.adjust(3, 1, 1)
 
     await callback.message.edit_text(
         get_general_profile_text(data, meta),
