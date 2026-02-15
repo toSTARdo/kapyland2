@@ -3,6 +3,8 @@ from aiogram import html
 
 def weapon_ability(base_prob):
     def decorator(func_list):
+        state = {'current_idx': 0} 
+
         def wrapper(att, targets, round_num):
             w_data = att.weapon_data
             rarity = w_data.get("rarity", "common")
@@ -23,16 +25,17 @@ def weapon_ability(base_prob):
 
             available = func_list[:limit]
             total_dmg = 0
-            
-            if not isinstance(targets, list):
-                targets = [targets]
+            if not isinstance(targets, list): targets = [targets]
 
             if pattern == "sequential":
-                idx = (round_num - 1) % len(available)
+                idx = state['current_idx'] % len(available)
                 action = available[idx]
+                
                 for t in (targets if is_aoe else [random.choice(targets)]):
                     res = action(att, t)
                     total_dmg += res if isinstance(res, int) else 0
+                
+                state['current_idx'] += 1
 
             elif pattern == "simultaneous":
                 for action in available:
@@ -265,11 +268,11 @@ scissor_sever = weapon_ability(0.2)([
 ])
 
 gaulish_might = weapon_ability(0.2)([
-    lambda a, d: setattr(a, 'atk', a.atk + 1) or 0,
+    lambda a, d: setattr(a, 'atk', a.atk + 5) or 0,
     lambda a, d: setattr(a, 'def_', a.def_ + 5) or 0, 
     lambda a, d: setattr(d, 'agi', max(0, d.agi - 2)) or 0, 
     lambda a, d: 2,
-    lambda a, d: setattr(a, 'hp', min(a.max_hp, a.hp + 3)) or 0, 
+    lambda a, d: setattr(a, 'hp', min(a.max_hp, a.hp + 1)) or 0, 
     lambda a, d: setattr(d, 'def_', max(0, d.def_ - 3)) or 0
 ])
 

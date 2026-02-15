@@ -33,6 +33,7 @@ async def init_pg():
             win_streak INTEGER DEFAULT 0,
             karma INTEGER DEFAULT 0,
             zen INTEGER DEFAULT 0,
+            ship_id INTEGER REFERENCES ships(id) ON DELETE SET NULL,
             blessings TEXT[] DEFAULT '{}',
             curses TEXT[] DEFAULT '{}',
             current_quest JSONB DEFAULT NULL,
@@ -93,4 +94,47 @@ async def init_pg():
             }'::jsonb
         )
     ''')
+
+    await conn.execute('''
+        CREATE TABLE IF NOT EXISTS ships (
+            id SERIAL PRIMARY KEY,
+            name TEXT NOT NULL UNIQUE,
+            captain_id BIGINT REFERENCES users(tg_id),
+            lvl INTEGER DEFAULT 1,
+            exp INTEGER DEFAULT 0,
+            gold BIGINT DEFAULT 0,
+            stats JSONB DEFAULT '{
+                "hull": 100, 
+                "cannons": 2, 
+                "speed": 10
+            }'::jsonb,
+            cargo JSONB DEFAULT '{
+                "wood": 0,
+                "iron": 0,
+                "gold_bars": 0
+            }'::jsonb,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+
+    await conn.execute('''
+        CREATE TABLE IF NOT EXISTS world_state (
+            key TEXT PRIMARY KEY,
+            value JSONB DEFAULT '{}'::jsonb,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+
+    await conn.execute('''
+        INSERT INTO world_state (key, value) 
+        VALUES 
+        ('environment', '{
+            "weather": "clear", 
+            "time_of_day": "zenith", 
+            "cycle_count": 1,
+            "is_eclipse": false
+        }'),
+        ON CONFLICT (key) DO NOTHING
+    ''')
+    
     await conn.close()
