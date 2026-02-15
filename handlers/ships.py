@@ -15,6 +15,25 @@ class ShipCreation(StatesGroup):
 router = Router()
 
 @router.message(F.text.contains("⚓"))
+async def cmd_port(message: types.Message):
+    builder = InlineKeyboardBuilder()
+    
+    builder.row(
+        types.InlineKeyboardButton(text="🍻 Таверна", callback_data="social"),
+        types.InlineKeyboardButton(text="⛵ Мій Корабель", callback_data="ship_main")
+    )
+    
+    builder.row(
+        types.InlineKeyboardButton(text="⚙️ Налаштування", callback_data="open_settings")
+    )
+
+    await message.answer(
+        "⚓ Порт Ліворн-Бей\n\n",
+        reply_markup=builder.as_markup(),
+        parse_mode="HTML"
+    )
+
+
 @router.callback_query(F.data == "ship_main")
 async def cmd_ship_menu(event: types.Message | types.CallbackQuery, state: FSMContext):
     await state.clear()

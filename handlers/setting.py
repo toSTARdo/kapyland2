@@ -10,7 +10,10 @@ class RenameStates(StatesGroup):
     waiting_for_new_name = State()
 
 @router.message(F.text.startswith("⚙️"))
-async def show_settings(message: types.Message):
+@router.callback_query(F.data == "open_settings")
+async def show_settings(event: types.Message | types.CallbackQuery):
+    is_callback = isinstance(event, types.CallbackQuery)
+    message = event.message if is_callback else event
     await message.answer(
         "⚙️ <b>Центр підкрутки твоїй капібарі гайок</b>",
         reply_markup=get_settings_kb(),

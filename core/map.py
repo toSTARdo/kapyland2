@@ -67,9 +67,9 @@ def get_map_keyboard(px, py, mode):
     )
     return builder.as_markup()
 
-@router.message(F.text.startswith("🗺️"))
-async def cmd_map(message: types.Message):
-    uid = message.from_user.id
+@router.callback_query(F.data=="map")
+async def cmd_map(callback: types.CallbackQuery):
+    uid = callback.message.from_user.id
     conn = await get_db_connection()
     try:
         row = await conn.fetchrow("SELECT meta FROM capybaras WHERE owner_id = $1", uid)
@@ -95,7 +95,7 @@ async def cmd_map(message: types.Message):
             f"🔋 Енергія: {stamina}/100\n\n"
             f"{map_display}")
     
-    await message.answer(text, reply_markup=get_map_keyboard(px, py, mode), parse_mode="HTML")
+    await callback.message.answer(text, reply_markup=get_map_keyboard(px, py, mode), parse_mode="HTML")
 
 @router.callback_query(F.data.startswith("mv:"))
 async def handle_move(callback: types.CallbackQuery):
