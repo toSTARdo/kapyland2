@@ -15,32 +15,72 @@ router = Router()
 
 @router.message(F.text.startswith("⚔️"))
 @router.message(Command("fight"))
-async def cmd_fight_lobby(message: types.Message):
+async def cmd_arena_hub(message: types.Message):
     uid = message.from_user.id
     conn = await get_db_connection()
     try:
-        players = await conn.fetch(
-            "SELECT tg_id, username FROM users WHERE tg_id != $1 LIMIT 10", 
-            uid
-        )
+        players = await conn.fetch("""
+            SELECT u.tg_id, u.username, c.lvl 
+            FROM users u
+            JOIN capybaras c ON u.tg_id = c.owner_id
+            WHERE u.tg_id != $1 
+            ORDER BY c.lvl DESC LIMIT 8
+        """, uid)
     finally:
         await conn.close()
 
     builder = InlineKeyboardBuilder()
+
     if players:
         for p in players:
-            builder.button(text=f"🥊 {p['username']}", callback_data=f"challenge_{p['tg_id']}")
+            builder.button(
+                text=f"🐾 {p['username']} (Lvl {p['lvl']})", 
+                callback_data=f"user_menu:{p['tg_id']}"
+            )
     
     builder.button(text="🤖 Побитися з ботом", callback_data="fight_bot")
-    builder.button(text="🧤 Красти", callback_data="steal")
-    builder.button(text="🪵 Таран", callback_data="ram")
-    builder.adjust(1)
+    builder.button(text="🏆 Таблиця лідерів", callback_data="leaderboard")
+    
+    builder.adjust(1) 
 
-    text = "⚔️ <b>Арена</b>\nОбери суперника для дуелі або потренуйся на боті:"
-    if not players:
-        text = "🏝 На архіпелазі пусто..."
+    text = (
+        "⚔️ <b>Архіпелаг</b>\n"
+        "━━━━━━━━━━━━━━━\n"
+        "Обери капібару зі списку для взаємодії:"
+    )
 
     await message.answer(text, reply_markup=builder.as_markup(), parse_mode="HTML")
+
+@router.callback_query(F.data.startswith("user_menu:"))
+async def user_menu_handler(callback: types.CallbackQuery):
+    target_id = int(callback.data.split(":")[1])
+    
+    conn = await get_db_connection()
+    try:
+        target = await conn.fetchrow("""
+            SELECT u.username, c.lvl, (c.meta->>'weight')::float as weight
+            FROM users u 
+            JOIN capybaras c ON u.tg_id = c.owner_id 
+            WHERE u.tg_id = $1
+        """, target_id)
+    finally:
+        await conn.close()
+
+    if not target:
+        return await callback.answer("Ця капібара кудись зникла...")
+
+    text = "Капі-капі"
+
+    builder = InlineKeyboardBuilder()
+    builder.button(text="⚔️", callback_data=f"challenge_{target_id}")
+    builder.button(text="🎁", callback_data=f"gift_to:{target_id}")
+    builder.button(text="🧤", callback_data=f"steal_from:{target_id}")
+    builder.button(text="🪵", callback_data=f"ram:{target_id}")
+    builder.button(text="🔍", callback_data=f"inspect:{target_id}")
+    
+    builder.adjust(5)
+
+    await callback.message.edit_text(text, reply_markup=builder.as_markup(), parse_mode="HTML")
 
 @router.callback_query(F.data.startswith("challenge_"))
 async def send_challenge(callback: types.CallbackQuery):
