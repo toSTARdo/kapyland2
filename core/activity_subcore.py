@@ -14,9 +14,8 @@ router = Router()
 #ВИКЛИКИ
 
 @router.message(F.text.startswith("🌐"))
-@router.callback_query(F.data.startswith("social"))
-@router.message(Command("fight"))
-async def cmd_arena_hub(message: types.Message):
+@router.callback_query(F.data=="social")
+async def cmd_arena_hub(message: types.Message | types.CallbackQuery):
     uid = message.from_user.id
     conn = await get_db_connection()
     try:
@@ -442,7 +441,7 @@ async def handle_inspect_player(callback: types.CallbackQuery):
         builder = InlineKeyboardBuilder()
         builder.button(text="⚔️ Виклик", callback_data=f"challenge_{target_id}")
         builder.button(text="🎁 Подарунок", callback_data=f"gift_to:{target_id}")
-        builder.button(text="🔙 Назад", callback_data="fight")
+        builder.button(text="🔙 Назад", callback_data="social")
         builder.adjust(2, 1)
 
         await callback.message.edit_text(text, reply_markup=builder.as_markup(), parse_mode="HTML")
