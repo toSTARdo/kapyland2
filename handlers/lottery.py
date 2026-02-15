@@ -12,12 +12,33 @@ from database.postgres_db import get_db_connection
 GACHA_ITEMS = ARTIFACTS
 router = Router()
 
+async def is_eligible_for_lega(meta: dict) -> bool:
+    last_lega_str = meta.get("last_weekly_lega")
+    if not last_lega_str:
+        return True
+    
+    last_lega_date = datetime.datetime.fromisoformat(last_lega_str)
+    return datetime.datetime.now() >= last_lega_date + datetime.timedelta(days=7)
+
 @router.message(F.text.startswith("🎟️"))
 @router.message(Command("lottery"))
 async def cmd_lottery_start(message: types.Message):
+    uid = message.from_user.id
+    conn = await get_db_connection()
+    row = await conn.fetchrow("SELECT meta FROM capybaras WHERE owner_id = $1", uid)
+    await conn.close()
+
+    can_get_lega = True
+    if row:
+        meta = json.loads(row['meta']) if isinstance(row['meta'], str) else row['meta']
+        can_get_lega = await is_eligible_for_lega(meta)
+
+    guaranteed_label = "LEGENDARY" if can_get_lega else "EPIC"
+    guaranteed_text = f"🔥 10+1 / 100% {guaranteed_label} (10🎟)"
+
     builder = InlineKeyboardBuilder()
     builder.button(text="🏴‍☠️ Крутити (1🎟 або 5кг)", callback_data="gacha_spin")
-    builder.button(text="🔥 10+1 (10🎟)", callback_data="gacha_guaranteed_10")
+    builder.button(text=guaranteed_text, callback_data="gacha_guaranteed_10")
     builder.adjust(1)
     
     c, r, e, l = RARITY_META['Common'], RARITY_META['Rare'], RARITY_META['Epic'], RARITY_META['Legendary']
@@ -97,13 +118,7 @@ async def handle_bulk_spin(callback: types.CallbackQuery):
         if tickets < 10:
             return await callback.answer(f"❌ Треба 🎟️x10, а маєш лише 🎟️x{tickets}", show_alert=True)
         
-        last_lega_str = meta.get("last_weekly_lega")
-        can_get_lega = True
-        
-        if last_lega_str:
-            last_lega_date = datetime.datetime.fromisoformat(last_lega_str)
-            if now < last_lega_date + datetime.timedelta(days=7):
-                can_get_lega = False
+        can_get_lega = await is_eligible_for_lega(meta)
 
         await callback.answer("🎰 КРУТИМО БАРАБАН (10+1)...")
 
@@ -156,7 +171,7 @@ async def handle_bulk_spin(callback: types.CallbackQuery):
         loot["lottery_ticket"] -= 10
         await conn.execute("UPDATE capybaras SET meta = $1 WHERE owner_id = $2", json.dumps(meta), uid)
         
-        status_msg = "🌟 <b>ВИКОРИСТАНО ЩОТИЖНЕВИЙ ГАРАНТ!</b>" if used_weekly_bonus else "💎 Гарант: Epic (Лега ще в КД)"
+        status_msg = "🌟 <b>ВИКОРИСТАНО ЩОТИЖНЕВИЙ ГАРАНТ!</b>" if used_weekly_bonus else "💎 Гарант: Epic"
         
         res_list = "\n".join(results_icons)
         text = (
