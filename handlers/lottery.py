@@ -30,9 +30,12 @@ async def cmd_lottery_start(event: types.Message | types.CallbackQuery):
     row = await conn.fetchrow("SELECT meta FROM capybaras WHERE owner_id = $1", uid)
     await conn.close()
 
+    tickets = 0
     can_get_lega = True
+    
     if row:
         meta = json.loads(row['meta']) if isinstance(row['meta'], str) else row['meta']
+        tickets = meta.get("inventory", {}).get("loot", {}).get("lottery_ticket", 0)
         can_get_lega = await is_eligible_for_lega(meta)
 
     label = "LEGENDARY" if can_get_lega else "EPIC"
@@ -47,6 +50,7 @@ async def cmd_lottery_start(event: types.Message | types.CallbackQuery):
     text = (
         f"🎰 <b>ГАЗИНО «ФОРТУНА КАПІ»</b>\n"
         f"━━━━━━━━━━━━━━━\n"
+        f"Твої квитки: <b>{tickets}</b> 🎟\n"
         f"Ціна: 1 🎟 або <b>5 кг</b> ваги\n\n"
         f"{c['emoji']} {c['label']}: 60%\n"
         f"{r['emoji']} {r['label']}: 25%\n"
@@ -71,9 +75,10 @@ async def handle_gacha_spin(callback: types.CallbackQuery):
     payment_status, meta = await check_and_pay_for_spin(uid)
     
     if payment_status == "no_balance":
-        return await callback.answer("❌ Ти занадто худий для цього! Треба хоча б 5 кг.", show_alert=True)
+        return await callback.answer("❌ Ти занадто худий для цього! Треба хоча б 10 кг.", show_alert=True)
     
     pay_msg = "🎟 Використано квиток!" if payment_status == "ticket" else "⚖️ Списано 5 кг ваги!"
+    
     await callback.message.edit_text(f"🌀 {pay_msg}\n<i>Крутимо барабан...</i>", parse_mode="HTML")
     await asyncio.sleep(1.5)
     
@@ -86,26 +91,35 @@ async def handle_gacha_spin(callback: types.CallbackQuery):
     item = random.choice(GACHA_ITEMS[rarity_key])  
 
     await save_gacha_result(uid, meta, item, rarity_key)
+    
+    tickets_left = meta.get("inventory", {}).get("loot", {}).get("lottery_ticket", 0)
+    weight_left = meta.get("weight", 0)
 
     rarity_info = RARITY_META[rarity_key]
     res_text = (
-        f"🎉 <b>ТВІЙ ПРИЗ!</b>\n\n"
+        f"🎉 <b>ТВІЙ ПРИЗ!</b>\n"
+        f"━━━━━━━━━━━━━━\n"
         f"📦 Предмет: <b>{item['name']}</b>\n"
         f"{rarity_info['emoji']} Рідкість: <b>{rarity_info['label']}</b>\n"
-        f"🛠 Тип: {item['type'].capitalize()}\n"
+        f"🛠 Тип: {item['type'].capitalize()}\n\n"
+        f"📜 <i>{item['desc']}</i>\n"
         f"━━━━━━━━━━━━━━\n"
-        f"📜 <i>{item['desc']}</i>"
+        f"🎫 Залишилось квитків: <b>{tickets_left}</b>\n"
+        f"⚖️ Поточна вага: <b>{weight_left} кг</b>"
     )
 
     builder = InlineKeyboardBuilder()
-    builder.button(text="🔄 Крутити ще (1🎟/5кг)", callback_data="gacha_spin")
-    builder.adjust(1)
+    builder.row(types.InlineKeyboardButton(text="🔄 Крутити ще", callback_data="gacha_spin"))
+    builder.row(types.InlineKeyboardButton(text="⬅️ До Газино", callback_data="lottery_menu"))
 
-    await callback.message.edit_text(
+    try:
+        await callback.message.edit_text(
             res_text, 
             reply_markup=builder.as_markup(), 
             parse_mode="HTML"
         )
+    except Exception:
+        pass
     await callback.answer()
 
 @router.callback_query(F.data == "gacha_guaranteed_10")
