@@ -12,6 +12,10 @@ class ShipCreation(StatesGroup):
     waiting_for_name = State()
     waiting_for_kanji = State()
 
+class ShipActions(StatesGroup):
+    waiting_for_invite_id = State()
+    waiting_for_new_name = State()
+
 router = Router()
 
 @router.message(F.text.contains("⚓"))
@@ -542,5 +546,25 @@ async def execute_disband(callback: types.CallbackQuery):
             "Екіпаж розпущено, а ти знову вільний капітан без судна.",
             parse_mode="HTML"
         )
+    finally:
+        await conn.close()
+
+@router.callback_query(F.data == "ship_rename_init")
+async def rename_start(callback: types.CallbackQuery, state: FSMContext):
+    await state.set_state(ShipActions.waiting_for_new_name)
+    await callback.message.edit_text("📝 Введи нову назву для свого корабля:")
+
+@router.message(ShipActions.waiting_for_new_name)
+async def rename_process(message: types.Message, state: FSMContext):
+    new_name = message.text.strip()
+    if len(new_name) > 30:
+        return await message.answer("⚠️ Назва занадто довга!")
+
+    uid = message.from_user.id
+    conn = await get_db_connection()
+    try:
+        await conn.execute("UPDATE ships SET name = $1 WHERE captain_id = $2", new_name, uid)
+        await message.answer(f"✅ Тепер твій корабель називається <b>«{new_name}»</b>!", parse_mode="HTML")
+        await state.clear()
     finally:
         await conn.close()
