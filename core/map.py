@@ -68,9 +68,43 @@ def get_map_keyboard(px, py, mode):
     builder.row(types.InlineKeyboardButton(text="🔙 Назад", callback_data="open_adventure"))
     return builder.as_markup()
 
-@router.callback_query(F.data=="open_map")
-async def cmd_map(callback: types.CallbackQuery):
-    uid = callback.message.from_user.id
+@router.callback_query(F.data == "open_map")
+async def map_mediator(callback: types.CallbackQuery):
+    is_group = callback.message.chat.type in ["group", "supergroup"]
+    
+    if not is_group:
+        return await render_map(callback.message, callback.from_user.id, is_callback=True)
+
+    builder = InlineKeyboardBuilder()
+    builder.row(types.InlineKeyboardButton(
+        text="🗺️ Відкрити в особистих", 
+        url=f"https://t.me/{(await callback.bot.get_me()).username}?start=map")
+    )
+    builder.row(types.InlineKeyboardButton(
+        text="⚓ Відкрити тут", callback_data="force_map_group")
+    )
+    builder.row(types.InlineKeyboardButton(
+        text="⬅️ Назад", callback_data="open_adventure")
+    )
+
+    text = (
+        "⚠️ <b>Попередження про трафік</b>\n"
+        "━━━━━━━━━━━━━━━\n"
+        "Мапа — це важкий об'єкт. У групових чатах Telegram часто обмежує "
+        "швидкість оновлення повідомлень (Flood Control).\n\n"
+        "<b>Рекомендуємо грати в особистих повідомленнях бота для миттєвого відгуку.</b>"
+    )
+
+    await callback.message.edit_text(text, reply_markup=builder.as_markup(), parse_mode="HTML")
+    await callback.answer()
+
+@router.callback_query(F.data == "force_map_group")
+async def handle_force_map(callback: types.CallbackQuery):
+    await callback.answer("Завантаження...")
+    await render_map(callback)
+
+async def render_map(callback: types.CallbackQuery):
+    uid = callback.from_user.id
     conn = await get_db_connection()
     try:
         row = await conn.fetchrow("SELECT meta FROM capybaras WHERE owner_id = $1", uid)
