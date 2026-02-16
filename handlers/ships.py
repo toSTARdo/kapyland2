@@ -23,7 +23,7 @@ async def cmd_port(event: types.Message | types.CallbackQuery):
     builder = InlineKeyboardBuilder()
     
     builder.row(
-        types.InlineKeyboardButton(text="🍻 Таверна", callback_data="open_society"), # Змінив на твій існуючий social-хендлер
+        types.InlineKeyboardButton(text="🍻 Таверна", callback_data="social"),
         types.InlineKeyboardButton(text="⛵ Мій Корабель", callback_data="ship_main")
     )
     
