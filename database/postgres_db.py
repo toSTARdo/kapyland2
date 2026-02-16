@@ -22,6 +22,33 @@ async def init_pg():
     ''')
 
     await conn.execute('''
+        CREATE TABLE IF NOT EXISTS ships (
+            id SERIAL PRIMARY KEY,
+            name TEXT NOT NULL UNIQUE,
+            captain_id BIGINT REFERENCES users(tg_id),
+            lvl INTEGER DEFAULT 1,
+            exp INTEGER DEFAULT 0,
+            gold BIGINT DEFAULT 0,
+            engine JSONB DEFAULT NULL,
+            meta JSONB DEFAULT '{"flag": "🏴‍☠️"}'::jsonb,
+            stats JSONB DEFAULT '{
+                "hull": 100, 
+                "cannons": 2, 
+                "speed": 10
+            }'::jsonb,
+            cargo JSONB DEFAULT '{
+                "wood": 0,
+                "iron": 0,
+                "watermelons": 0
+            }'::jsonb,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
+        ALTER TABLE capybaras 
+        ADD COLUMN IF NOT EXISTS ship_id INTEGER REFERENCES ships(id) ON DELETE SET NULL;
+    ''')
+
+    await conn.execute('''
         CREATE TABLE IF NOT EXISTS capybaras (
             id SERIAL PRIMARY KEY,
             owner_id BIGINT REFERENCES users(tg_id) ON DELETE CASCADE,
@@ -93,33 +120,6 @@ async def init_pg():
                 "last_weekly_lega": null
             }'::jsonb
         )
-    ''')
-
-    await conn.execute('''
-        CREATE TABLE IF NOT EXISTS ships (
-            id SERIAL PRIMARY KEY,
-            name TEXT NOT NULL UNIQUE,
-            captain_id BIGINT REFERENCES users(tg_id),
-            lvl INTEGER DEFAULT 1,
-            exp INTEGER DEFAULT 0,
-            gold BIGINT DEFAULT 0,
-            engine JSONB DEFAULT NULL,
-            meta JSONB DEFAULT '{"flag": "🏴‍☠️"}'::jsonb,
-            stats JSONB DEFAULT '{
-                "hull": 100, 
-                "cannons": 2, 
-                "speed": 10
-            }'::jsonb,
-            cargo JSONB DEFAULT '{
-                "wood": 0,
-                "iron": 0,
-                "watermelons": 0
-            }'::jsonb,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
-
-        ALTER TABLE capybaras 
-        ADD COLUMN IF NOT EXISTS ship_id INTEGER REFERENCES ships(id) ON DELETE SET NULL;
     ''')
 
     await conn.execute('''
