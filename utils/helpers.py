@@ -1,4 +1,5 @@
 import math
+from datetime import datetime
 
 def calculate_lvl_data(current_exp, added_exp):
     new_exp = current_exp + added_exp
@@ -17,3 +18,15 @@ def format_time(td):
     if minutes > 0 or not res:
         res.append(f"{int(minutes)} хв")
     return " ".join(res)
+
+def check_daily_limit(meta, action_key):
+    today = datetime.now().strftime("%Y-%m-%d")
+    last_action_date = meta.get("cooldowns", {}).get(action_key)
+    
+    if last_action_date == today:
+        return False, today
+    
+    if "cooldowns" not in meta:
+        meta["cooldowns"] = {}
+    meta["cooldowns"][action_key] = today
+    return True, today

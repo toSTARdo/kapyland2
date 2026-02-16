@@ -3,6 +3,7 @@ from aiogram import Router, types, html, F
 from aiogram.filters import Command
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
+from utils.helpers import check_daily_limit
 from core.models import Fighter, CombatEngine
 from core.capybara_mechanics import get_user_inventory, grant_exp_and_lvl
 from database.postgres_db import get_db_connection
@@ -170,16 +171,23 @@ async def handle_fight_bot(callback: types.CallbackQuery):
 async def execute_steal_logic(callback: types.CallbackQuery):
     target_id = int(callback.data.split(":")[1])
     uid = callback.from_user.id
-    chance = random.random()
-
-    if chance < 0.05:
-        conn = await get_db_connection()
-        try:
-            target_row = await conn.fetchrow("SELECT meta, name FROM capybaras WHERE owner_id = $1", target_id)
-            actor_row = await conn.fetchrow("SELECT meta FROM capybaras WHERE owner_id = $1", uid)
+    
+    conn = await get_db_connection()
+    try:
+        actor_row = await conn.fetchrow("SELECT meta FROM capybaras WHERE owner_id = $1", uid)
+        a_meta = json.loads(actor_row['meta']) if isinstance(actor_row['meta'], str) else actor_row['meta']
+        
+        can_steal, _ = check_daily_limit(a_meta, "steal")
+        if not can_steal:
+            return await callback.answer("🥷 Ти вже сьогодні виходив на полювання. Спробуй завтра!", show_alert=True)
             
+        await conn.execute("UPDATE capybaras SET meta = $1 WHERE owner_id = $2", json.dumps(a_meta), uid)
+
+        chance = random.random()
+
+        if chance < 0.05:
+            target_row = await conn.fetchrow("SELECT meta, name FROM capybaras WHERE owner_id = $1", target_id)
             t_meta = json.loads(target_row['meta']) if isinstance(target_row['meta'], str) else target_row['meta']
-            a_meta = json.loads(actor_row['meta']) if isinstance(actor_row['meta'], str) else actor_row['meta']
             
             t_items = t_meta.get("inventory", {}).get("equipment", [])
             
@@ -192,20 +200,20 @@ async def execute_steal_logic(callback: types.CallbackQuery):
                 await conn.execute("UPDATE capybaras SET meta = $1 WHERE owner_id = $2", json.dumps(a_meta, ensure_ascii=False), uid)
                 
                 await callback.message.edit_text(
-                    f"🥷 <b>НАЙШВИДШІ ЛАПКИ НА АРХІПЕЛАЗІ!</b>\n"
-                    f"Ви непомітно витягли <b>{stolen_item['name']}</b> у {target_row['name']}!"
+                    f"🥷 НАЙШВИДШІ ЛАПКИ НА АРХІПЕЛАЗІ!\n"
+                    f"Ви непомітно витягли {stolen_item['name']} у {target_row['name']}!"
                 )
             else:
                 await callback.message.edit_text(f"🧤 Ти обшукав кишені {target_row['name']}, але там лише пісок та морська сіль...")
-        finally: await conn.close()
 
-    elif chance < 0.10:
-        await callback.message.edit_text(f"😱 <b>ЧОРТ! ВАС ПІЙМАЛИ!</b>\nЦіль прокинулась і схопила тебе за лапу! Починається бій...")
-        asyncio.create_task(run_battle_logic(callback, opponent_id=target_id))
-    
-    else:
-        await callback.answer("💨 Ти злякався шурхоту і втік ні з чим. Буває...", show_alert=True)
-        await cmd_arena_hub(callback.message)
+        elif chance < 0.10:
+            await callback.message.edit_text(f"😱 ЧОРТ! ВАС ПІЙМАЛИ!\nЦіль прокинулась і схопила тебе за лапу! Починається бій...")
+            asyncio.create_task(run_battle_logic(callback, opponent_id=target_id))
+        
+        else:
+            await callback.answer("💨 Ти злякався шурхоту і втік ні з чим. Буває...", show_alert=True)
+            await cmd_arena_hub(callback.message)
+    finally: await conn.close()
 
 @router.callback_query(F.data.startswith("ram:"))
 async def execute_ram_logic(callback: types.CallbackQuery):
@@ -217,11 +225,17 @@ async def execute_ram_logic(callback: types.CallbackQuery):
         row = await conn.fetchrow("SELECT meta FROM capybaras WHERE owner_id = $1", uid)
         meta = json.loads(row['meta']) if isinstance(row['meta'], str) else row['meta']
         
+        can_ram, _ = check_daily_limit(meta, "ram")
+        if not can_ram:
+            return await callback.answer("💥 Твій корабель ще лагодять після минулого тарану. Спробуй завтра!", show_alert=True)
+
         inv_items = [i['name'].lower() for i in meta.get("inventory", {}).get("equipment", [])]
         has_ram = any("таран" in item or "бур лаганна" in item for item in inv_items)
         
         if not has_ram:
             return await callback.answer("❌ Тобі потрібен 'Таран' або 'Бур Лаганна' в інвентарі!", show_alert=True)
+
+        await conn.execute("UPDATE capybaras SET meta = $1 WHERE owner_id = $2", json.dumps(meta), uid)
 
         await callback.message.edit_text("💥 <b>БА-БАХ!</b>\nТи влетів у суперника на повному ходу! Бій починається негайно!")
         
@@ -471,19 +485,33 @@ ITEM_DISPLAY_NAMES = {
 @router.callback_query(F.data.startswith("gift_to:"))
 async def gift_category_select(callback: types.CallbackQuery):
     target_id = int(callback.data.split(":")[1])
+    uid = callback.from_user.id
     
-    builder = InlineKeyboardBuilder()
-    builder.button(text="🍎 Їжа", callback_data=f"send_cat:food:{target_id}")
-    builder.button(text="💎 Ресурси", callback_data=f"send_cat:materials:{target_id}")
-    builder.button(text="⚔️ Спорядження", callback_data=f"send_cat:equipment:{target_id}")
-    builder.button(text="🔙 Назад", callback_data=f"social")
-    builder.adjust(2, 1, 1)
+    conn = await get_db_connection()
+    try:
+        row = await conn.fetchrow("SELECT meta FROM capybaras WHERE owner_id = $1", uid)
+        meta = json.loads(row['meta']) if isinstance(row['meta'], str) else row['meta']
+        
+        can_gift, _ = check_daily_limit(meta, "gift")
+        if not can_gift:
+            return await callback.answer("🎁 Ти вже сьогодні надсилав подарунок. Спробуй завтра!", show_alert=True)
+        
+        await conn.execute("UPDATE capybaras SET meta = $1 WHERE owner_id = $2", json.dumps(meta), uid)
+        
+        builder = InlineKeyboardBuilder()
+        builder.button(text="🍎 Їжа", callback_data=f"send_cat:food:{target_id}")
+        builder.button(text="💎 Ресурси", callback_data=f"send_cat:materials:{target_id}")
+        builder.button(text="⚔️ Спорядження", callback_data=f"send_cat:equipment:{target_id}")
+        builder.button(text="🔙 Назад", callback_data=f"social")
+        builder.adjust(2, 1, 1)
 
-    await callback.message.edit_text(
-        "🎁 <b>Меню подарунків</b>\nОберіть категорію предметів для передачі:",
-        reply_markup=builder.as_markup(),
-        parse_mode="HTML"
-    )
+        await callback.message.edit_text(
+            "🎁 <b>Меню подарунків</b>\nОберіть категорію предметів для передачі:",
+            reply_markup=builder.as_markup(),
+            parse_mode="HTML"
+        )
+    finally:
+        await conn.close()
 
 @router.callback_query(F.data.startswith("send_cat:"))
 async def gift_item_select(callback: types.CallbackQuery):
