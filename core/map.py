@@ -18,6 +18,7 @@ COORD_QUESTS = {
 MAP_HEIGHT = len(FULL_MAP)
 MAP_WIDTH = len(FULL_MAP[0])
 WATER_TILES = {"~", "༄", "꩜"}
+FOREST_TILES = {"𖠰", "𖣂"}
 FOG_ICON = "░"
 
 def check_daily_limit(meta, action_key):
@@ -41,7 +42,7 @@ def get_biome_name(py, map_height):
     elif 0.35 <= progress < 0.65: return "🌊 Уроборострім"
     else: return "🏝️ Архіпелаг Джуа"
 
-def render_pov(px, py, discovered_list, mode="ship", treasure_maps=None, flowers=None):
+def render_pov(px, py, discovered_list, mode="ship", treasure_maps=None, flowers=None, trees=None):
     win_w, win_h = 15, 8
     icon = SHIP_ICON if mode == "ship" else PLAYER_ICON
     start_x = max(0, min(MAP_WIDTH - win_w, px - win_w // 2))
@@ -50,28 +51,44 @@ def render_pov(px, py, discovered_list, mode="ship", treasure_maps=None, flowers
     discovered_set = set(discovered_list)
     treasure_coords = {m['pos'] for m in treasure_maps} if treasure_maps else set()
     flower_coords = flowers if flowers else {}
+    tree_coords = trees if trees else {}
     
     rows = ["═" * (win_w)]
     for y in range(start_y, start_y + win_h):
         display_row = []
         for x in range(start_x, start_x + win_w):
             c_str = f"{x},{y}"
+            
             if x == px and y == py:
                 display_row.append(icon)
             elif c_str in flower_coords and c_str in discovered_set:
                 display_row.append("✽")
+            elif c_str in tree_coords and c_str in discovered_set:
+                display_row.append(tree_coords[c_str])
             elif c_str in treasure_coords and c_str in discovered_set:
                 display_row.append("X")
             elif c_str in discovered_set:
-                display_row.append(FULL_MAP[y][x])
+                tile = FULL_MAP[y][x]
+                if tile in FOREST_TILES and c_str not in tree_coords:
+                    display_row.append("𖧧")
+                else:
+                    display_row.append(tile)
             else:
                 display_row.append(FOG_ICON)
         rows.append(f"{''.join(display_row)}")
     rows.append("═" * (win_w))
     return "\n".join(rows)
 
-def get_map_keyboard(px, py, mode):
+def get_map_keyboard(px, py, mode, meta):
     builder = InlineKeyboardBuilder()
+    
+    personal_trees = meta.get("trees", {})
+    if f"{px},{py}" in personal_trees:
+        builder.row(types.InlineKeyboardButton(
+            text="🪓 Зрубати дерево (-5 ⚡)", 
+            callback_data=f"chop:{px}:{py}")
+        )
+
     builder.row(types.InlineKeyboardButton(text="⬆️", callback_data=f"mv:up:{px}:{py}:{mode}"))
     builder.row(
         types.InlineKeyboardButton(text="⬅️", callback_data=f"mv:left:{px}:{py}:{mode}"),
@@ -106,19 +123,26 @@ async def render_map(callback: types.CallbackQuery):
         can_refresh, _ = check_daily_limit(meta, "flowers_refresh")
         if can_refresh:
             new_flowers = {}
-            f_icons = ["🌸", "🌷", "🌻", "🌺"]
+            f_icons = ["🌸", "🌷", "🌻", "🌺", "🪻༘"]
             for _ in range(100):
                 if len(new_flowers) >= 80: break
                 rx, ry = random.randint(0, MAP_WIDTH-1), random.randint(0, MAP_HEIGHT-1)
                 if FULL_MAP[ry][rx] not in WATER_TILES: new_flowers[f"{rx},{ry}"] = random.choice(f_icons)
             meta["flowers"] = new_flowers
+            new_trees = {}
+            for ry in range(MAP_HEIGHT):
+                for rx in range(MAP_WIDTH):
+                    if FULL_MAP[ry][rx] in FOREST_TILES:
+                        new_trees[f"{rx},{ry}"] = FULL_MAP[ry][rx]
+            meta["trees"] = new_trees
+            
             await conn.execute("UPDATE capybaras SET meta = $1 WHERE owner_id = $2", json.dumps(meta, ensure_ascii=False), uid)
         px, py = meta.get("x", 77), meta.get("y", 144)
         stamina, mode = meta.get("stamina", 100), meta.get("mode", "capy")
         discovered = meta.get("discovered", [f"{px},{py}"])
-        map_display = render_pov(px, py, discovered, mode, flowers=meta.get("flowers"))
+        map_display = render_pov(px, py, discovered, mode, flowers=meta.get("flowers"), trees=meta.get("trees"))
         text = f"📍 <b>Карта ({px}, {py})</b> | {get_stamina_icons(stamina)}\n🧭 Біом: {get_biome_name(py, MAP_HEIGHT)}\n🔋 Енергія: {stamina}/100\n\n{map_display}"
-        await callback.message.edit_text(text, reply_markup=get_map_keyboard(px, py, mode), parse_mode="HTML")
+        await callback.message.edit_text(text, reply_markup = get_map_keyboard(px, py, mode, meta), parse_mode="HTML")
     finally: await conn.close()
 
 @router.callback_query(F.data.startswith("mv:"))
@@ -149,8 +173,8 @@ async def handle_move(callback: types.CallbackQuery):
         can_refresh, _ = check_daily_limit(meta, "flowers_refresh")
         if can_refresh:
             nf = {}
-            for _ in range(100):
-                if len(nf) >= 12: break
+            for _ in range(200):
+                if len(nf) >= 80: break
                 rx, ry = random.randint(0, MAP_WIDTH-1), random.randint(0, MAP_HEIGHT-1)
                 if FULL_MAP[ry][rx] not in WATER_TILES: nf[f"{rx},{ry}"] = random.choice(["🌸", "🌷", "🌻", "🌺"])
             meta["flowers"] = nf
@@ -181,7 +205,55 @@ async def handle_move(callback: types.CallbackQuery):
         if (len(new_disc) // 800) > (len(meta.get("discovered", [])) // 800): zen += 1
         new_stamina = stamina - 1
         meta.update({"x": x, "y": y, "stamina": new_stamina, "mode": new_mode, "discovered": new_disc})
-        await conn.execute("UPDATE capybaras SET meta = $1, zen = $2 WHERE owner_id = $3", json.dumps(meta, ensure_ascii=False), zen, uid)
-        text = f"📍 <b>Карта ({x}, {y})</b> | {get_stamina_icons(new_stamina)}\n🧭 Біом: {get_biome_name(y, MAP_HEIGHT)} | ✨ Дзен: {zen}\n🔋 Енергія: {new_stamina}/100\n\n{render_pov(x, y, new_disc, new_mode, loot.get('treasure_maps', []), flowers=meta.get('flowers'))}"
-        await callback.message.edit_text(text, reply_markup=get_map_keyboard(x, y, new_mode), parse_mode="HTML")
+        map_display = render_pov(
+            x, y, new_disc, new_mode, 
+            treasure_maps=tmaps, 
+            flowers=meta.get("flowers"), 
+            trees=meta.get("trees")
+        )
+        
+        text = (f"📍 <b>Карта ({x}, {y})</b> | {get_stamina_icons(new_stamina)}\n"
+                f"🧭 Біом: {get_biome_name(y, MAP_HEIGHT)} | ✨ Дзен: {zen}\n"
+                f"🔋 Енергія: {new_stamina}/100\n\n"
+                f"{map_display}")
+
+        await callback.message.edit_text(
+            text, 
+            reply_markup=get_map_keyboard(x, y, new_mode, meta),
+            parse_mode="HTML"
+        )
+    finally: await conn.close()
+
+@router.callback_query(F.data.startswith("chop:"))
+async def handle_chop(callback: types.CallbackQuery):
+    _, x, y = callback.data.split(":")
+    x, y, uid = int(x), int(y), callback.from_user.id
+    coord_key = f"{x},{y}"
+
+    conn = await get_db_connection()
+    try:
+        row = await conn.fetchrow("SELECT meta FROM capybaras WHERE owner_id = $1", uid)
+        meta = json.loads(row['meta'])
+        stamina = meta.get("stamina", 100)
+
+        if stamina < 5:
+            return await callback.answer("❌ Недостатньо енергії (треба 5 ⚡)", show_alert=True)
+
+        trees = meta.get("trees", {})
+        if coord_key in trees:
+            trees.pop(coord_key)
+            
+            inv = meta.setdefault("inventory", {})
+            mats = inv.setdefault("materials", {})
+            gain = 1
+            mats["wood"] = mats.get("wood", 0) + gain
+            
+            meta["stamina"] = stamina - 5
+            
+            await conn.execute("UPDATE capybaras SET meta = $1 WHERE owner_id = $2", json.dumps(meta, ensure_ascii=False), uid)
+            await callback.answer(f"Отримано {gain} деревини!")
+            
+            await render_map(callback)
+        else:
+            await callback.answer("Тут уже немає що рубати...")
     finally: await conn.close()
