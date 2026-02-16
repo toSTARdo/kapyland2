@@ -1,4 +1,5 @@
 import json
+import random
 from aiogram import Router, types, F
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
@@ -33,6 +34,7 @@ async def start_gif_setting(callback: types.CallbackQuery, state: FSMContext):
 async def process_victory_media_bulk(message: types.Message, state: FSMContext):
     uid = message.from_user.id
     
+    # Визначаємо медіа
     if message.animation:
         new_item = {"id": message.animation.file_id, "type": "gif"}
     elif message.photo:
@@ -42,7 +44,7 @@ async def process_victory_media_bulk(message: types.Message, state: FSMContext):
 
     conn = await get_db_connection()
     try:
-        row = await conn.fetchrow("SELECT meta FROM users WHERE tg_id = $1", uid)
+        row = await conn.fetchrow("SELECT meta FROM capybaras WHERE owner_id = $1", uid)
         meta = row['meta'] if row and row['meta'] else {}
         if isinstance(meta, str): meta = json.loads(meta)
         
@@ -53,7 +55,7 @@ async def process_victory_media_bulk(message: types.Message, state: FSMContext):
         meta["victory_media"] = victory_media
         
         await conn.execute(
-            "UPDATE users SET meta = $1 WHERE tg_id = $2",
+            "UPDATE capybaras SET meta = $1 WHERE owner_id = $2",
             json.dumps(meta, ensure_ascii=False), uid
         )
         
@@ -70,19 +72,19 @@ async def clear_victory_media(callback: types.CallbackQuery):
     uid = callback.from_user.id
     conn = await get_db_connection()
     try:
-        row = await conn.fetchrow("SELECT meta FROM users WHERE tg_id = $1", uid)
+        row = await conn.fetchrow("SELECT meta FROM capybaras WHERE owner_id = $1", uid)
         meta = row['meta'] if row and row['meta'] else {}
         if isinstance(meta, str): meta = json.loads(meta)
         
         meta["victory_media"] = []
         
         await conn.execute(
-            "UPDATE users SET meta = $1 WHERE tg_id = $2",
+            "UPDATE capybaras SET meta = $1 WHERE owner_id = $2",
             json.dumps(meta, ensure_ascii=False), uid
         )
         
         await callback.message.edit_text(
-            "🗑️ <b>Список очищено!</b>\nТепер ти можеш надіслати нові медіа.",
+            "🗑️ <b>Список очищено!</b>",
             reply_markup=get_finish_keyboard(),
             parse_mode="HTML"
         )
@@ -90,31 +92,17 @@ async def clear_victory_media(callback: types.CallbackQuery):
         await conn.close()
     await callback.answer("Очищено")
 
-@router.callback_query(F.data == "finish_media_setup", SettingsStates.waiting_for_victory_gif)
-async def finish_media_setup(callback: types.CallbackQuery, state: FSMContext):
-    await state.clear()
-    await callback.message.edit_text("✨ <b>Готово!</b> Медіа збережені.", parse_mode="HTML")
-    await callback.answer()
-
-@router.callback_query(F.data == "cancel_settings", SettingsStates.waiting_for_victory_gif)
-async def cancel_gif_setting(callback: types.CallbackQuery, state: FSMContext):
-    await state.clear()
-    await callback.message.edit_text("❌ Налаштування скасовано.")
-    await callback.answer()
-
 async def send_victory_celebration(message: types.Message, user_id: int):
     conn = await get_db_connection()
     try:
-        row = await conn.fetchrow("SELECT meta FROM users WHERE tg_id = $1", user_id)
-        if not row: return
+        row = await conn.fetchrow("SELECT meta FROM capybaras WHERE owner_id = $1", user_id)
+        if not row or not row['meta']: return
         
         meta = row['meta']
         if isinstance(meta, str): meta = json.loads(meta)
         
         media_list = meta.get("victory_media", [])
-        
-        if not media_list:
-            return
+        if not media_list: return
         
         item = random.choice(media_list)
         f_id, m_type = item["id"], item["type"]
@@ -126,5 +114,7 @@ async def send_victory_celebration(message: types.Message, user_id: int):
         elif m_type == "sticker":
             await message.answer_sticker(f_id)
             
+    except Exception as e:
+        print(f"Celebration Error: {e}")
     finally:
         await conn.close()
