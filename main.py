@@ -131,7 +131,7 @@ async def handle_isekai(callback: types.CallbackQuery):
     )
     await callback.answer()
 
-@router.message(Command("notify"))
+@dp.message(Command("notify"))
 async def broadcast_update(message: types.Message):
     if message.from_user.id != DEV_ID:
         return await message.answer("❌ Доступ заборонено. Тільки для розробника.")
