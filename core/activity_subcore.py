@@ -460,6 +460,14 @@ async def handle_inspect_player(callback: types.CallbackQuery):
     finally:
         await conn.close()
 
+ITEM_DISPLAY_NAMES = {
+    "watermelon_slices": "🍉 Скибочка кавуна",
+    "tangerines": "🍊 Мандарин",
+    "melon": "🍈 Диня",
+    "kiwi": "🥝 Ківі",
+    "mango": "🥭 Манго"
+}
+
 @router.callback_query(F.data.startswith("gift_to:"))
 async def gift_category_select(callback: types.CallbackQuery):
     target_id = int(callback.data.split(":")[1])
@@ -577,10 +585,10 @@ async def execute_gift_transfer(callback: types.CallbackQuery):
             await conn.execute("UPDATE capybaras SET karma = karma + 1 WHERE owner_id = $1", uid)
             item_name = item_key
 
-        await callback.message.edit_text(f"✨ <b>Успіх!</b>\nВи подарували <b>{item_name}</b> та покращили свою карму.", parse_mode="HTML")
+        await callback.message.edit_text(f"✨ Успіх!\nВи подарували {ITEM_DISPLAY_NAMES[item_name]} та покращили свою карму.", parse_mode="HTML")
         
         try:
-            await callback.bot.send_message(target_id, f"🎁 Гей! Тобі прийшов подарунок: <b>{item_name}</b>!")
+            await callback.bot.send_message(target_id, f"🎁 Гей! Тобі прийшов подарунок: {ITEM_DISPLAY_NAMES[item_name]}!")
         except: pass
 
     finally:
