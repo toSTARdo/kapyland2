@@ -177,7 +177,7 @@ crit_5 = weapon_ability(0.15)([
 ])
 
 #LEGENDARY
-cat_life = weapon_ability(0.2)([
+cat_life = weapon_ability(0.3)([
     lambda a, d: setattr(a, 'hp', min(a.max_hp, a.hp + 2)) or 0,
     lambda a, d: setattr(a, 'agi', a.agi + 2) or 0,
     lambda a, d: setattr(a, 'luck', a.luck + 2) or 0,
@@ -186,7 +186,7 @@ cat_life = weapon_ability(0.2)([
     lambda a, d: setattr(a, 'atk', a.atk + 2) or 0
 ])
 
-tea_mastery = weapon_ability(0.2)([
+tea_mastery = weapon_ability(0.3)([
     lambda a, d: setattr(a, 'def_', a.def_ + 2) or 0,
     lambda a, d: setattr(a, 'hp', min(a.max_hp, a.hp + 2)) or 0,
     lambda a, d: setattr(a, 'luck', a.luck + 3) or 0,
@@ -195,7 +195,7 @@ tea_mastery = weapon_ability(0.2)([
     lambda a, d: setattr(a, 'agi', a.agi + 2) or 0
 ])
 
-double_strike = weapon_ability(0.2)([
+double_strike = weapon_ability(0.3)([
     lambda a, d: 2,
     lambda a, d: setattr(a, 'atk', a.atk + 1) or 0,
     lambda a, d: setattr(a, 'agi', a.agi + 2) or 0,
@@ -204,7 +204,7 @@ double_strike = weapon_ability(0.2)([
     lambda a, d: setattr(d, 'agi', 0) or 0
 ])
 
-crit_20 = weapon_ability(0.2)([
+crit_20 = weapon_ability(0.3)([
     lambda a, d: setattr(a, 'luck', a.luck + 5) or 0,
     lambda a, d: setattr(a, 'atk', a.atk + 5) or 0,
     lambda a, d: setattr(a, 'def_', a.def_ + 5) or 0,
@@ -213,7 +213,7 @@ crit_20 = weapon_ability(0.2)([
     lambda a, d: setattr(d, 'luck', 0) or 0
 ])
 
-pierce_armor = weapon_ability(0.2)([
+pierce_armor = weapon_ability(0.3)([
     lambda a, d: setattr(d, 'def_', 0) or 0,
     lambda a, d: 2,
     lambda a, d: setattr(a, 'atk', a.atk + 2) or 0,
@@ -222,7 +222,7 @@ pierce_armor = weapon_ability(0.2)([
     lambda a, d: setattr(d, 'agi', max(0, d.agi - 2)) or 0
 ])
 
-heavy_weight = weapon_ability(0.2)([
+heavy_weight = weapon_ability(0.3)([
     lambda a, d: setattr(a, 'agi', max(0, a.agi - 2)) or 0,
     lambda a, d: setattr(a, 'atk', a.atk + 5) or 0,
     lambda a, d: setattr(a, 'def_', a.def_ + 4) or 0,
@@ -231,7 +231,7 @@ heavy_weight = weapon_ability(0.2)([
     lambda a, d: setattr(a, 'luck', a.luck + 4) or 0
 ])
 
-range_attack = weapon_ability(0.2)([
+range_attack = weapon_ability(0.3)([
     lambda a, d: setattr(a, 'luck', a.luck + 3) or 0,
     lambda a, d: setattr(a, 'agi', a.agi + 3) or 0,
     lambda a, d: setattr(d, 'agi', max(0, d.agi - 2)) or 0,
@@ -240,7 +240,7 @@ range_attack = weapon_ability(0.2)([
     lambda a, d: setattr(d, 'def_', max(0, d.def_ - 2)) or 0
 ])
 
-stun_chance = weapon_ability(0.2)([
+stun_chance = weapon_ability(0.3)([
     lambda a, d: setattr(d, 'agi', 0) or 0,
     lambda a, d: setattr(d, 'atk', max(0, d.atk - 0.5)) or 0,
     lambda a, d: setattr(d, 'def_', max(0, d.def_ - 2)) or 0,
@@ -249,7 +249,7 @@ stun_chance = weapon_ability(0.2)([
     lambda a, d: setattr(a, 'def_', a.def_ + 3) or 0
 ])
 
-latex_choke = weapon_ability(0.2)([
+latex_choke = weapon_ability(0.3)([
     lambda a, d: setattr(d, 'atk', max(0, d.atk - 4)) or 0,
     lambda a, d: setattr(d, 'agi', max(0, d.agi - 4)) or 0,
     lambda a, d: setattr(d, 'luck', 0) or 0,
@@ -258,7 +258,7 @@ latex_choke = weapon_ability(0.2)([
     lambda a, d: 2
 ])
 
-scissor_sever = weapon_ability(0.2)([
+scissor_sever = weapon_ability(0.3)([
     lambda a, d: setattr(d, 'def_', max(0, d.def_ - 5)) or 0,      
     lambda a, d: setattr(a, 'agi', a.agi + 4) or 0, 
     lambda a, d: 2,
@@ -267,7 +267,7 @@ scissor_sever = weapon_ability(0.2)([
     lambda a, d: setattr(d, 'def_', 0) or 0
 ])
 
-gaulish_might = weapon_ability(0.2)([
+gaulish_might = weapon_ability(0.3)([
     lambda a, d: setattr(a, 'atk', a.atk + 5) or 0,
     lambda a, d: setattr(a, 'def_', a.def_ + 5) or 0, 
     lambda a, d: setattr(d, 'agi', max(0, d.agi - 2)) or 0, 
@@ -276,7 +276,7 @@ gaulish_might = weapon_ability(0.2)([
     lambda a, d: setattr(d, 'def_', max(0, d.def_ - 3)) or 0
 ])
 
-getsuga_tensho = weapon_ability(0.2)([
+getsuga_tensho = weapon_ability(0.3)([
     lambda a, d: setattr(a, 'agi', a.agi + 10) or 0,
     lambda a, d: 2,
     lambda a, d: setattr(d, 'def_', max(0, d.def_ - 4)) or 0,
