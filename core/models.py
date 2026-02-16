@@ -52,8 +52,10 @@ class Fighter:
         return chance
 
     def get_dodge_chance(self):
+        base_dodge = self.agi * STAT_WEIGHTS["agi_to_dodge"]
         weight_penalty = max(0, (self.weight - 20) / 5) * 0.01
-        return (self.agi * STAT_WEIGHTS["agi_to_dodge"]) - weight_penalty
+        chance = base_dodge - weight_penalty
+        return max(0.02, chance)
 
     def get_block_chance(self):
         return BASE_BLOCK_CHANCE + (self.def_ * STAT_WEIGHTS["def_to_block"]) + self.armor_data.get("defense", 0)
