@@ -48,12 +48,12 @@ class Fighter:
         return f"{display} ({self.hp}/{self.max_hp})"
 
     def get_hit_chance(self):
-        weight_penalty = max(0, (self.weight - 20) / 5) * 0.01
         chance = BASE_HIT_CHANCE + (self.atk * STAT_WEIGHTS["atk_to_hit"]) + self.weapon_data.get("hit_bonus", 0)
-        return chance - weight_penalty
+        return chance
 
     def get_dodge_chance(self):
-        return self.agi * STAT_WEIGHTS["agi_to_dodge"]
+        weight_penalty = max(0, (self.weight - 20) / 5) * 0.01
+        return (self.agi * STAT_WEIGHTS["agi_to_dodge"]) - weight_penalty
 
     def get_block_chance(self):
         return BASE_BLOCK_CHANCE + (self.def_ * STAT_WEIGHTS["def_to_block"]) + self.armor_data.get("defense", 0)
