@@ -60,7 +60,6 @@ class Fighter:
     def get_block_chance(self):
         return BASE_BLOCK_CHANCE + (self.def_ * STAT_WEIGHTS["def_to_block"]) + self.armor_data.get("defense", 0)
 
-        
 class CombatEngine:
     @staticmethod
     def resolve_turn(att: Fighter, defe: Fighter, round_num: int):
@@ -78,30 +77,34 @@ class CombatEngine:
         crit_bonus = 0
         crit_text = ""
         
-        if random.random() < (att.luck * STAT_WEIGHTS["luck_to_crit"]):
+        if random.random() < (att.luck * 0.05):
             crit_bonus = 1
             crit_text = "💥 "
 
         ability_damage = 0
-        special_msg = ""
+        ability_logs = []
         special_key = att.weapon_data.get("special")
         
         if special_key in ABILITY_REGISTRY:
-            res_dmg, is_active = ABILITY_REGISTRY[special_key](att, defe, round_num)
-            
-            ability_damage = int(res_dmg)
+            res_dmg, is_active, logs = ABILITY_REGISTRY[special_key](att, defe, round_num)
             
             if is_active:
-                json_special_text = att.weapon_data.get("special_text", "")
-                if json_special_text:
-                    special_msg = f"\n{json_special_text}"
+                ability_damage = res_dmg
+                ability_logs = logs
 
         total_damage = base_damage + crit_bonus + ability_damage
-        defe.hp = max(0, defe.hp - total_damage)
+        total_damage = round(total_damage, 1) 
+        
+        defe.hp = max(0, round(defe.hp - total_damage, 1))
         
         raw_text = random.choice(att.weapon_data["texts"])
         attack_verb = raw_text.replace("{defen}", html.bold(defe.name))
         
-        return (f"{crit_text}{att.color} {html.bold(att.name)} {attack_verb}!\n"
-                f"➔ Шкода: {html.bold('-' + str(total_damage) + ' HP')}"
-                f"{special_msg}")
+        msg = (f"{crit_text}{att.color} {html.bold(att.name)} {attack_verb}!\n"
+               f"➔ Шкода: {html.bold('-' + str(total_damage) + ' HP')}")
+        
+        if ability_logs:
+            special_msg = "\n" + "\n".join(ability_logs)
+            msg += html.italic(special_msg)
+
+        return msg

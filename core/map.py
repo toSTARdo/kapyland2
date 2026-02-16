@@ -205,6 +205,11 @@ async def handle_move(callback: types.CallbackQuery):
         if (len(new_disc) // 800) > (len(meta.get("discovered", [])) // 800): zen += 1
         new_stamina = stamina - 1
         meta.update({"x": x, "y": y, "stamina": new_stamina, "mode": new_mode, "discovered": new_disc})
+        await conn.execute(
+            "UPDATE capybaras SET meta = $1, zen = $2 WHERE owner_id = $3", 
+            json.dumps(meta, ensure_ascii=False), zen, uid
+        )
+
         map_display = render_pov(
             x, y, new_disc, new_mode, 
             treasure_maps=tmaps, 
