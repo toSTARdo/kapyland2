@@ -18,15 +18,15 @@ async def meditation_menu(callback: types.CallbackQuery):
         zen = row['zen'] or 0
         meta = json.loads(row['meta']) if isinstance(row['meta'], str) else row['meta']
         
-        stats = meta.get("stats", {"atk": 0, "def": 0, "agi": 0, "luck": 0})
+        stats = meta.get("stats", {"attack": 0, "defense": 0, "agility": 0, "luck": 0})
         
         text = (
             f"🧘 <b>Медитація капібари</b>\n\n"
             f"Тут ти можеш використати свою духовну енергію для самовдосконалення.\n\n"
             f"💠 Доступно Zen-очок: <b>{zen}</b>\n\n"
-            f"⚔️ Атака (ATK): <b>{stats.get('atk', 0)}</b>\n"
-            f"🛡️ Захист (DEF): <b>{stats.get('def', 0)}</b>\n"
-            f"💨 Спритність (AGI): <b>{stats.get('agi', 0)}</b>\n"
+            f"⚔️ Атака (ATK): <b>{stats.get('attack', 0)}</b>\n"
+            f"🛡️ Захист (DEF): <b>{stats.get('defense', 0)}</b>\n"
+            f"💨 Спритність (AGI): <b>{stats.get('agility', 0)}</b>\n"
             f"🍀 Удача (LUCK): <b>{stats.get('luck', 0)}</b>"
         )
         
