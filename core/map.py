@@ -73,7 +73,7 @@ async def map_mediator(callback: types.CallbackQuery):
     is_group = callback.message.chat.type in ["group", "supergroup"]
     
     if not is_group:
-        return await render_map(callback.message, callback.from_user.id, is_callback=True)
+        return await render_map(callback)
 
     builder = InlineKeyboardBuilder()
     builder.row(types.InlineKeyboardButton(
