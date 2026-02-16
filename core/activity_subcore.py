@@ -4,6 +4,7 @@ from aiogram.filters import Command
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from utils.helpers import check_daily_limit
+from handlers.emotes import send_victory_celebration
 from core.models import Fighter, CombatEngine
 from core.capybara_mechanics import get_user_inventory, grant_exp_and_lvl
 from database.postgres_db import get_db_connection
@@ -413,6 +414,9 @@ async def run_battle_logic(callback: types.CallbackQuery, opponent_id: int = Non
             if msg2:
                 try: await msg2.answer(reward_msg, parse_mode="HTML")
                 except: pass
+
+            if winner_id:
+                await send_victory_celebration(msg1, winner_id)
 
         finally:
             await conn.close()
