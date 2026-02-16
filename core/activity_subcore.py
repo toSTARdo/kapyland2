@@ -91,6 +91,7 @@ async def user_menu_handler(callback: types.CallbackQuery):
         
         if p['tg_id'] == target_id:
             builder.button(text="⚔️", callback_data=f"challenge_{target_id}")
+            builder.button(text="💞", callback_data=f"date_request:{target_id}")
             builder.button(text="🎁", callback_data=f"gift_to:{target_id}")
             builder.button(text="🧤", callback_data=f"steal_from:{target_id}")
             builder.button(text="🪵", callback_data=f"ram:{target_id}")
@@ -691,5 +692,101 @@ async def show_leaderboard(callback: types.CallbackQuery):
         builder.adjust(3, len(nav_btns), 1)
 
         await callback.message.edit_text(text, reply_markup=builder.as_markup(), parse_mode="HTML")
+    finally:
+        await conn.close()
+
+@router.callback_query(F.data.startswith("date_request:"))
+async def send_date_request(callback: types.CallbackQuery):
+    target_id = int(callback.data.split(":")[1])
+    sender_id = callback.from_user.id
+    sender_name = callback.from_user.full_name
+
+    if target_id == sender_id:
+        return await callback.answer("Ти не можеш піти на побачення сам із собою (хоча це теж чіл).", show_alert=True)
+
+    invite_kb = InlineKeyboardBuilder()
+    invite_kb.button(text="🥂 Погодитись", callback_data=f"date_accept:{sender_id}")
+    invite_kb.button(text="💔 Відхилити", callback_data="date_reject")
+    
+    try:
+        await callback.bot.send_message(
+            target_id,
+            f"💌 <b>Романтика!</b>\n\nКапібара <b>{sender_name}</b> запрошує тебе на романтичне побачення до озера!",
+            reply_markup=invite_kb.as_markup(),
+            parse_mode="HTML"
+        )
+        await callback.answer("💌 Запит на побачення надіслано!", show_alert=True)
+    except:
+        await callback.answer("🚨 Не вдалося надіслати запит.", show_alert=True)
+
+import random
+
+@router.callback_query(F.data.startswith("date_accept:"))
+async def accept_date(callback: types.CallbackQuery):
+    partner_id = int(callback.data.split(":")[1])
+    my_id = callback.from_user.id
+    
+    date_plots = [
+        "🏴‍☠️ Ви пробралися на ворожий фрегат і вкрали бочку кавунового рому!",
+        "🏜️ Ви знайшли захований на березі скарб, але там були лише стиглі манго. Ви з'їли їх разом.",
+        "🌊 Ви влаштували перегони на дельфінах вздовж узбережжя Ліворн-Бей!",
+        "🃏 Ви обіграли старого пірата в карти в таверні, але вигране спустили в газино.",
+        "🔥 Ви розпалили величезне багаття на скелях, щоб заманити та розграбувати торгові судна, і просто чілили разом.",
+        "🍻 Ви випили стільки елю в таверні, що почали бачити морських зміїв.",
+        "⚓ Ви разом начищали якір корабля до блиску, поки не почали бачити в ньому своє відображення."
+    ]
+    current_plot = random.choice(date_plots)
+
+    conn = await get_db_connection()
+    try:
+        users_data = await conn.fetch("SELECT owner_id, meta FROM capybaras WHERE owner_id IN ($1, $2)", my_id, partner_id)
+        if len(users_data) < 2: return await callback.answer("Партнер десь зник...")
+
+        metas = {u['owner_id']: (json.loads(u['meta']) if isinstance(u['meta'], str) else u['meta']) for u in users_data}
+
+        for uid, p_id in [(my_id, partner_id), (partner_id, my_id)]:
+            rel = metas[uid].get("relationships", {})
+            p_stats = rel.get(str(p_id), {"dates": 0, "status": "знайомі"})
+            
+            p_stats["dates"] += 1
+            
+            if p_stats["dates"] >= 50:
+                p_stats["status"] = "💍 у шлюбі"
+            elif p_stats["dates"] >= 10:
+                p_stats["status"] = "❤️ пара"
+            
+            rel[str(p_id)] = p_stats
+            metas[uid]["relationships"] = rel
+            
+            metas[uid]["stamina"] = min(100, metas[uid].get("stamina", 0) + 15)
+
+            await conn.execute("UPDATE capybaras SET meta = $1 WHERE owner_id = $2", 
+                               json.dumps(metas[uid], ensure_ascii=False), uid)
+
+        current_status = metas[my_id]["relationships"][str(partner_id)]["status"]
+        date_count = metas[my_id]["relationships"][str(partner_id)]["dates"]
+
+        res_text = (
+            f"💖 <b>Романтичне побачення!</b>\n"
+            f"━━━━━━━━━━━━━━━\n"
+            f"<i>{current_plot}</i>\n\n"
+            f"📊 Результат:\n"
+            f"• Побачення №<b>{date_count}</b>\n"
+            f"• Ваш статус: <b>{current_status}</b>\n"
+            f"• Енергія: <b>+15%</b> ✨"
+        )
+
+        if date_count == 10:
+            res_text += "\n\n🎉 <b>ОГО! Тепер ви офіційно ПАРА!</b> ❤️"
+        elif date_count == 50:
+            res_text += "\n\n🎊 <b>НЕЙМОВІРНО! Ви ПОВЕНЧАЛИСЯ!</b> 💍🔔"
+
+        await callback.message.edit_text(res_text, parse_mode="HTML")
+        
+        try:
+            await callback.bot.send_message(partner_id, res_text, parse_mode="HTML")
+        except:
+            pass
+
     finally:
         await conn.close()
