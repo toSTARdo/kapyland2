@@ -89,6 +89,7 @@ async def cmd_ship_menu(event: types.Message | types.CallbackQuery, state: FSMCo
         builder.button(text="🍉 Скарбниця", callback_data="ship_treasury")
         builder.button(text="⚙️ Машинне відділення", callback_data="ship_engine")
         builder.button(text="🛠 Покращити", callback_data="ship_upgrade")
+        builder.button(text="Запросити на борт", callback_data="ship_search_players")
         
         if ship['captain_id'] == uid:
             builder.button(text="⚙️ Налаштування", callback_data="ship_settings")
@@ -115,7 +116,7 @@ async def ship_watermelon_vault(callback: types.CallbackQuery):
         
         row = await conn.fetchrow("SELECT meta FROM capybaras WHERE owner_id = $1", uid)
         meta = json.loads(row['meta']) if isinstance(row['meta'], str) else row['meta']
-        user_melons = meta.get("inventory", {}).get("food", {}).get("Кавун", 0)
+        user_melons = meta.get("inventory", {}).get("food", {}).get("watermelon_slices", 0)
 
         text = (
             f"🍉 <b>Склад кавунів «{ship['name']}»</b>\n"
@@ -331,5 +332,215 @@ async def ship_final_confirm(callback: types.CallbackQuery, state: FSMContext):
             await callback.answer("❌ Корабель з такою назвою вже існує!", show_alert=True)
         else:
             raise e
+    finally:
+        await conn.close()
+
+@router.callback_query(F.data == "ship_search_players")
+async def ship_invite_list(callback: types.CallbackQuery):
+    uid = callback.from_user.id
+    conn = await get_db_connection()
+    try:
+        candidates = await conn.fetch("""
+            SELECT u.tg_id, u.username, c.lvl 
+            FROM users u
+            JOIN capybaras c ON u.tg_id = c.owner_id
+            WHERE c.ship_id IS NULL AND u.tg_id != $1
+            ORDER BY c.lvl DESC LIMIT 10
+        """, uid)
+        
+        ship = await conn.fetchrow("SELECT id, name FROM ships WHERE captain_id = $1", uid)
+        
+        if not ship:
+            return await callback.answer("❌ Тільки капітан може шукати екіпаж!", show_alert=True)
+
+        text = "🔍 <b>Пошук матросів у таверні</b>\n\nЦі капібари зараз без корабля. Обери когось, щоб запросити до себе:"
+        builder = InlineKeyboardBuilder()
+
+        if candidates:
+            for p in candidates:
+                name = p['username'][:15]
+                builder.row(types.InlineKeyboardButton(
+                    text=f"⚓ {name} (Lvl {p['lvl']})", 
+                    callback_data=f"ship_send_invite:{p['tg_id']}")
+                )
+        else:
+            text += "\n\n<i>Наразі всі капібари при ділі...</i>"
+
+        builder.row(types.InlineKeyboardButton(text="⬅️ Назад", callback_data="ship_main"))
+        
+        await callback.message.edit_text(text, reply_markup=builder.as_markup(), parse_mode="HTML")
+    finally:
+        await conn.close()
+
+@router.callback_query(F.data.startswith("ship_send_invite:"))
+async def send_invite_to_player(callback: types.CallbackQuery):
+    target_id = int(callback.data.split(":")[1])
+    captain_id = callback.from_user.id
+    
+    conn = await get_db_connection()
+    try:
+        ship = await conn.fetchrow("SELECT id, name FROM ships WHERE captain_id = $1", captain_id)
+        
+        invite_kb = InlineKeyboardBuilder()
+        invite_kb.button(text="✅ Прийняти", callback_data=f"ship_accept:{ship['id']}")
+        invite_kb.button(text="❌ Відхилити", callback_data="ship_reject")
+
+        await callback.bot.send_message(
+            target_id,
+            f"📨 Капітан корабля <b>«{ship['name']}»</b> запрошує тебе до свого екіпажу!",
+            reply_markup=invite_kb.as_markup(),
+            parse_mode="HTML"
+        )
+        
+        await callback.answer(f"✅ Запит надіслано!", show_alert=True)
+    except Exception as e:
+        await callback.answer("🚨 Не вдалося надіслати (гравець заблокував бота)", show_alert=True)
+    finally:
+        await conn.close()
+
+@router.callback_query(F.data == "ship_reject")
+async def reject_invite(callback: types.CallbackQuery):
+    await callback.message.edit_text("❌ Ти відхилив запрошення.")
+
+@router.message(ShipActions.waiting_for_invite_id)
+async def process_ship_invite(message: types.Message, state: FSMContext):
+    if not message.text.isdigit():
+        return await message.answer("⚠️ Введи коректний числовий ID.")
+    
+    target_id = int(message.text)
+    captain_id = message.from_user.id
+    
+    conn = await get_db_connection()
+    try:
+        captain_ship = await conn.fetchrow("SELECT id, name FROM ships WHERE captain_id = $1", captain_id)
+        if not captain_ship:
+            return await message.answer("❌ Тільки капітан може запрошувати людей.")
+
+        target_capy = await conn.fetchrow("SELECT ship_id FROM capybaras WHERE owner_id = $1", target_id)
+        if not target_capy:
+            return await message.answer("❌ Цього гравця не знайдено в базі.")
+        if target_capy['ship_id']:
+            return await message.answer("❌ Цей гравець вже є членом іншого екіпажу.")
+
+        builder = InlineKeyboardBuilder()
+        builder.button(text="✅ Прийняти", callback_data=f"ship_accept:{captain_ship['id']}")
+        builder.button(text="❌ Відхилити", callback_data="ship_reject")
+
+        await message.bot.send_message(
+            target_id,
+            f"📨 Вас запрошують на корабель <b>«{captain_ship['name']}»</b>!\n"
+            f"Капітан: {message.from_user.full_name}",
+            reply_markup=builder.as_markup(),
+            parse_mode="HTML"
+        )
+        await message.answer(f"✅ Запит надіслано гравцеві <code>{target_id}</code>")
+        await state.clear()
+    except Exception as e:
+        await message.answer("❌ Не вдалося надіслати повідомлення (можливо, бот заблокований).")
+    finally:
+        await conn.close()
+
+@router.callback_query(F.data.startswith("ship_accept:"))
+async def accept_invite(callback: types.CallbackQuery):
+    ship_id = int(callback.data.split(":")[1])
+    uid = callback.from_user.id
+    
+    conn = await get_db_connection()
+    try:
+        crew_count = await conn.fetchval("SELECT COUNT(*) FROM capybaras WHERE ship_id = $1", ship_id)
+        if crew_count >= 10:
+            return await callback.answer("❌ На кораблі більше немає кают! (Макс. 10)", show_alert=True)
+
+        await conn.execute("UPDATE capybaras SET ship_id = $1 WHERE owner_id = $2", ship_id, uid)
+        await callback.message.edit_text("⛵ Вітаємо на борту! Тепер ти член екіпажу.")
+    finally:
+        await conn.close()
+    
+@router.callback_query(F.data == "ship_leave_confirm")
+async def confirm_leave(callback: types.CallbackQuery):
+    builder = InlineKeyboardBuilder()
+    builder.button(text="🏃 Так, покинути борт", callback_data="ship_leave_execute")
+    builder.button(text="🔙 Скасувати", callback_data="ship_main")
+    builder.adjust(1)
+    
+    await callback.message.edit_text(
+        "⚠️ <b>Ти впевнений?</b>\nПри виході з екіпажу ти втратиш доступ до трюму та машинного відділення.",
+        reply_markup=builder.as_markup(),
+        parse_mode="HTML"
+    )
+
+@router.callback_query(F.data == "ship_leave_execute")
+async def execute_leave(callback: types.CallbackQuery):
+    uid = callback.from_user.id
+    conn = await get_db_connection()
+    try:
+        is_captain = await conn.fetchval("SELECT id FROM ships WHERE captain_id = $1", uid)
+        if is_captain:
+            return await callback.answer("❌ Капітан не може покинути свій корабель! Ти можеш тільки розпустити його в налаштуваннях.", show_alert=True)
+
+        await conn.execute("UPDATE capybaras SET ship_id = NULL WHERE owner_id = $1", uid)
+        await callback.message.edit_text("🌊 Ти зійшов на берег. Тепер ти знову вільний плавець.")
+    finally:
+        await conn.close()
+
+@router.callback_query(F.data == "ship_settings")
+async def ship_settings_menu(callback: types.CallbackQuery):
+    uid = callback.from_user.id
+    conn = await get_db_connection()
+    try:
+        ship = await conn.fetchrow("SELECT name FROM ships WHERE captain_id = $1", uid)
+        if not ship:
+            return await callback.answer("❌ Ти не капітан!", show_alert=True)
+
+        text = (
+            f"⚙️ <b>Керування кораблем «{ship['name']}»</b>\n"
+            "━━━━━━━━━━━━━━━\n"
+            "Тут ти можеш змінити назву або повністю розпустити екіпаж і затопити судно."
+        )
+        
+        builder = InlineKeyboardBuilder()
+        builder.button(text="📝 Змінити назву", callback_data="ship_rename_init")
+        builder.button(text="💥 Розпустити корабель", callback_data="ship_disband_confirm")
+        builder.button(text="🔙 Назад", callback_data="ship_main")
+        builder.adjust(1)
+        
+        await callback.message.edit_text(text, reply_markup=builder.as_markup(), parse_mode="HTML")
+    finally:
+        await conn.close()
+
+# Підтвердження розпуску
+@router.callback_query(F.data == "ship_disband_confirm")
+async def confirm_disband(callback: types.CallbackQuery):
+    builder = InlineKeyboardBuilder()
+    builder.button(text="🔥 Так, затопити судно", callback_data="ship_disband_execute")
+    builder.button(text="🔙 Скасувати", callback_data="ship_settings")
+    builder.adjust(1)
+    
+    await callback.message.edit_text(
+        "⚠️ <b>УВАГА!</b>\n\nТи збираєшся розпустити свій корабель. "
+        "Усі матроси залишаться без борту, а золото в трюмі буде втрачено назавжди!\n\n"
+        "Ти впевнений?",
+        reply_markup=builder.as_markup(),
+        parse_mode="HTML"
+    )
+
+@router.callback_query(F.data == "ship_disband_execute")
+async def execute_disband(callback: types.CallbackQuery):
+    uid = callback.from_user.id
+    conn = await get_db_connection()
+    try:
+        ship = await conn.fetchrow("SELECT id FROM ships WHERE captain_id = $1", uid)
+        if not ship:
+            return await callback.answer("❌ Корабель не знайдено.")
+
+        await conn.execute("UPDATE capybaras SET ship_id = NULL WHERE ship_id = $1", ship['id'])
+        
+        await conn.execute("DELETE FROM ships WHERE id = $1", ship['id'])
+        
+        await callback.message.edit_text(
+            "🌊 <b>Корабель пішов на дно...</b>\n\n"
+            "Екіпаж розпущено, а ти знову вільний капітан без судна.",
+            parse_mode="HTML"
+        )
     finally:
         await conn.close()
