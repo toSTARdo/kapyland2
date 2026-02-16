@@ -78,7 +78,7 @@ async def render_inventory_page(message, user_id, page="food", current_page=0, i
 
                 builder.row(
                     types.InlineKeyboardButton(text=f"{r_icon}{t_icon} {name} x{count}{status}", callback_data=f"equip:{i_type}:{name}"),
-                    types.InlineKeyboardButton(text=f"💰 {price}", callback_data=f"sell:{rarity}:{name}")
+                    types.InlineKeyboardButton(text=f"💰 ({price}🍉)", callback_data=f"sell_item:{rarity}:{name}")
                 )
             
             if len(unique_list) > ITEMS_PER_PAGE:
