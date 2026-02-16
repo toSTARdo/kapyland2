@@ -1,12 +1,8 @@
-import asyncio, json, random
+import asyncio, json, random, datetime
 from aiogram import Router, types, html, F
-from aiogram.filters import Command
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-from core.capybara_mechanics import get_user_inventory
 from database.postgres_db import get_db_connection
-from config import BASE_HITPOINTS, ARTIFACTS, RARITY_META, WEAPON, ARMOR
-GACHA_ITEMS = ARTIFACTS
 
 router = Router()
 
@@ -22,13 +18,17 @@ async def handle_fishing(callback: types.CallbackQuery):
         meta = row['meta'] if isinstance(row['meta'], dict) else json.loads(row['meta'])
         stamina = meta.get("stamina", 0)
         
-        inventory_equipment = meta.get("inventory", {}).get("equipment", [])
+        inventory = meta.get("inventory", {})
+        equipment_list = inventory.get("equipment", [])
+
+        has_fishing_rod = any(
+            "вудочка" in str(item.get("name", "")).lower() 
+            for item in equipment_list 
+            if isinstance(item, dict)
+        )
         
-        has_fishing_rod = any("вудочка" in item.lower() for item in inventory_equipment)
-        
-        equipped_weapon = meta.get("equipment", {}).get("weapon", "")
-        if not has_fishing_rod and "вудочка" not in equipped_weapon.lower():
-            return await callback.answer("❌ Тобі потрібна вудочка в інвентарі!", show_alert=True)
+        if not has_fishing_rod:
+            return await callback.answer("❌ Тобі потрібна вудочка в спорядженні інвентаря!", show_alert=True)
         
         if stamina < 10:
             return await callback.answer("🪫 Мало енергії (треба 10)", show_alert=True)
@@ -65,43 +65,37 @@ async def handle_fishing(callback: types.CallbackQuery):
         item_key = item.get('key', 'misc')
         fish_weight = round(random.uniform(item['min_w'], item['max_w']), 2)
 
-        if item_type == "trash":
-            sql = "UPDATE capybaras SET meta = jsonb_set(meta, '{stamina}', (GREATEST((meta->>'stamina')::int - 10, 0))::text::jsonb) WHERE owner_id = $1"
-            await conn.execute(sql, uid)
-            inventory_note = "🗑️ <i>Це просто сміття, ти викинув його назад.</i>"
-        elif item_type == "treasure_map":
-            map_id = random.randint(100, 999)
-            new_map = [{"id": map_id, "pos": f"{random.randint(0,149)},{random.randint(0,149)}"}]
-            
-            sql = f"""
-                UPDATE capybaras 
-                SET meta = jsonb_set(
-                    {base_meta_sql}, 
-                    '{{inventory, loot, treasure_maps}}', 
-                    (COALESCE(meta->'inventory'->'loot'->'treasure_maps', '[]'::jsonb) || '{json.dumps(new_map)}'::jsonb)
-                ) WHERE owner_id = $1
-            """
-            await conn.execute(sql, uid)
-            inventory_note = f"🗺️ <b>Виудив стару мапу #{map_id}! Координати додано в торбу.</b>"
-        else:
-            if item_type == "food":
-                folder = "food"
-            elif item_type == "materials":
-                folder = "materials"
-            else:
-                folder = "loot"
+        meta["stamina"] = max(0, stamina - 10)
+        inventory_note = ""
 
-            path = ['inventory', folder, item_key]
-            
-            sql = f"""
-                UPDATE capybaras 
-                SET meta = jsonb_set(
-                    jsonb_set(meta, '{{stamina}}', (GREATEST((meta->>'stamina')::int - 10, 0))::text::jsonb),
-                    $2, (COALESCE(meta->'inventory'->'{folder}'->>'{item_key}', '0')::int + 1)::text::jsonb
-                ) WHERE owner_id = $1
-            """
-            await conn.execute(sql, uid, path)
+        if item_type == "trash":
+            inventory_note = "🗑️ <i>Це просто сміття, ти викинув його назад.</i>"
+        
+        elif item_type == "treasure_map":
+            map_id = f"#{random.randint(100, 999)}"
+            new_map = {
+                "id": map_id, 
+                "pos": f"{random.randint(0,149)},{random.randint(0,149)}",
+                "bought_at": str(datetime.date.today())
+            }
+            loot = inventory.setdefault("loot", {})
+            maps_list = loot.setdefault("treasure_maps", [])
+            maps_list.append(new_map)
+            inventory_note = f"🗺️ <b>Виудив стару мапу {map_id}! Координати в торбі.</b>"
+        
+        else:
+            if item_type == "food": folder = "food"
+            elif item_type == "materials": folder = "materials"
+            else: folder = "loot"
+
+            target_folder = inventory.setdefault(folder, {})
+            target_folder[item_key] = target_folder.get(item_key, 0) + 1
             inventory_note = f"📦 <i>{item_name} додано в інвентар ({folder})!</i>"
+
+        await conn.execute(
+            "UPDATE capybaras SET meta = $1 WHERE owner_id = $2", 
+            json.dumps(meta, ensure_ascii=False), uid
+        )
 
         builder = InlineKeyboardBuilder()
         builder.button(text="Закинути повторно", callback_data="fish")
@@ -112,14 +106,14 @@ async def handle_fishing(callback: types.CallbackQuery):
             f"Чілимо... Раптом поплавок смикнувся!\n"
             f"Твій улов: <b>{item_name}</b> ({fish_weight} кг)\n\n"
             f"{inventory_note}\n"
-            f"🔋 Залишок енергії: {max(0, stamina - 10)}%",
+            f"🔋 Залишок енергії: {meta['stamina']}/100",
             reply_markup=builder.as_markup(),
             parse_mode="HTML"
         )
         await callback.answer(f"Зловлено: {item_name}!")
 
     except Exception as e:
-        print(f"Error: {e}")
-        await callback.answer("🚨 Щось пішло не так...")
+        print(f"Fishing Error: {e}")
+        await callback.answer("🚨 Щось пішло не так при закиданні вудки...")
     finally:
         await conn.close()
