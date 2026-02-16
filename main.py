@@ -6,6 +6,7 @@ from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
 from aiogram.fsm.storage.memory import MemoryStorage
 import config
+from config import DEV_ID
 from aiogram.exceptions import TelegramForbiddenError, TelegramRetryAfter
 #==============================================================#
 from fastapi import FastAPI
@@ -129,6 +130,47 @@ async def handle_isekai(callback: types.CallbackQuery):
         reply_markup=get_main_kb()
     )
     await callback.answer()
+
+@router.message(Command("notify"))
+async def broadcast_update(message: types.Message):
+    if message.from_user.id != DEV_ID:
+        return await message.answer("❌ Доступ заборонено. Тільки для розробника.")
+
+    broadcast_text = message.text.replace("/notify", "").strip()
+    
+    if not broadcast_text:
+        return await message.answer("⚠️ Введіть текст повідомлення після команди.")
+
+    conn = await get_db_connection()
+    try:
+        rows = await conn.fetch("SELECT DISTINCT owner_id FROM capybaras")
+        
+        count = 0
+        error_count = 0
+        
+        sent_msg = await message.answer(f"🚀 Починаю розсилку на {len(rows)} капібар...")
+
+        for row in rows:
+            uid = row['owner_id']
+            try:
+                await message.bot.send_text(
+                    chat_id=uid,
+                    text=f"📰 <b>Газета MOFU</b>\n━━━━━━━━━━━━━━━\n\n{broadcast_text}",
+                    parse_mode="HTML"
+                )
+                count += 1
+                await asyncio.sleep(0.05) 
+            except Exception:
+                error_count += 1
+
+        await sent_msg.edit_text(
+            f"✅ <b>Розсилку завершено!</b>\n\n"
+            f"📥 Отримали: {count}\n"
+            f"🚫 Заблокували бота: {error_count}"
+        )
+
+    finally:
+        await conn.close()
 
 async def give_everyday_gift(bot: Bot):
     conn = await get_db_connection()
