@@ -31,21 +31,10 @@ async def init_pg():
             gold BIGINT DEFAULT 0,
             engine JSONB DEFAULT NULL,
             meta JSONB DEFAULT '{"flag": "🏴‍☠️"}'::jsonb,
-            stats JSONB DEFAULT '{
-                "hull": 100, 
-                "cannons": 2, 
-                "speed": 10
-            }'::jsonb,
-            cargo JSONB DEFAULT '{
-                "wood": 0,
-                "iron": 0,
-                "watermelons": 0
-            }'::jsonb,
+            stats JSONB DEFAULT '{"hull": 100, "cannons": 2, "speed": 10}'::jsonb,
+            cargo JSONB DEFAULT '{"wood": 0, "iron": 0, "watermelons": 0}'::jsonb,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
-
-        ALTER TABLE capybaras 
-        ADD COLUMN IF NOT EXISTS ship_id INTEGER REFERENCES ships(id) ON DELETE SET NULL;
+        )
     ''')
 
     await conn.execute('''
@@ -76,45 +65,14 @@ async def init_pg():
                 "hunger": 3,
                 "cleanness": 3,
                 "mood": "Normal",
-                "stats": {
-                    "hp": 3,
-                    "attack": 0,
-                    "defense": 0,
-                    "luck": 0,
-                    "agility": 0
-                },
+                "stats": {"hp": 3, "attack": 0, "defense": 0, "luck": 0, "agility": 0},
                 "inventory": {
-                    "food": {
-                        "tangerines": 5,
-                        "melon": 0,
-                        "watermelon_slices": 0,
-                        "mango": 0,
-                        "kiwi": 0
-                    },
-                    "materials": {
-                        "carp": 0,
-                        "perch": 0,
-                        "pufferfish": 0,
-                        "octopus": 0,
-                        "crab": 0,
-                        "jellyfish": 0,
-                        "swordfish": 0,
-                        "shark": 0,
-                        "herbs": 0,
-                        "wood": 0
-                    },
-                    "loot": {
-                        "chest": 0, 
-                        "key": 0, 
-                        "lottery_ticket": 10
-                    },
+                    "food": {"tangerines": 5, "melon": 0, "watermelon_slices": 0, "mango": 0, "kiwi": 0},
+                    "materials": {"wood": 0, "iron": 0, "herbs": 0, "carp": 0, "perch": 0, "pufferfish": 0, "octopus": 0, "crab": 0, "jellyfish": 0, "swordfish": 0, "shark": 0},
+                    "loot": {"chest": 0, "key": 0, "lottery_ticket": 10},
                     "equipment": []
                 },
-                "equipment": {
-                    "weapon": "Лапки",
-                    "armor": "Хутро",
-                    "artifact": null
-                },
+                "equipment": {"weapon": "Лапки", "armor": "Хутро", "artifact": null},
                 "last_feed": null,
                 "last_wash": null,
                 "last_weekly_lega": null
@@ -132,13 +90,7 @@ async def init_pg():
 
     await conn.execute('''
         INSERT INTO world_state (key, value) 
-        VALUES 
-        ('environment', '{
-            "weather": "clear", 
-            "time_of_day": "zenith", 
-            "cycle_count": 1,
-            "is_eclipse": false
-        }')
+        VALUES ('environment', '{"weather": "clear", "time_of_day": "zenith", "cycle_count": 1, "is_eclipse": false}')
         ON CONFLICT (key) DO NOTHING
     ''')
     
