@@ -19,11 +19,16 @@ async def handle_fishing(callback: types.CallbackQuery):
         row = await conn.fetchrow("SELECT meta FROM capybaras WHERE owner_id = $1", uid)
         if not row: return
         
-        meta = json.loads(row['meta']) if isinstance(row['meta'], str) else row['meta']
+        meta = row['meta'] if isinstance(row['meta'], dict) else json.loads(row['meta'])
         stamina = meta.get("stamina", 0)
         
-        if "вудочка" not in meta.get("equipment", {}).get("weapon", "").lower():
-            return await callback.answer("❌ Тобі потрібна вудочка!", show_alert=True)
+        inventory_equipment = meta.get("inventory", {}).get("equipment", [])
+        
+        has_fishing_rod = any("вудочка" in item.lower() for item in inventory_equipment)
+        
+        equipped_weapon = meta.get("equipment", {}).get("weapon", "")
+        if not has_fishing_rod and "вудочка" not in equipped_weapon.lower():
+            return await callback.answer("❌ Тобі потрібна вудочка в інвентарі!", show_alert=True)
         
         if stamina < 10:
             return await callback.answer("🪫 Мало енергії (треба 10)", show_alert=True)
