@@ -104,7 +104,7 @@ async def user_menu_handler(callback: types.CallbackQuery):
     for p in players:
         layout.append(1)
         if p['tg_id'] == target_id:
-            layout.append(5)
+            layout.append(6)
     layout.append(1)
     layout.append(1)
     
