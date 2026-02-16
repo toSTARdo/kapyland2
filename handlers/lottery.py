@@ -104,7 +104,7 @@ async def handle_gacha_spin(callback: types.CallbackQuery):
         f"🛠 Тип: {item['type'].capitalize()}\n\n"
         f"📜 <i>{item['desc']}</i>\n"
         f"━━━━━━━━━━━━━━\n"
-        f"🎫 Залишилось квитків: <b>{tickets_left}</b>\n"
+        f"🎟 Залишилось квитків: <b>{tickets_left}</b>\n"
         f"⚖️ Поточна вага: <b>{weight_left} кг</b>"
     )
 
