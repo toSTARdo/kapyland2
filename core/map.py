@@ -108,7 +108,7 @@ async def render_map(callback: types.CallbackQuery):
             new_flowers = {}
             f_icons = ["🌸", "🌷", "🌻", "🌺"]
             for _ in range(100):
-                if len(new_flowers) >= 12: break
+                if len(new_flowers) >= 80: break
                 rx, ry = random.randint(0, MAP_WIDTH-1), random.randint(0, MAP_HEIGHT-1)
                 if FULL_MAP[ry][rx] not in WATER_TILES: new_flowers[f"{rx},{ry}"] = random.choice(f_icons)
             meta["flowers"] = new_flowers
