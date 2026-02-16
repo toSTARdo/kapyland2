@@ -23,7 +23,7 @@ async def meditation_menu(callback: types.CallbackQuery):
         text = (
             f"🧘 <b>Медитація капібари</b>\n\n"
             f"Тут ти можеш використати свою духовну енергію для самовдосконалення.\n\n"
-            f"💠 Доступно Zen-очок: <b>{zen}</b>\n\n"
+            f"💠 Доступно капі-дзен очок: <b>{zen}</b>\n\n"
             f"⚔️ Атака (ATK): <b>{stats.get('attack', 0)}</b>\n"
             f"🛡️ Захист (DEF): <b>{stats.get('defense', 0)}</b>\n"
             f"💨 Спритність (AGI): <b>{stats.get('agility', 0)}</b>\n"
@@ -31,9 +31,9 @@ async def meditation_menu(callback: types.CallbackQuery):
         )
         
         builder = InlineKeyboardBuilder()
-        builder.button(text="⚔️ +1 Атака", callback_data="upgrade_stat:atk")
-        builder.button(text="🛡️ +1 Захист", callback_data="upgrade_stat:def")
-        builder.button(text="💨 +1 Спритність", callback_data="upgrade_stat:agi")
+        builder.button(text="⚔️ +1 Атака", callback_data="upgrade_stat:attack")
+        builder.button(text="🛡️ +1 Захист", callback_data="upgrade_stat:defense")
+        builder.button(text="💨 +1 Спритність", callback_data="upgrade_stat:agility")
         builder.button(text="🍀 +1 Удача", callback_data="upgrade_stat:luck")
         builder.button(text="🔙 Назад", callback_data="profile_back") 
         builder.adjust(2, 2, 1)
@@ -56,7 +56,7 @@ async def process_stat_upgrade(callback: types.CallbackQuery):
         meta = json.loads(row['meta']) if isinstance(row['meta'], str) else row['meta']
         
         if "stats" not in meta:
-            meta["stats"] = {"atk": 0, "def": 0, "agi": 0, "luck": 0}
+            meta["stats"] = {"attack": 0, "defense": 0, "agility": 0, "luck": 0}
         
         meta["stats"][stat_to_boost] = meta["stats"].get(stat_to_boost, 0) + 1
         
