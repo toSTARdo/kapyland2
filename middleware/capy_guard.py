@@ -48,39 +48,48 @@ class CapyGuardMiddleware(BaseMiddleware):
             return await handler(event, data)
 
         conn = await get_db_connection()
+        conn = await get_db_connection()
         try:
             row = await conn.fetchrow("SELECT meta FROM capybaras WHERE owner_id = $1", user_id)
-            if row:
-                meta = json.loads(row['meta']) if isinstance(row['meta'], str) else row['meta']
-                
-                if meta.get("status") == "sleep":
-                    wake_up_str = meta.get("wake_up")
-                    if wake_up_str:
-                        wake_time = datetime.datetime.fromisoformat(wake_up_str)
-                        if datetime.datetime.now() < wake_time:
-
-                            safe_commands = ["/start", "🐾 Профіль", "⚙️ Налаштування", "🎒 Інвентар", "🎟️ Лотерея"]
-                            if event.message and event.message.text in safe_commands:
-                                return await handler(event, data)
-
-                            if event.callback_query:
-                                call_data = event.callback_query.data
-                                safe_callbacks = ["profile", "inv_page", "profile_back", "settings",
-                                "change_name_start", "toggle_layout", "stats_page", "gacha_spin", "gacha_guaranteed_10",
-                                "equip:", "sell_item:", "inv_pagination:", "inv_page:", "wakeup_now"
-                                ]
-                                if any(call_data.startswith(cb) for cb in safe_callbacks):
-                                    return await handler(event, data)
-
-                            warning = "💤 Твоя капібара бачить десятий сон... Не турбуй її."
-                            if event.callback_query:
-                                return await event.callback_query.answer(warning, show_alert=True)
-                            else:
-                                return await event.message.answer(warning)
-                        else:
-                            meta["status"] = "active"
-                            await conn.execute("UPDATE capybaras SET meta = $1 WHERE owner_id = $2", json.dumps(meta), user_id)
             
-            return await handler(event, data)
+            if not row:
+                return await handler(event, data)
+
+            meta = json.loads(row['meta']) if isinstance(row['meta'], str) else row['meta']
+            
+            if meta.get("status") != "sleep":
+                return await handler(event, data)
+
+            wake_up_str = meta.get("wake_up")
+            if not wake_up_str:
+                return await handler(event, data)
+
+            wake_time = datetime.datetime.fromisoformat(wake_up_str)
+            
+            if datetime.datetime.now() >= wake_time:
+                meta["status"] = "active"
+                await conn.execute("UPDATE capybaras SET meta = $1 WHERE owner_id = $2", json.dumps(meta), user_id)
+                return await handler(event, data)
+
+            if event.message and event.message.text:
+                safe_commands = ["/start", "🐾 Профіль", "⚙️ Налаштування", "🎒 Інвентар", "🎟️ Лотерея"]
+                if event.message.text in safe_commands:
+                    return await handler(event, data)
+
+            if event.callback_query:
+                call_data = event.callback_query.data
+                safe_callbacks = [
+                    "profile", "inv_page", "profile_back", "settings",
+                    "change_name_start", "toggle_layout", "stats_page", "gacha_spin", 
+                    "gacha_guaranteed_10", "equip:", "sell_item:", "inv_pagination:", "inv_page:", "wakeup_now"
+                ]
+                if any(call_data.startswith(cb) for cb in safe_callbacks):
+                    return await handler(event, data)
+
+            warning = "💤 Твоя капібара бачить десятий сон... Не турбуй її."
+            if event.callback_query:
+                return await event.callback_query.answer(warning, show_alert=True)
+            return await event.message.answer(warning)
+
         finally:
             await conn.close()
