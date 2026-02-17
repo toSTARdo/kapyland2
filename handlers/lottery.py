@@ -210,7 +210,7 @@ async def handle_bulk_spin(callback: types.CallbackQuery):
         
         builder = InlineKeyboardBuilder()
         builder.button(text="🎰 Знову (🎟️x10)", callback_data="gacha_guaranteed_10")
-        builder.button(text="🔙 Назад", callback_data="lottery")
+        builder.button(text="🔙 Назад", callback_data="lottery_menu")
         builder.adjust(1)
 
         await callback.message.edit_text(text, reply_markup=builder.as_markup(), parse_mode="HTML")

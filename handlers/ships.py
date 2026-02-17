@@ -147,9 +147,9 @@ async def execute_melon_deposit(callback: types.CallbackQuery):
     conn = await get_db_connection()
     try:
         res = await conn.execute(f"""
-            UPDATE capybaras SET meta = jsonb_set(meta, '{{inventory, food, Кавун}}', 
-            ((meta->'inventory'->'food'->>'Кавун')::int - {amount})::text::jsonb)
-            WHERE owner_id = $1 AND (meta->'inventory'->'food'->>'Кавун')::int >= $2
+            UPDATE capybaras SET meta = jsonb_set(meta, '{{inventory, food, watermelon_slices}}', 
+            ((meta->'inventory'->'food'->>'watermelon_slices')::int - {amount})::text::jsonb)
+            WHERE owner_id = $1 AND (meta->'inventory'->'food'->>'watermelon_slices')::int >= $2
         """, uid, amount)
 
         if res == "UPDATE 0":

@@ -3,6 +3,7 @@ import random
 from aiogram import Router, types, F
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
+from aiogram.filters import StateFilter
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from database.postgres_db import get_db_connection
 
@@ -18,7 +19,7 @@ def get_finish_keyboard():
     builder.row(types.InlineKeyboardButton(text="❌ Скасувати", callback_data="cancel_settings"))
     return builder.as_markup()
 
-@router.callback_query(F.data == "setup_victory_gif")
+@router.callback_query(F.data == "setup_victory_gif", StateFilter(None, SettingsStates.waiting_for_victory_gif))
 async def start_gif_setting(callback: types.CallbackQuery, state: FSMContext):
     await state.set_state(SettingsStates.waiting_for_victory_gif)
     await callback.message.edit_text(
@@ -91,6 +92,18 @@ async def clear_victory_media(callback: types.CallbackQuery):
     finally:
         await conn.close()
     await callback.answer("Очищено")
+
+@router.callback_query(F.data == "finish_media_setup", SettingsStates.waiting_for_victory_gif)
+async def finish_media(callback: types.CallbackQuery, state: FSMContext):
+    await state.clear()
+    await callback.message.edit_text("✅ <b>Налаштування збережено!</b>", parse_mode="HTML")
+    await callback.answer()
+
+@router.callback_query(F.data == "cancel_settings", SettingsStates.waiting_for_victory_gif)
+async def cancel_media(callback: types.CallbackQuery, state: FSMContext):
+    await state.clear()
+    await callback.message.edit_text("❌ <b>Зміни скасовано.</b>", parse_mode="HTML")
+    await callback.answer()
 
 async def send_victory_celebration(message: types.Message, user_id: int):
     conn = await get_db_connection()
