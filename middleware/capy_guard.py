@@ -56,7 +56,7 @@ class CapyGuardMiddleware(BaseMiddleware):
                                 call_data = event.callback_query.data
                                 safe_callbacks = ["profile", "inv_page", "profile_back", "settings",
                                 "change_name_start", "toggle_layout", "stats_page", "gacha_spin", "gacha_guaranteed_10",
-                                "equip:", "sell_item:", "inv_pagination:", "inv_page:"
+                                "equip:", "sell_item:", "inv_pagination:", "inv_page:", "wakeup_now"
                                 ]
                                 if any(call_data.startswith(cb) for cb in safe_callbacks):
                                     return await handler(event, data)

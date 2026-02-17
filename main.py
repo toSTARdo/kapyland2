@@ -133,7 +133,7 @@ async def handle_isekai(callback: types.CallbackQuery):
 
 @dp.message(Command("notify"))
 async def broadcast_update(message: types.Message):
-    if message.from_user.id != DEV_ID:
+    if message.from_user.id != int(DEV_ID):
         return await message.answer("❌ Доступ заборонено. Тільки для розробника.")
 
     broadcast_text = message.text.replace("/notify", "").strip()

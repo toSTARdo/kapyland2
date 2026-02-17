@@ -5,7 +5,7 @@ from aiogram import Router, types, F
 from aiogram.filters import Command
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-from core.capybara_mechanics import get_user_profile, calculate_dynamic_stats, feed_capybara_logic, wash_db_operation, sleep_db_operation
+from core.capybara_mechanics import get_user_profile, calculate_dynamic_stats, feed_capybara_logic, wash_db_operation, sleep_db_operation, wakeup_db_operation
 from utils.helpers import format_time, calculate_lvl_data
 from database.postgres_db import get_db_connection
 from config import MOODS
@@ -146,6 +146,17 @@ def get_fight_stats_text(data, meta):
         f"♥️ HP: <b>{stats.get('hp', 3)*2}</b>"
     )
 
+@router.callback_query(F.data == "wakeup_now")
+async def cmd_wakeup(callback: types.CallbackQuery):
+    uid = callback.from_user.id
+    status, gained = await wakeup_db_operation(uid)
+    
+    if status == "success":
+        await callback.answer(f"🥥 Капібара проснулася від будильника (кокос впав на голову з пальми)! +{gained} ⚡")
+        return await profile_back_callback(callback)
+    else:
+        await callback.answer("❌ Капібара вже не спить")
+
 @router.message(F.text.startswith("🐾"))
 async def show_profile(message: types.Message):
     uid = message.from_user.id
@@ -153,11 +164,18 @@ async def show_profile(message: types.Message):
     if not data: return await message.answer("❌ Капібару не знайдено.")
 
     meta = json.loads(data['meta']) if isinstance(data['meta'], str) else data['meta']
+    is_sleeping = meta.get("status") == "sleep"
     
     builder = InlineKeyboardBuilder()
     builder.button(text="🍎 Годувати", callback_data="feed_capy")
     builder.button(text="🧼 Мити", callback_data="wash_capy")
-    builder.button(text="💤 Сон (2 год)", callback_data="sleep_capy")
+    
+    # ДИНАМІЧНА КНОПКА
+    if is_sleeping:
+        builder.button(text="☀️ Прокинутися", callback_data="wakeup_now")
+    else:
+        builder.button(text="💤 Сон (2 год)", callback_data="sleep_capy")
+        
     builder.button(text="⚔️ Бойові характеристики", callback_data="stats_page")
     builder.button(text="🪷 Медитація", callback_data="zen_upgrade")
     
@@ -169,39 +187,46 @@ async def show_profile(message: types.Message):
         parse_mode="HTML"
     )
 
-@router.callback_query(F.data == "stats_page")
-async def show_stats_callback(callback: types.CallbackQuery):
-    uid = callback.from_user.id
-    data = await get_user_profile(uid)
-    meta = json.loads(data['meta']) if isinstance(data['meta'], str) else data['meta']
-    
-    builder = InlineKeyboardBuilder()
-    builder.button(text="🔙 Назад", callback_data="profile_back")
-    builder.adjust(1)
-
-    await callback.message.edit_text(
-        get_fight_stats_text(data, meta),
-        reply_markup=builder.as_markup(),
-        parse_mode="HTML"
-    )
-
 @router.callback_query(F.data == "profile_back")
 async def profile_back_callback(callback: types.CallbackQuery):
     uid = callback.from_user.id
     data = await get_user_profile(uid)
     meta = json.loads(data['meta']) if isinstance(data['meta'], str) else data['meta']
+    is_sleeping = meta.get("status") == "sleep"
     
     builder = InlineKeyboardBuilder()
     builder.button(text="🍎 Годувати", callback_data="feed_capy")
     builder.button(text="🧼 Мити", callback_data="wash_capy")
-    builder.button(text="💤 Сон (2 год)", callback_data="sleep_capy")
+    
+    if is_sleeping:
+        builder.button(text="☀️ Прокинутися", callback_data="wakeup_now")
+    else:
+        builder.button(text="💤 Сон (2 год)", callback_data="sleep_capy")
+        
     builder.button(text="⚔️ Бойові характеристики", callback_data="stats_page")
     builder.button(text="🪷 Медитація", callback_data="zen_upgrade")
     
     builder.adjust(3, 1, 1)
 
-    await callback.message.edit_text(
-        get_general_profile_text(data, meta),
-        reply_markup=builder.as_markup(),
-        parse_mode="HTML"
-    )
+    try:
+        await callback.message.edit_text(
+            get_general_profile_text(data, meta),
+            reply_markup=builder.as_markup(),
+            parse_mode="HTML"
+        )
+    except Exception:
+        await callback.answer()
+
+@router.callback_query(F.data == "sleep_capy")
+async def cmd_sleep_callback(callback: types.CallbackQuery):
+    uid = callback.from_user.id
+    status, result_data = await sleep_db_operation(uid) 
+    
+    if status == "success":
+        await callback.answer("💤 На добраніч!")
+        return await profile_back_callback(callback)
+    
+    elif status == "already_sleeping":
+        await callback.answer("💤 Вже спить")
+    else:
+        await callback.answer("❌ Помилка")

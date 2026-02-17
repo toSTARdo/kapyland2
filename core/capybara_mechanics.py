@@ -151,20 +151,51 @@ async def sleep_db_operation(tg_id: int):
         row = await conn.fetchrow("SELECT meta FROM capybaras WHERE owner_id = $1", tg_id)
         if not row: return "no_capy", None
         
-        meta = json.loads(row['meta']) if isinstance(row['meta'], str) else row['meta']
+        meta = row['meta'] if isinstance(row['meta'], dict) else json.loads(row['meta'])
         
-        wake_up_time = datetime.datetime.now() + datetime.timedelta(hours=2)
+        if meta.get("status") == "sleep":
+            return "already_sleeping", meta.get("wake_up")
+
+        now = datetime.datetime.now()
+        wake_up_time = now + datetime.timedelta(hours=2)
+        
         meta["status"] = "sleep"
+        meta["sleep_start"] = now.isoformat()
         meta["wake_up"] = wake_up_time.isoformat()
-        meta["stamina"] = 100
         
         await conn.execute(
             "UPDATE capybaras SET meta = $1 WHERE owner_id = $2", 
             json.dumps(meta, ensure_ascii=False), tg_id
         )
         return "success", None
-    finally:
-        await conn.close()
+    finally: await conn.close()
+
+async def wakeup_db_operation(tg_id: int):
+    conn = await get_db_connection()
+    try:
+        row = await conn.fetchrow("SELECT meta FROM capybaras WHERE owner_id = $1", tg_id)
+        meta = row['meta'] if isinstance(row['meta'], dict) else json.loads(row['meta'])
+        
+        if meta.get("status") != "sleep":
+            return "not_sleeping", None
+
+        start_time = datetime.datetime.fromisoformat(meta["sleep_start"])
+        now = datetime.datetime.now()
+        
+        duration = (now - start_time).total_seconds() / 60
+        recovery_rate = 100 / 120
+        
+        gained_stamina = int(duration * recovery_rate)
+        new_stamina = min(100, meta.get("stamina", 0) + gained_stamina)
+
+        meta["status"] = "active"
+        meta["stamina"] = new_stamina
+        meta.pop("sleep_start", None)
+        meta.pop("wake_up", None)
+
+        await conn.execute("UPDATE capybaras SET meta = $1 WHERE owner_id = $2", json.dumps(meta, ensure_ascii=False), tg_id)
+        return "success", gained_stamina
+    finally: await conn.close()
 
 async def grant_exp_and_lvl(tg_id: int, exp_gain: int, weight_gain: float = 0, bot=None):
     conn = await get_db_connection()
