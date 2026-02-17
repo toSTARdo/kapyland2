@@ -53,7 +53,7 @@ STAT_WEIGHTS = {
     "agi_to_trap": 0.03,
     "def_to_anti_steal": 0.05,
     "luck_to_drop": 0.01,
-    "luck_to_steal": 0.01
+    "luck_to_steal": 0.01,
     "end_to_energy": 0.05
 }
 
