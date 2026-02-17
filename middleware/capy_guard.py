@@ -20,8 +20,19 @@ class CapyGuardMiddleware(BaseMiddleware):
 
         if event.callback_query:
             msg = event.callback_query.message
-            if msg.reply_to_message and msg.reply_to_message.from_user.id != user_id:
-                return await event.callback_query.answer("Ах ти підступна капібара! 🐾 Це не твій профіль!", show_alert=True)
+            user_click_id = event.callback_query.from_user.id
+            
+            owner_id = None
+            if msg.reply_to_message:
+                owner_id = msg.reply_to_message.from_user.id
+            elif "ID:" in (msg.text or msg.caption or ""):
+                try:
+                    owner_id = int(msg.text.split("ID:")[1].strip().split()[0])
+                except:
+                    pass
+
+            if owner_id and owner_id != user_click_id:
+                return await event.callback_query.answer(("Ах ти підступна капібара! 🐾 Це не твій профіль!", show_alert=True)
 
         is_game_command = False
         if event.message and event.message.text:

@@ -6,6 +6,7 @@ from aiogram import types, F, Router
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from database.postgres_db import get_db_connection
 from handlers.quests import start_branching_quest
+from utils.helpers import consume_stamina
 from config import FULL_MAP, PLAYER_ICON, SHIP_ICON
 
 router = Router()
