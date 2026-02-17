@@ -176,45 +176,95 @@ async def execute_steal_logic(callback: types.CallbackQuery):
     
     conn = await get_db_connection()
     try:
-        actor_row = await conn.fetchrow("SELECT meta FROM capybaras WHERE owner_id = $1", uid)
+        actor_row = await conn.fetchrow("SELECT meta, name FROM capybaras WHERE owner_id = $1", uid)
+        target_row = await conn.fetchrow("SELECT meta, name FROM capybaras WHERE owner_id = $1", target_id)
+        
+        if not actor_row or not target_row: return
+        
         a_meta = json.loads(actor_row['meta']) if isinstance(actor_row['meta'], str) else actor_row['meta']
+        t_meta = json.loads(target_row['meta']) if isinstance(target_row['meta'], str) else target_row['meta']
         
         can_steal, _ = check_daily_limit(a_meta, "steal")
         if not can_steal:
             return await callback.answer("🥷 Ти вже сьогодні виходив на полювання. Спробуй завтра!", show_alert=True)
-            
-        await conn.execute("UPDATE capybaras SET meta = $1 WHERE owner_id = $2", json.dumps(a_meta), uid)
 
-        chance = random.random()
+        base_success_chance = 0.05
+        base_catch_chance = 0.10
 
-        if chance < 0.05:
-            target_row = await conn.fetchrow("SELECT meta, name FROM capybaras WHERE owner_id = $1", target_id)
-            t_meta = json.loads(target_row['meta']) if isinstance(target_row['meta'], str) else target_row['meta']
-            
+        luck_stat = a_meta.get("stats", {}).get("luck", 1)
+        luck_bonus = luck_stat * 0.01
+        
+        sleep_bonus = 0.10 if t_meta.get("status") == "sleep" else 0.0
+        
+        equipped_items = a_meta.get("equipment", [])
+        has_steal_item = any("steal" in str(item).lower() for item in equipped_items)
+
+        if has_steal_item:
+            final_success_chance = 0.75
+            final_catch_chance = 0.85
+        else:
+            final_success_chance = base_success_chance + luck_bonus + sleep_bonus
+            final_catch_chance = final_success_chance + base_catch_chance
+
+        roll = random.random()
+
+        if roll < final_success_chance:
             t_items = t_meta.get("inventory", {}).get("equipment", [])
             
             if t_items:
                 stolen_item = random.choice(t_items)
                 t_meta["inventory"]["equipment"] = [i for i in t_items if i != stolen_item]
                 a_meta.setdefault("inventory", {}).setdefault("equipment", []).append(stolen_item)
-                
+
                 await conn.execute("UPDATE capybaras SET meta = $1 WHERE owner_id = $2", json.dumps(t_meta, ensure_ascii=False), target_id)
                 await conn.execute("UPDATE capybaras SET meta = $1 WHERE owner_id = $2", json.dumps(a_meta, ensure_ascii=False), uid)
                 
                 await callback.message.edit_text(
-                    f"🥷 НАЙШВИДШІ ЛАПКИ НА АРХІПЕЛАЗІ!\n"
-                    f"Ви непомітно витягли {stolen_item['name']} у {target_row['name']}!"
+                    f"🥷 <b>НАЙШВИДШІ ЛАПКИ!</b>\n"
+                    f"Ви непомітно витягли <b>{stolen_item['name']}</b> у {target_row['name']}!\n"
+                    f"🍀 Твій успіх: {int(final_success_chance*100)}%",
+                    parse_mode="HTML"
                 )
             else:
-                await callback.message.edit_text(f"🧤 Ти обшукав кишені {target_row['name']}, але там лише пісок та морська сіль...")
+                await callback.message.edit_text(f"🧤 Ти обшукав {target_row['name']}, але в кишенях порожньо...")
 
-        elif chance < 0.10:
-            await callback.message.edit_text(f"😱 ЧОРТ! ВАС ПІЙМАЛИ!\nЦіль прокинулась і схопила тебе за лапу! Починається бій...")
+        elif roll < final_catch_chance:
+            if t_meta.get("status") == "sleep":
+                start_time_str = t_meta.get("sleep_start")
+                gained_stamina = 0
+                
+                if start_time_str:
+                    start_time = datetime.datetime.fromisoformat(start_time_str)
+                    now = datetime.datetime.now()
+                    duration_mins = (now - start_time).total_seconds() / 60
+                    gained_stamina = int(duration_mins * (100 / 120))
+                    
+                t_meta["status"] = "active"
+                t_meta["stamina"] = min(100, t_meta.get("stamina", 0) + gained_stamina)
+                t_meta.pop("wake_up", None)
+                t_meta.pop("sleep_start", None)
+                
+                await conn.execute(
+                    "UPDATE capybaras SET meta = $1 WHERE owner_id = $2", 
+                    json.dumps(t_meta, ensure_ascii=False), target_id
+                )
+                
+                wake_msg = f"\n🔔 Ціль миттєво прокинулась! (+{gained_stamina}⚡)"
+            else:
+                wake_msg = ""
+
+            await callback.message.edit_text(
+                f"😱 <b>ЧОРТ! ВАС ПІЙМАЛИ!</b>{wake_msg}\n"
+                f"Починається бій за життя!", parse_mode="HTML"
+            )
             asyncio.create_task(run_battle_logic(callback, opponent_id=target_id))
-        
+
         else:
             await callback.answer("💨 Ти злякався шурхоту і втік ні з чим. Буває...", show_alert=True)
-            await cmd_arena_hub(callback.message)
+
+    except Exception as e:
+        print(f"Steal Error: {e}")
+        await callback.answer("🚨 Злодійська удача сьогодні не на твоїм боці...")
     finally: await conn.close()
 
 @router.callback_query(F.data.startswith("ram:"))
