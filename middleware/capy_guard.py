@@ -32,7 +32,7 @@ class CapyGuardMiddleware(BaseMiddleware):
                     pass
 
             if owner_id and owner_id != user_click_id:
-                return await event.callback_query.answer(("Ах ти підступна капібара! 🐾 Це не твій профіль!", show_alert=True)
+                return await event.callback_query.answer("Ах ти підступна капібара! 🐾 Це не твій профіль!", show_alert=True)
 
         is_game_command = False
         if event.message and event.message.text:

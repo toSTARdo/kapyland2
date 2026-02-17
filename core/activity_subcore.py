@@ -580,6 +580,10 @@ async def gift_item_select(callback: types.CallbackQuery):
         row = await conn.fetchrow("SELECT meta FROM capybaras WHERE owner_id = $1", uid)
         meta = json.loads(row['meta']) if isinstance(row['meta'], str) else row['meta']
         
+        can_gift, _ = check_daily_limit(meta, "gift")
+        if not can_gift:
+            return await callback.answer("🎁 Ти вже сьогодні надсилав подарунок. Спробуй завтра!", show_alert=True)
+
         builder = InlineKeyboardBuilder()
         has_items = False
         
@@ -588,9 +592,11 @@ async def gift_item_select(callback: types.CallbackQuery):
             current_equip = meta.get("equipment", {}).values()
             
             for idx, item in enumerate(equipment_list):
-                if item['name'] not in current_equip:
+                rarity = item.get("rarity", "Common").capitalize()
+                
+                if rarity in ["Common", "Rare"] and item['name'] not in current_equip:
                     builder.button(
-                        text=f"📦 {item['name']}", 
+                        text=f"🎁 {item['name']}", 
                         callback_data=f"gift_exec:equip:{idx}:{target_id}"
                     )
                     has_items = True
