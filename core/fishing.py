@@ -30,8 +30,8 @@ async def handle_fishing(callback: types.CallbackQuery):
         if not has_fishing_rod:
             return await callback.answer("❌ Тобі потрібна вудочка в спорядженні інвентаря!", show_alert=True)
         
-        if stamina < 10:
-            return await callback.answer("🪫 Мало енергії (треба 10)", show_alert=True)
+        if not await consume_stamina(conn, callback.from_user.id, "fish"):
+            return await callback.answer("🪫 Недостатньо енергії для риболовлі!", show_alert=True)
 
         loot_pool = [
             {"name": "🦴 Стара кістка", "min_w": 0.1, "max_w": 0.4, "chance": 12, "type": "trash"},

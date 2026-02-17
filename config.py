@@ -32,7 +32,8 @@ STAMINA_COSTS = {
     "boss": 15,
     "guild_boss": 5,
     "ram": 15,
-    "steal": 5
+    "steal": 5,
+    "chop": 5
 }
 
     #FIGHT_CONSTS:
@@ -53,6 +54,7 @@ STAT_WEIGHTS = {
     "def_to_anti_steal": 0.05,
     "luck_to_drop": 0.01,
     "luck_to_steal": 0.01
+    "end_to_energy": 0.05
 }
 
     #ECONOMY_СONSTS:

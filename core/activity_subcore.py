@@ -829,7 +829,7 @@ async def accept_date(callback: types.CallbackQuery):
         if date_count == 10:
             res_text += "\n\n🎉 <b>ОГО! Тепер ви офіційно ПАРА!</b> ❤️"
         elif date_count == 50:
-            res_text += "\n\n🎊 <b>НЕЙМОВІРНО! Ви ПОВЕНЧАЛИСЯ!</b> 💍🔔"
+            res_text += "\n\n🎊 <b>НЕЙМОВІРНО! Ви ПОВІНЧАЛИСЯ!</b> 💍🔔"
 
         await callback.message.edit_text(res_text, parse_mode="HTML")
         

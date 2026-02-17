@@ -27,7 +27,8 @@ async def meditation_menu(callback: types.CallbackQuery):
             f"⚔️ Атака (ATK): <b>{stats.get('attack', 0)}</b>\n"
             f"🛡️ Захист (DEF): <b>{stats.get('defense', 0)}</b>\n"
             f"💨 Спритність (AGI): <b>{stats.get('agility', 0)}</b>\n"
-            f"🍀 Удача (LUCK): <b>{stats.get('luck', 0)}</b>"
+            f"🍀 Удача (LCK): <b>{stats.get('luck', 0)}</b>"
+            f"⚡ Витривалість (END): <b>{stats.get('endurance', 0)}</b>"
         )
         
         builder = InlineKeyboardBuilder()
@@ -35,6 +36,7 @@ async def meditation_menu(callback: types.CallbackQuery):
         builder.button(text="🛡️ +1 Захист", callback_data="upgrade_stat:defense")
         builder.button(text="💨 +1 Спритність", callback_data="upgrade_stat:agility")
         builder.button(text="🍀 +1 Удача", callback_data="upgrade_stat:luck")
+        builder.button(text="⚡ +1 Витривалість", callback_data="upgrade_stat:endurance")
         builder.button(text="🔙 Назад", callback_data="profile_back") 
         builder.adjust(2, 2, 1)
 
@@ -56,7 +58,7 @@ async def process_stat_upgrade(callback: types.CallbackQuery):
         meta = json.loads(row['meta']) if isinstance(row['meta'], str) else row['meta']
         
         if "stats" not in meta:
-            meta["stats"] = {"attack": 0, "defense": 0, "agility": 0, "luck": 0}
+            meta["stats"] = {"attack": 0, "defense": 0, "agility": 0, "luck": 0, "endurance": 0}
         
         meta["stats"][stat_to_boost] = meta["stats"].get(stat_to_boost, 0) + 1
         
