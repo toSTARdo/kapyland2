@@ -153,7 +153,7 @@ async def broadcast_update(message: types.Message):
         for row in rows:
             uid = row['owner_id']
             try:
-                await message.bot.send_text(
+                await message.bot.send_message(
                     chat_id=uid,
                     text=f"📰 <b>Газета MOFU</b>\n━━━━━━━━━━━━━━━\n\n{broadcast_text}",
                     parse_mode="HTML"
@@ -164,7 +164,7 @@ async def broadcast_update(message: types.Message):
                 error_count += 1
 
         await sent_msg.edit_text(
-            f"✅ <b>Розсилку завершено!</b>\n\n"
+            f"✅ Розсилку завершено!\n\n"
             f"📥 Отримали: {count}\n"
             f"🚫 Заблокували бота: {error_count}"
         )
