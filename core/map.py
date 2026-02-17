@@ -24,6 +24,11 @@ PLANTS_LOOT = {
     ]
 }
 
+MUSHROOMS_LOOT = [
+    {"id": "fly_agaric", "name": "🍄 Мухомор", "chance": 10},
+    {"id": "mushroom", "name": "🍄‍🟫 Гриб", "chance": 90},
+]
+
 COORD_QUESTS = {
     "15,129": "carpathian_pearl",
     "75,145": "carpathian_pearl"
@@ -42,6 +47,10 @@ def get_random_plant():
     selected = random.choices(all_plants, weights=weights, k=1)[0]
     
     return selected
+
+def get_random_mushroom():
+    weights = [m['chance'] for m in MUSHROOMS_LOOT]
+    return random.choices(MUSHROOMS_LOOT, weights=weights, k=1)[0]
 
 def check_daily_limit(meta, action_key):
     today = datetime.datetime.now().strftime("%Y-%m-%d")
@@ -145,11 +154,17 @@ async def render_map(callback: types.CallbackQuery):
         can_refresh, _ = check_daily_limit(meta, "flowers_refresh")
         if can_refresh:
             new_flowers = {}
-            f_icons = ["🌸", "🌷", "🌻", "🌺", "🪻༘"]
-            for _ in range(100):
-                if len(new_flowers) >= 80: break
+            for _ in range(120):
+                if len(new_flowers) >= 100: break
                 rx, ry = random.randint(0, MAP_WIDTH-1), random.randint(0, MAP_HEIGHT-1)
-                if FULL_MAP[ry][rx] not in WATER_TILES: new_flowers[f"{rx},{ry}"] = random.choice(f_icons)
+                tile = FULL_MAP[ry][rx]
+                
+                if tile not in WATER_TILES:
+                    is_forest = tile in FOREST_TILES
+                    choices = ["✽", "𓋼"]
+                    weights = [20, 80] if is_forest else [80, 20]
+                    
+                    new_flowers[f"{rx},{ry}"] = random.choices(choices, weights=weights, k=1)[0]
             meta["flowers"] = new_flowers
             new_trees = {}
             for ry in range(MAP_HEIGHT):
@@ -204,16 +219,18 @@ async def handle_move(callback: types.CallbackQuery):
         if coord_key in personal_flowers:
             f_icon = personal_flowers.pop(coord_key)
             
-            plant = get_random_plant()
-            plant_id = plant['id']
-            plant_name = plant['name']
+            if f_icon == "𓋼":
+                item = get_random_mushroom()
+            else:
+                item = get_random_plant()
 
-            category = "flowers" if any(f['id'] == plant_id for f in PLANTS_LOOT['flowers']) else "herbs"
+            item_id, item_name = item['id'], item['name']
             
-            inv_materials = meta.setdefault("inventory", {}).setdefault("materials", {})
-            inv_materials[plant_id] = inv_materials.get(plant_id, 0) + 1
-            
-            await callback.answer(f"✨ Знайдено: {plant_name}!", show_alert=False)
+            if await consume_stamina(conn, uid, "move"):
+                inv_mats = meta.setdefault("inventory", {}).setdefault("materials", {})
+                inv_mats[item_id] = inv_mats.get(item_id, 0) + 1
+                
+                await callback.answer(f"✨ Знайдено: {item_name}!", show_alert=False)
         loot = meta.setdefault("inventory", {}).setdefault("loot", {})
         tmaps = loot.get("treasure_maps", [])
         found_map = next((m for m in tmaps if m["pos"] == coord_key), None)
