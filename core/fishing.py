@@ -1,6 +1,7 @@
 import asyncio, json, random, datetime
 from aiogram import Router, types, html, F
 from aiogram.utils.keyboard import InlineKeyboardBuilder
+from utils.helpers import consume_stamina
 
 from database.postgres_db import get_db_connection
 
