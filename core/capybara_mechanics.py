@@ -190,7 +190,7 @@ async def wakeup_db_operation(tg_id: int):
         if start_time.tzinfo is None:
             start_time = start_time.replace(tzinfo=timezone.utc)
 
-duration_seconds = max(0, (now - start_time).total_seconds())
+        duration_seconds = max(0, (now - start_time).total_seconds())
         
         duration_seconds = max(0, (now - start_time).total_seconds())
         duration_minutes = duration_seconds / 60
