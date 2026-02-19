@@ -272,7 +272,8 @@ async def ship_create_start(callback: types.CallbackQuery, state: FSMContext):
             "У тебе достатньо дерева для каркасу. Напиши назву свого майбутнього корабля:",
             reply_markup=InlineKeyboardBuilder()
                 .button(text="❌ Скасувати", callback_data="ship_main")
-                .as_markup()
+                .as_markup(),
+            parse_mode="HTML"
         )
     finally:
         await conn.close()

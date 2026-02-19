@@ -289,7 +289,7 @@ async def execute_ram_logic(callback: types.CallbackQuery):
 
         await conn.execute("UPDATE capybaras SET meta = $1 WHERE owner_id = $2", json.dumps(meta), uid)
 
-        await callback.message.edit_text("💥 <b>БА-БАХ!</b>\nТи влетів у суперника на повному ходу! Бій починається негайно!")
+        await callback.message.edit_text("💥 <b>БА-БАХ!</b>\nТи влетів у суперника на повному ходу! Бій починається негайно!", parse_mode="HTML")
         
         asyncio.create_task(run_battle_logic(callback, opponent_id=target_id))
         
