@@ -43,9 +43,9 @@ async def feed_capybara_logic(tg_id: int, weight_gain: float):
 
         last_feed_str = meta.get("last_feed")
         if last_feed_str:
-            last_feed = datetime.datetime.fromisoformat(last_feed_str)
-            if datetime.datetime.now() - last_feed < datetime.timedelta(hours=8):
-                remaining = datetime.timedelta(hours=8) - (datetime.datetime.now() - last_feed)
+            last_feed = datetime.fromisoformat(last_feed_str)
+            if datetime.now() - last_feed < timedelta(hours=8):
+                remaining = timedelta(hours=8) - (datetime.now() - last_feed)
                 return {"status": "cooldown", "remaining": remaining}
 
         actual_gain = round((weight_gain * multiplier) * 2) / 2
@@ -125,10 +125,10 @@ async def wash_db_operation(tg_id: int):
         
         last_wash_str = meta.get("last_wash")
         if last_wash_str:
-            last_wash = datetime.datetime.fromisoformat(last_wash_str)
-            diff = datetime.datetime.now() - last_wash
-            if diff < datetime.timedelta(hours=12):
-                remaining = datetime.timedelta(hours=12) - diff
+            last_wash = datetime.fromisoformat(last_wash_str)
+            diff = datetime.now() - last_wash
+            if diff < timedelta(hours=12):
+                remaining = timedelta(hours=12) - diff
                 return "cooldown", remaining
 
         exp_gain = 1
