@@ -146,6 +146,26 @@ def get_fight_stats_text(data, meta):
         f"♥️ HP: <b>{stats.get('hp', 3)*2}</b>"
     )
 
+@router.callback_query(F.data == "show_fight_stats")
+async def show_fight_stats(callback: types.CallbackQuery):
+    uid = callback.from_user.id
+    data = await get_user_profile(uid)
+    
+    if not data:
+        return await callback.answer("❌ Дані не знайдено")
+
+    meta = json.loads(data['meta']) if isinstance(data['meta'], str) else data['meta']
+    
+    builder = InlineKeyboardBuilder()
+    builder.button(text="⬅️ Назад", callback_data="profile_back")
+    
+    await callback.message.edit_text(
+        get_fight_stats_text(data, meta),
+        reply_markup=builder.as_markup(),
+        parse_mode="HTML"
+    )
+    await callback.answer()
+
 @router.callback_query(F.data == "wakeup_now")
 async def cmd_wakeup(callback: types.CallbackQuery):
     uid = callback.from_user.id
@@ -170,13 +190,12 @@ async def show_profile(message: types.Message):
     builder.button(text="🍎 Годувати", callback_data="feed_capy")
     builder.button(text="🧼 Мити", callback_data="wash_capy")
     
-    # ДИНАМІЧНА КНОПКА
     if is_sleeping:
         builder.button(text="☀️ Прокинутися", callback_data="wakeup_now")
     else:
         builder.button(text="💤 Сон (2 год)", callback_data="sleep_capy")
         
-    builder.button(text="⚔️ Бойові характеристики", callback_data="get_fight_stats_text")
+    builder.button(text="⚔️ Бойові характеристики", callback_data="show_fight_stats")
     builder.button(text="🪷 Медитація", callback_data="zen_upgrade")
     
     builder.adjust(3, 1, 1)

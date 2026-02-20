@@ -347,7 +347,7 @@ async def run_battle_logic(callback: types.CallbackQuery, opponent_id: int = Non
                 "stats": meta.get("stats", {"attack": 0, "defense": 0, "agility": 0, "luck": 0}),
                 "equipped_weapon": equip.get("weapon", "Лапки"),
                 "equipped_armor": equip.get("armor", ""),
-                "artifacts": meta.get("artifacts", []),
+                "inventory": meta.get("inventory", {}),
                 "color": "🔴"
             }
         finally: await conn.close()

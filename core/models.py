@@ -26,7 +26,7 @@ class Fighter:
         })
 
         equipment = capy.get("meta", {}).get("equipment", [])
-        inventory_equipment = meta.get("inventory", {}).get("equipment", [])
+        inventory_equipment = capy.get("inventory", {}).get("equipment", [])
         has_cat_life = any(item.get("name") == "Котяче життя" for item in inventory_equipment)
         extra_heart = 2 if has_cat_life else 0
         self.max_hp = (BASE_HEARTS * UNITS_PER_HEART) + extra_heart
