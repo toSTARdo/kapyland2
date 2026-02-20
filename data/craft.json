@@ -1,0 +1,10 @@
+{
+  "mango_energy_drink": {
+    "ingredients": {"mango": 1, "mint": 1},
+    "plus_stamina": 100
+  },
+  "tangerine_watermelon_energy_drink": {
+    "ingredients": {"tangerines": 2, "watermelon_slices": 1},
+    "plus_stamina": 15
+  }
+}

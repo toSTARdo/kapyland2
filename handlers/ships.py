@@ -32,6 +32,7 @@ async def cmd_port(event: types.Message | types.CallbackQuery):
     )
     
     builder.row(
+        types.InlineKeyboardButton(text="⚗️ Алхімічна лавка \"Сонний Бровар\"", callback_data="open_alchemy"),
         types.InlineKeyboardButton(text="⚙️ Налаштування", callback_data="open_settings")
     )
 
