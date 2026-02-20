@@ -3,7 +3,7 @@ import os
 from aiogram import types, F, Router
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from config import load_game_data
-from core.capybara_mechanics import get_user_profile
+from core.capybara_mechanics import get_user_inventory
 from database.postgres_db import get_db_connection
 
 router = Router()
@@ -48,7 +48,7 @@ def get_alchemy_kb(available_recipes):
 @router.callback_query(F.data == "open_alchemy")
 async def process_open_alchemy(callback: types.CallbackQuery):
     user_id = callback.from_user.id
-    user_data = await get_user_profile(user_id) 
+    user_data = await get_user_inventory(user_id) 
     raw_inventory = user_data['meta']['inventory'].get('food', [])
     user_inv_dict = {item['name']: item.get('count', 0) for item in raw_inventory}
     

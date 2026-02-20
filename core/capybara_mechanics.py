@@ -10,6 +10,7 @@ async def get_user_inventory(tg_id: int):
         return row['meta'] if row else None
     finally:
         await conn.close()
+        
 async def get_user_profile(tg_id: int):
     conn = await get_db_connection()
     try:
