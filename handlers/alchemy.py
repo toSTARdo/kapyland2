@@ -16,7 +16,7 @@ EMOJI_MAP = {
     "kiwi": "🥝"
 }
 
-RECIPES = load_game_data("craft.json")
+RECIPES = load_game_data("data/craft.json")
 
 def filter_available_potions(user_inventory, all_recipes):
     available = []
