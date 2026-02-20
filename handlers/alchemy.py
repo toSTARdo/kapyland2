@@ -3,7 +3,6 @@ import os
 from aiogram import types, F, Router
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from config import load_game_data
-from core.capybara_mechanics import get_user_inventory
 from database.postgres_db import get_db_connection
 
 router = Router()
@@ -17,6 +16,26 @@ EMOJI_MAP = {
 }
 
 RECIPES = load_game_data("data/craft.json")
+
+async def get_user_inventory(tg_id: int):
+    conn = await get_db_connection()
+    try:
+        row = await conn.fetchrow("SELECT meta FROM capybaras WHERE owner_id = $1", tg_id)
+        
+        if not row or not row['meta']:
+            return {}
+
+        meta = row['meta']
+        if isinstance(meta, str):
+            try:
+                return json.loads(meta)
+            except json.JSONDecodeError:
+                return {}
+        
+        return meta
+        
+    finally:
+        await conn.close()
 
 def filter_available_potions(user_inventory, all_recipes):
     available = []
