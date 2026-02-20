@@ -3,7 +3,7 @@ import os
 from aiogram import types, F, Router
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from config import load_game_data
-from database.postgre import get_db_connection
+from database.postgres_db import get_db_connection
 
 router = Router()
 
