@@ -66,7 +66,10 @@ class CapyGuardMiddleware(BaseMiddleware):
 
             wake_time = datetime.datetime.fromisoformat(wake_up_str)
             
-            if datetime.datetime.now() >= wake_time:
+            if wake_time.tzinfo is None:
+                wake_time = wake_time.replace(tzinfo=datetime.timezone.utc)
+
+            if datetime.datetime.now(datetime.timezone.utc) >= wake_time:
                 meta["status"] = "active"
                 await conn.execute("UPDATE capybaras SET meta = $1 WHERE owner_id = $2", json.dumps(meta), user_id)
                 return await handler(event, data)
