@@ -52,7 +52,7 @@ async def feed_capybara_logic(tg_id: int, weight_gain: float):
         exp_gain = int(actual_gain)
         
         meta["hunger"] = min(meta.get("hunger", 0) + 1, 3)
-        meta["last_feed"] = datetime.datetime.now().isoformat()
+        meta["last_feed"] = datetime.now().isoformat()
         
         await conn.execute("UPDATE capybaras SET meta = $1 WHERE owner_id = $2", 
                            json.dumps(meta, ensure_ascii=False), tg_id)
@@ -135,7 +135,7 @@ async def wash_db_operation(tg_id: int):
         new_exp, new_lvl = calculate_lvl_data(row['exp'], exp_gain)
 
         meta["cleanness"] = 3
-        meta["last_wash"] = datetime.datetime.now().isoformat()
+        meta["last_wash"] = datetime.now().isoformat()
         
         await conn.execute('''
             UPDATE capybaras SET meta = $1, exp = $2, lvl = $3 WHERE owner_id = $4
@@ -144,7 +144,6 @@ async def wash_db_operation(tg_id: int):
         return "success", {"exp_gain": exp_gain, "lvl": new_lvl}
     finally:
         await conn.close()
-from datetime import datetime, timezone, timedelta
 
 async def sleep_db_operation(tg_id: int):
     conn = await get_db_connection()
