@@ -40,23 +40,23 @@ async def render_inventory_page(message, user_id, page="food", current_page=0, i
 
     elif page == "potions":
         title = "🧪 <b>Зілля</b>"
-    potions = inv.get("potions", {})
-    
-    active_potions = {k: v for k, v in potions.items() if v > 0}
-    
-    if not active_potions:
-        content = "<i>У тебе немає готових зілль. Зазирни до Омо!</i>"
-    else:
-        content = "<i>Твої магічні шмурдяки:</i>"
-        for p_id, count in active_potions.items():
-            recipe_info = RECIPES.get(p_id, {})
-            p_name = recipe_info.get("name", p_id)
-            p_emoji = recipe_info.get("emoji", "🧪")
-            
-            builder.row(types.InlineKeyboardButton(
-                text=f"{p_emoji} {p_name} ({count})", 
-                callback_data=f"use_potion:{p_id}"
-            ))
+        potions = inv.get("potions", {})
+        
+        active_potions = {k: v for k, v in potions.items() if v > 0}
+        
+        if not active_potions:
+            content = "<i>У тебе немає готових зілль. Зазирни до Омо!</i>"
+        else:
+            content = "<i>Твої магічні шмурдяки:</i>"
+            for p_id, count in active_potions.items():
+                recipe_info = RECIPES.get(p_id, {})
+                p_name = recipe_info.get("name", p_id)
+                p_emoji = recipe_info.get("emoji", "🧪")
+                
+                builder.row(types.InlineKeyboardButton(
+                    text=f"{p_emoji} {p_name} ({count})", 
+                    callback_data=f"use_potion:{p_id}"
+                ))
 
     elif page == "items":
         title = "⚔️ <b>Амуніція</b>"
