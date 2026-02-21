@@ -31,9 +31,7 @@ async def get_user_inventory(tg_id: int):
                 return json.loads(meta)
             except json.JSONDecodeError:
                 return {}
-        
         return meta
-        
     finally:
         await conn.close()
 
