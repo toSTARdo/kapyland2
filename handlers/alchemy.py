@@ -67,14 +67,10 @@ def get_alchemy_kb(available_recipes):
 @router.callback_query(F.data == "open_alchemy")
 async def process_open_alchemy(callback: types.CallbackQuery):
     user_id = callback.from_user.id
-    meta = await get_user_inventory(user_id) 
+    meta = await get_user_inventory(user_id)
     
-    if not meta:
-        meta = {}
+    user_inv_dict = meta.get('inventory', {}).get('food', {})
 
-    inventory_data = meta.get('inventory', {})
-    raw_inventory = inventory_data.get('food', [])
-    user_inv_dict = {item['name']: item.get('count', 0) for item in raw_inventory}
     available = filter_available_potions(user_inv_dict, RECIPES)
     
     text = (
