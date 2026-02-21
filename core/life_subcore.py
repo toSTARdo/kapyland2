@@ -106,8 +106,9 @@ def get_stamina_icons(current_stamina):
         return "● ● ●"
 
 def get_general_profile_text(data, meta):
+    MAX_STAMINA = 100
     mood = "ദ്ദി₍ᐢ•(ܫ)•ᐢ₎"
-    stamina_val = meta.get('stamina', 100)
+    stamina_val = meta.get('stamina', MAX_STAMINA)
     _, lvl = calculate_lvl_data(data['exp'], 0)
     
     return (
@@ -120,7 +121,7 @@ def get_general_profile_text(data, meta):
         f"ХП: {create_scale(meta.get('stats', {}).get('hp', 3), 3, '♥️', '🖤')}\n"
         f"Ситість: {create_scale(meta.get('hunger', 3), 3, '🍏', '●')}\n"
         f"Гігієна: {create_scale(meta.get('cleanness', 3), 3, '🧼', '🦠')}\n"
-        f"Енергія: <b>{get_stamina_icons(stamina_val)}</b>"
+        f"Енергія: <b>{get_stamina_icons(stamina_val)} ({stamina_val}/{MAX_STAMINA})</b>"
     )
 
 def get_fight_stats_text(data, meta):
