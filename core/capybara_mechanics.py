@@ -183,35 +183,39 @@ async def wakeup_db_operation(tg_id: int):
             return "not_sleeping", 0
 
         start_time = datetime.fromisoformat(meta["sleep_start"])
-        now = datetime.now(timezone.utc)
-
-        start_time = datetime.fromisoformat(meta["sleep_start"])
-
         if start_time.tzinfo is None:
             start_time = start_time.replace(tzinfo=timezone.utc)
-
-        duration_seconds = max(0, (now - start_time).total_seconds())
-        
-        duration_seconds = max(0, (now - start_time).total_seconds())
-        duration_minutes = duration_seconds / 60
-        
-        recovery_rate = 100 / 120 
+            
+        now = datetime.now(timezone.utc)
+        duration_minutes = (now - start_time).total_seconds() / 60
         
         current_stamina = meta.get("stamina", 0)
-        gained_stamina = int(duration_minutes * recovery_rate)
-        
-        new_stamina = min(100, current_stamina + gained_stamina)
-        
-        actual_gain = new_stamina - current_stamina
+
+        if duration_minutes > 120:
+            actual_gain = 0
+            new_stamina = current_stamina
+            status_result = "overslept" 
+        else:
+            recovery_rate = 100 / 120 
+            gained_stamina = int(duration_minutes * recovery_rate)
+            new_stamina = min(100, current_stamina + gained_stamina)
+            actual_gain = new_stamina - current_stamina
+            status_result = "success"
 
         meta["status"] = "active"
         meta["stamina"] = new_stamina
         meta.pop("sleep_start", None)
         meta.pop("wake_up", None)
 
-        await conn.execute("UPDATE capybaras SET meta = $1 WHERE owner_id = $2", json.dumps(meta, ensure_ascii=False), tg_id)
-        return "success", actual_gain
-    finally: await conn.close()
+        await conn.execute(
+            "UPDATE capybaras SET meta = $1 WHERE owner_id = $2", 
+            json.dumps(meta, ensure_ascii=False), 
+            tg_id
+        )
+        
+        return status_result, actual_gain
+    finally: 
+        await conn.close()
 
 async def grant_exp_and_lvl(tg_id: int, exp_gain: int, weight_gain: float = 0, bot=None):
     conn = await get_db_connection()
