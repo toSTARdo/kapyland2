@@ -57,7 +57,7 @@ def get_alchemy_kb(available_recipes):
             text=f"{emoji} {name} (+{stamina}⚡)",
             callback_data=f"brew:{r_id}"
         )
-    builder.button(text="⬅️ Назад", callback_data="open_adventure")
+    builder.button(text="⬅️ Назад", callback_data="open_port")
     builder.adjust(1)
     return builder.as_markup()
 
