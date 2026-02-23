@@ -182,9 +182,6 @@ async def wakeup_db_operation(tg_id: int):
         meta = row['meta'] if isinstance(row['meta'], dict) else json.loads(row['meta'])
         
         print(f"EXTRACTED STATUS: '{meta.get('status')}'")
-        current_status = str(meta.get("status", "")).strip().lower()
-        if current_status != "sleep":
-            return "not_sleeping", 0
 
         start_time = datetime.fromisoformat(meta["sleep_start"])
         if start_time.tzinfo is None:
