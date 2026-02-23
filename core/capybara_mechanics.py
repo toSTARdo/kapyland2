@@ -177,8 +177,11 @@ async def wakeup_db_operation(tg_id: int):
         row = await conn.fetchrow("SELECT meta FROM capybaras WHERE owner_id = $1", tg_id)
         if not row: return "error", 0
         
+        print(f"RAW DB DATA: {row['meta']} (Type: {type(row['meta'])})")
+        
         meta = row['meta'] if isinstance(row['meta'], dict) else json.loads(row['meta'])
         
+        print(f"EXTRACTED STATUS: '{meta.get('status')}'")
         current_status = str(meta.get("status", "")).strip().lower()
         if current_status != "sleep":
             return "not_sleeping", 0
