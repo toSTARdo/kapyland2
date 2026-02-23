@@ -172,10 +172,21 @@ async def cmd_wakeup(callback: types.CallbackQuery):
     status, gained = await wakeup_db_operation(uid)
     
     if status == "success":
-        await callback.answer(f"🥥 Капібара проснулася від будильника (кокос впав на голову з пальми)! +{gained} ⚡")
-        return await profile_back_callback(callback)
+        await callback.answer(
+            f"🥥 Капібара проснулася від будильника! Отримано {gained} ⚡", 
+            show_alert=True
+        )
+    elif status == "overslept":
+        await callback.answer(
+            "Капібара проспала, але вже бігає по архіпелагу!", 
+            show_alert=True
+        )
+    elif status == "not_sleeping":
+        await callback.answer("❌ Капібара вже активна!")
     else:
-        await callback.answer("❌ Капібара вже не спить")
+        await callback.answer("❌ Щось пішло не так...")
+
+    return await profile_back_callback(callback)
 
 @router.message(F.text.startswith("🐾"))
 async def show_profile(message: types.Message):
