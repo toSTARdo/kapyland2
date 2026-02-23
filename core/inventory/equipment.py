@@ -6,6 +6,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from core.capybara_mechanics import get_user_inventory
 from database.postgres_db import get_db_connection
 from config import ARTIFACTS, RARITY_META, DISPLAY_NAMES
+from config import load_game_data
 GACHA_ITEMS = ARTIFACTS
 
 RECIPES = load_game_data("data/craft.json")
