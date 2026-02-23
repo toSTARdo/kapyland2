@@ -1,0 +1,14 @@
+{
+  "mango_energy_drink": {
+    "name": "Манговий енергетик",
+    "emoji": "🥭⚡⚡",
+    "ingredients": {"mango": 1, "mint": 1},
+    "plus_stamina": 100
+  },
+  "tangerine_watermelon_energy_drink": {
+    "name": "Мандариново-кавуновий енергетик",
+    "emoji": "🍊🍉⚡",
+    "ingredients": {"tangerines": 2, "watermelon_slices": 1},
+    "plus_stamina": 15
+  }
+}

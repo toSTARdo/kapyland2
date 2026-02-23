@@ -89,6 +89,43 @@ ARMOR = GAME_ITEMS.get("ARMOR", {})
     #FLAGS:
 KANJI_DICT = GAME_ITEMS.get("FLAGS", {})
 
+DISPLAY_NAMES = {
+            # Ресурси з риболовлі
+            "carp": "🐟 Океанічний карась",
+            "perch": "🐠 Уробороокеанський Окунь",
+            "pufferfish": "🐡 Риба-пупупу",
+            "octopus": "🐙 Восьмирук",
+            "crab": "🦀 Бокохід",
+            "jellyfish": "🪼 Медуза",
+            "swordfish": "🗡️🐟 Риба-меч",
+            "shark": "🦈 Маленька акула",
+            
+            # Трави
+            "mint": "🌿 М'ята",
+            "thyme": "🌱 Чебрець",
+            "rosemary": "🌿 Розмарин",
+            
+            # Квіти
+            "chamomile": "🌼 Ромашка",
+            "lavender": "🪻 Лаванда",
+            "tulip": "🌷 Тюльпан",
+            "lotus": "🪷 Лотос",
+            
+            # Гриби 
+            "fly_agaric": "🍄 Мухомор",
+            "mushroom": "🍄‍🟫 Гриб",
+            
+            # Базові матеріали
+            "wood": "🪵 Деревина",
+
+            # Їжа
+            "tangerines": "🍊 Мандарин",
+            "watermelon_slices": "🍉 Кавунова скибка",
+            "kiwi": "🥝 Ківі",
+            "mango": "🥭 Манго",
+            "melon": "🍈 Диня",
+        }
+
 #MISC:
 VERSION = "2.0 open beta"
 

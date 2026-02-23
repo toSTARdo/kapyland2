@@ -28,6 +28,7 @@ from core.inventory.equipment import router as eq_router
 from core.fishing import router as fish_router
 from handlers.ships import router as ship_router
 from handlers.emotes import router as emote_router
+from handlers.alchemy import router as alchemy_router
 from handlers.start import render_story_node
 from middleware.capy_guard import CapyGuardMiddleware
 
@@ -51,6 +52,7 @@ dp.include_router(fish_router)
 dp.include_router(zen_router)
 dp.include_router(ship_router)
 dp.include_router(emote_router)
+dp.include_router(alchemy_router)
 
 dp.update.middleware(CapyGuardMiddleware())
 

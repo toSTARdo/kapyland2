@@ -5,14 +5,13 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from core.capybara_mechanics import get_user_inventory
 from database.postgres_db import get_db_connection
-from config import ARTIFACTS, RARITY_META
+from config import ARTIFACTS, RARITY_META, DISPLAY_NAMES
+from config import load_game_data
 GACHA_ITEMS = ARTIFACTS
 
-router = Router()
+RECIPES = load_game_data("data/craft.json")
 
-import json
-from aiogram import types
-from aiogram.utils.keyboard import InlineKeyboardBuilder
+router = Router()
 
 async def render_inventory_page(message, user_id, page="food", current_page=0, is_callback=False):
     meta_data = await get_user_inventory(user_id)
@@ -41,6 +40,26 @@ async def render_inventory_page(message, user_id, page="food", current_page=0, i
                 icon = food_names.get(k, "🍱")
                 builder.button(text=f"{icon} ({v})", callback_data=f"food_choice:{k}")
         builder.adjust(2)
+
+    elif page == "potions":
+        title = "🧪 <b>Зілля</b>"
+        potions = inv.get("potions", {})
+        
+        active_potions = {k: v for k, v in potions.items() if v > 0}
+        
+        if not active_potions:
+            content = "<i>У тебе немає готових зілль. Зазирни до Омо!</i>"
+        else:
+            content = "<i>Твої магічні шмурдяки:</i>"
+            for p_id, count in active_potions.items():
+                recipe_info = RECIPES.get(p_id, {})
+                p_name = recipe_info.get("name", p_id)
+                p_emoji = recipe_info.get("emoji", "🧪")
+                
+                builder.row(types.InlineKeyboardButton(
+                    text=f"{p_emoji} {p_name} ({count})", 
+                    callback_data=f"use_potion:{p_id}"
+                ))
 
     elif page == "items":
         title = "⚔️ <b>Амуніція</b>"
@@ -104,36 +123,6 @@ async def render_inventory_page(message, user_id, page="food", current_page=0, i
     elif page == "materials":
         title = "📦 <b>Ресурси</b>"
         mats = inv.get("materials", {})
-        
-        DISPLAY_NAMES = {
-            # Ресурси з риболовлі
-            "carp": "🐟 Океанічний карась",
-            "perch": "🐠 Уробороокеанський Окунь",
-            "pufferfish": "🐡 Риба-пупупу",
-            "octopus": "🐙 Восьмирук",
-            "crab": "🦀 Бокохід",
-            "jellyfish": "🪼 Медуза",
-            "swordfish": "🗡️🐟 Риба-меч",
-            "shark": "🦈 Маленька акула",
-            
-            # Трави
-            "mint": "🌿 М'ята",
-            "thyme": "🌱 Чебрець",
-            "rosemary": "🌿 Розмарин",
-            
-            # Квіти
-            "chamomile": "🌼 Ромашка",
-            "lavender": "🪻 Лаванда",
-            "tulip": "🌷 Тюльпан",
-            "lotus": "🪷 Лотос",
-            
-            # Гриби 
-            "fly_agaric": "🍄 Мухомор",
-            "mushroom": "🍄‍🟫 Гриб",
-            
-            # Базові матеріали
-            "wood": "🪵 Деревина"
-        }
         mat_lines = [f"{DISPLAY_NAMES.get(k, k.capitalize())}: <b>{v}</b>" for k, v in mats.items() if v > 0]
         content = "Твої запаси:\n\n" + "\n".join(mat_lines) if mat_lines else "<i>Твій трюм порожній...</i>"
 
@@ -143,7 +132,14 @@ async def render_inventory_page(message, user_id, page="food", current_page=0, i
         content = "\n".join([f"📍 <b>Карта {m['id']}</b>\n╰ <code>{m['pos']}</code>" for m in maps]) if maps else "<i>У тебе немає жодної карти.</i>"
 
     if page != "items":
-        pages_meta = {"food": "🍎 Їжа", "loot": "🧳 Лут", "maps": "🗺 Мапи", "items": "⚔️ Речі", "materials": "🌱 Матеріали"}
+        pages_meta = {
+            "food": "🍎 Їжа", 
+            "potions": "🧪 Зілля",
+            "loot": "🧳 Лут", 
+            "maps": "🗺 Мапи", 
+            "items": "⚔️ Речі", 
+            "materials": "🌱 Матеріали"
+        }
         nav_builder = InlineKeyboardBuilder()
         for p_key, p_text in pages_meta.items():
             if page != p_key:

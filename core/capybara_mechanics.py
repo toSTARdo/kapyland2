@@ -10,6 +10,7 @@ async def get_user_inventory(tg_id: int):
         return row['meta'] if row else None
     finally:
         await conn.close()
+        
 async def get_user_profile(tg_id: int):
     conn = await get_db_connection()
     try:
@@ -176,41 +177,46 @@ async def wakeup_db_operation(tg_id: int):
         row = await conn.fetchrow("SELECT meta FROM capybaras WHERE owner_id = $1", tg_id)
         if not row: return "error", 0
         
+        print(f"RAW DB DATA: {row['meta']} (Type: {type(row['meta'])})")
+        
         meta = row['meta'] if isinstance(row['meta'], dict) else json.loads(row['meta'])
         
-        if meta.get("status") != "sleep":
-            return "not_sleeping", 0
+        print(f"EXTRACTED STATUS: '{meta.get('status')}'")
 
         start_time = datetime.fromisoformat(meta["sleep_start"])
-        now = datetime.now(timezone.utc)
-
-        start_time = datetime.fromisoformat(meta["sleep_start"])
-
         if start_time.tzinfo is None:
             start_time = start_time.replace(tzinfo=timezone.utc)
-
-        duration_seconds = max(0, (now - start_time).total_seconds())
-        
-        duration_seconds = max(0, (now - start_time).total_seconds())
-        duration_minutes = duration_seconds / 60
-        
-        recovery_rate = 100 / 120 
+            
+        now = datetime.now(timezone.utc)
+        duration_minutes = (now - start_time).total_seconds() / 60
         
         current_stamina = meta.get("stamina", 0)
-        gained_stamina = int(duration_minutes * recovery_rate)
-        
-        new_stamina = min(100, current_stamina + gained_stamina)
-        
-        actual_gain = new_stamina - current_stamina
+
+        if duration_minutes > 120:
+            actual_gain = 100 - current_stamina 
+            new_stamina = 100
+            status_result = "overslept"
+        else:
+            recovery_rate = 100 / 120 
+            gained_stamina = int(duration_minutes * recovery_rate)
+            new_stamina = min(100, current_stamina + gained_stamina)
+            actual_gain = new_stamina - current_stamina
+            status_result = "success"
 
         meta["status"] = "active"
         meta["stamina"] = new_stamina
         meta.pop("sleep_start", None)
         meta.pop("wake_up", None)
 
-        await conn.execute("UPDATE capybaras SET meta = $1 WHERE owner_id = $2", json.dumps(meta, ensure_ascii=False), tg_id)
-        return "success", actual_gain
-    finally: await conn.close()
+        await conn.execute(
+            "UPDATE capybaras SET meta = $1 WHERE owner_id = $2", 
+            json.dumps(meta, ensure_ascii=False), 
+            tg_id
+        )
+        
+        return status_result, actual_gain
+    finally: 
+        await conn.close()
 
 async def grant_exp_and_lvl(tg_id: int, exp_gain: int, weight_gain: float = 0, bot=None):
     conn = await get_db_connection()
