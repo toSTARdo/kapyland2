@@ -192,8 +192,9 @@ async def wakeup_db_operation(tg_id: int):
         current_stamina = meta.get("stamina", 0)
 
         if duration_minutes > 120:
+            actual_gain = 100 - current_stamina 
             new_stamina = 100
-            status_result = "overslept" 
+            status_result = "overslept"
         else:
             recovery_rate = 100 / 120 
             gained_stamina = int(duration_minutes * recovery_rate)
