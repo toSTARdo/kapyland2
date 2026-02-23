@@ -6,7 +6,7 @@ from core.capybara_mechanics import get_user_inventory
 from database.postgres_db import get_db_connection
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.fsm.context import FSMContext
-from config import KANJI_DICT
+from config import KANJI_DICT, IMAGES_URLS
 
 class ShipCreation(StatesGroup):
     waiting_for_name = State()
@@ -22,15 +22,12 @@ router = Router()
 @router.callback_query(F.data == "open_port")
 async def cmd_port(event: types.Message | types.CallbackQuery):
     is_callback = isinstance(event, types.CallbackQuery)
-    message = event.message if is_callback else event
     
     builder = InlineKeyboardBuilder()
-    
     builder.row(
         types.InlineKeyboardButton(text="🍻 Таверна", callback_data="social"),
         types.InlineKeyboardButton(text="⛵ Мій Корабель", callback_data="ship_main")
     )
-    
     builder.row(
         types.InlineKeyboardButton(text="🕌 Містечко Пух-Пух", callback_data="open_village"),
         types.InlineKeyboardButton(text="⚙️ Налаштування", callback_data="open_settings")
@@ -40,12 +37,27 @@ async def cmd_port(event: types.Message | types.CallbackQuery):
 
     if is_callback:
         try:
-            await event.message.edit_text(text, reply_markup=builder.as_markup(), parse_mode="HTML")
-        except:
-            pass
+            await event.message.edit_caption(
+                caption=text, 
+                reply_markup=builder.as_markup(), 
+                parse_mode="HTML"
+            )
+        except Exception:
+            await event.message.delete()
+            await event.message.answer_photo(
+                photo=IMAGES_URLS["village_main"],
+                caption=text,
+                reply_markup=builder.as_markup(),
+                parse_mode="HTML"
+            )
         await event.answer()
     else:
-        await message.answer(text, reply_markup=builder.as_markup(), parse_mode="HTML")
+        await event.answer_photo(
+            photo=IMAGES_URLS["village_main"],
+            caption=text,
+            reply_markup=builder.as_markup(),
+            parse_mode="HTML"
+        )
 
 @router.callback_query(F.data == "open_village")
 async def open_village(event: types.Message | types.CallbackQuery, target_text: str = None):
@@ -58,7 +70,6 @@ async def open_village(event: types.Message | types.CallbackQuery, target_text: 
         "🔨 <b>Кузня Ківі</b> — покращуй спорядження та крафти предмети\n"
         "🎪 <b>Базар</b> — торгуй та обмінюй ресурси з іншими капібарами та NPC"
     )
-    
     final_text = target_text or village_text
 
     builder = InlineKeyboardBuilder()
@@ -69,18 +80,16 @@ async def open_village(event: types.Message | types.CallbackQuery, target_text: 
     builder.adjust(1)
 
     if is_callback:
-        input_media = types.InputMediaPhoto(
-            caption=final_text,
-            parse_mode="HTML"
-        )
         try:
-            await event.message.edit_media(
-                media=input_media,
-                reply_markup=builder.as_markup()
+            await event.message.edit_caption(
+                caption=final_text,
+                reply_markup=builder.as_markup(),
+                parse_mode="HTML"
             )
         except Exception:
             await event.message.delete()
             await event.message.answer_photo(
+                photo=IMAGES_URLS["village_main"],
                 caption=final_text,
                 reply_markup=builder.as_markup(),
                 parse_mode="HTML"
@@ -88,6 +97,7 @@ async def open_village(event: types.Message | types.CallbackQuery, target_text: 
         await event.answer()
     else:
         await event.answer_photo(
+            photo=IMAGES_URLS["village_main"],
             caption=final_text,
             reply_markup=builder.as_markup(),
             parse_mode="HTML"
