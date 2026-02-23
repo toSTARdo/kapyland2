@@ -32,7 +32,7 @@ async def cmd_port(event: types.Message | types.CallbackQuery):
     )
     
     builder.row(
-        types.InlineKeyboardButton(text="⚗️ Алхімічна лавка \"Сонний Бровар\"", callback_data="open_alchemy"),
+        types.InlineKeyboardButton(text="🕌 Містечко Пух-Пух", callback_data="open_village"),
         types.InlineKeyboardButton(text="⚙️ Налаштування", callback_data="open_settings")
     )
 
@@ -47,6 +47,51 @@ async def cmd_port(event: types.Message | types.CallbackQuery):
     else:
         await message.answer(text, reply_markup=builder.as_markup(), parse_mode="HTML")
 
+@router.callback_query(F.data == "open_village")
+async def open_village(event: types.Message | types.CallbackQuery, target_text: str = None):
+    is_callback = isinstance(event, types.CallbackQuery)
+    
+    village_text = (
+        "🕌 <b>Містечко Пух-Пух</b>\n"
+        "________________________________\n\n"
+        "⚗️ Алхімічна лавка \"Сонний Бровар\" — вари зілля та еліксири\n"
+        "🔨 <b>Кузня Ківі</b> — покращуй спорядження та крафти предмети\n"
+        "🎪 <b>Базар</b> — торгуй та обмінюй ресурси з іншими капібарами та NPC"
+    )
+    
+    final_text = target_text or village_text
+
+    builder = InlineKeyboardBuilder()
+    builder.button(text="⚗️ Лавка Омо", callback_data="open_alchemy")
+    builder.button(text="🔨 Кузня Ківі", callback_data="open_forge")
+    builder.button(text="⚖️ Базар", callback_data="open_bazaar")
+    builder.button(text="⬅️ Назад", callback_data="open_port")
+    builder.adjust(1)
+
+    if is_callback:
+        input_media = types.InputMediaPhoto(
+            caption=final_text,
+            parse_mode="HTML"
+        )
+        try:
+            await event.message.edit_media(
+                media=input_media,
+                reply_markup=builder.as_markup()
+            )
+        except Exception:
+            await event.message.delete()
+            await event.message.answer_photo(
+                caption=final_text,
+                reply_markup=builder.as_markup(),
+                parse_mode="HTML"
+            )
+        await event.answer()
+    else:
+        await event.answer_photo(
+            caption=final_text,
+            reply_markup=builder.as_markup(),
+            parse_mode="HTML"
+        )
 
 @router.callback_query(F.data == "ship_main")
 async def cmd_ship_menu(event: types.Message | types.CallbackQuery, state: FSMContext):
