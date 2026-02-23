@@ -5,7 +5,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from core.capybara_mechanics import get_user_inventory
 from database.postgres_db import get_db_connection
-from core.equipment import RECIPES
+from core.inventory.equipment import RECIPES
 from config import ARTIFACTS, RARITY_META, DISPLAY_NAMES
 GACHA_ITEMS = ARTIFACTS
 
