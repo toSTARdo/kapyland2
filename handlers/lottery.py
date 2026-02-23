@@ -26,6 +26,8 @@ async def cmd_lottery_start(event: types.Message | types.CallbackQuery):
     is_callback = isinstance(event, types.CallbackQuery)
     uid = event.from_user.id
     
+    lottery_img = "https://raw.githubusercontent.com/toSTARdo/kapyland2/main/assets/capyimg1.jpg"
+    
     conn = await get_db_connection()
     row = await conn.fetchrow("SELECT meta FROM capybaras WHERE owner_id = $1", uid)
     await conn.close()
@@ -60,13 +62,21 @@ async def cmd_lottery_start(event: types.Message | types.CallbackQuery):
     )
 
     if is_callback:
-        try:
-            await event.message.edit_text(text, reply_markup=builder.as_markup(), parse_mode="HTML")
-        except:
-            pass
+        await event.message.delete()
+        await event.message.answer_photo(
+            photo=lottery_img, 
+            caption=text, 
+            reply_markup=builder.as_markup(), 
+            parse_mode="HTML"
+        )
         await event.answer()
     else:
-        await event.answer(text, reply_markup=builder.as_markup(), parse_mode="HTML")
+        await event.answer_photo(
+            photo=lottery_img, 
+            caption=text, 
+            reply_markup=builder.as_markup(), 
+            parse_mode="HTML"
+        )
 
 @router.callback_query(F.data == "gacha_spin")
 async def handle_gacha_spin(callback: types.CallbackQuery):
