@@ -89,7 +89,7 @@ async def handle_gacha_spin(callback: types.CallbackQuery):
     
     pay_msg = "🎟 Використано квиток!" if payment_status == "ticket" else "⚖️ Списано 5 кг ваги!"
     
-    await callback.message.edit_text(f"🌀 {pay_msg}\n<i>Крутимо барабан...</i>", parse_mode="HTML")
+    await callback.message.edit_caption(f"🌀 {pay_msg}\n<i>Крутимо барабан...</i>", parse_mode="HTML")
     await asyncio.sleep(1.5)
     
     rarity_key = random.choices(
@@ -223,7 +223,7 @@ async def handle_bulk_spin(callback: types.CallbackQuery):
         builder.button(text="🔙 Назад", callback_data="lottery_menu")
         builder.adjust(1)
 
-        await callback.message.edit_text(text, reply_markup=builder.as_markup(), parse_mode="HTML")
+        await callback.message.edit_caption(text, reply_markup=builder.as_markup(), parse_mode="HTML")
 
     finally:
         await conn.close()
