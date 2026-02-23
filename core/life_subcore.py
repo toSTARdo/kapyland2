@@ -178,7 +178,7 @@ async def cmd_wakeup(callback: types.CallbackQuery):
         )
     elif status == "overslept":
         await callback.answer(
-            "Капібара проспала, але вже бігає по архіпелагу!", 
+            "🐾 Капібара проспала, але вже бігає по архіпелагу! (100 ⚡)", 
             show_alert=True
         )
     elif status == "not_sleeping":

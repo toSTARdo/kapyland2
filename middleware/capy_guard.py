@@ -70,7 +70,7 @@ class CapyGuardMiddleware(BaseMiddleware):
                 wake_time = wake_time.replace(tzinfo=datetime.timezone.utc)
 
             if datetime.datetime.now(datetime.timezone.utc) >= wake_time:
-                meta["status"] = "active"
+                meta["status"] = "overslept"
                 await conn.execute("UPDATE capybaras SET meta = $1 WHERE owner_id = $2", json.dumps(meta), user_id)
                 return await handler(event, data)
 
