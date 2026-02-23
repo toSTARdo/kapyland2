@@ -313,6 +313,10 @@ LOTTERY_BANNERS = [
     "https://raw.githubusercontent.com/toSTARdo/kapyland2/main/assets/capyimg3.jpg"     #Yole  banner
 ]
 
+IMAGES_URLS = {
+    "profile": "https://raw.githubusercontent.com/toSTARdo/kapyland2/main/assets/capyimg_profile.png"
+}
+
 ACHIEVEMENTS = {
     "weight_50": {
         "name": "🍎 Круглячок",

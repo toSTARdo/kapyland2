@@ -8,7 +8,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from core.capybara_mechanics import get_user_profile, calculate_dynamic_stats, feed_capybara_logic, wash_db_operation, sleep_db_operation, wakeup_db_operation
 from utils.helpers import format_time, calculate_lvl_data
 from database.postgres_db import get_db_connection
-from config import MOODS
+from config import MOODS, IMAGES_URLS
 
 router = Router()
 
@@ -193,7 +193,8 @@ async def cmd_wakeup(callback: types.CallbackQuery):
 async def show_profile(message: types.Message):
     uid = message.from_user.id
     data = await get_user_profile(uid)
-    if not data: return await message.answer("❌ Капібару не знайдено.")
+    if not data: 
+        return await message.answer("❌ Капібару не знайдено.")
 
     meta = json.loads(data['meta']) if isinstance(data['meta'], str) else data['meta']
     is_sleeping = meta.get("status") == "sleep"
@@ -210,10 +211,11 @@ async def show_profile(message: types.Message):
     builder.button(text="⚔️ Бойові характеристики", callback_data="show_fight_stats")
     builder.button(text="🪷 Медитація", callback_data="zen_upgrade")
     
-    builder.adjust(3, 1, 1)
+    builder.adjust(2, 1, 1, 1)
 
-    await message.answer(
-        get_general_profile_text(data, meta), 
+    await message.answer_photo(
+        photo=IMAGES_URLS["profile"],
+        caption=get_general_profile_text(data, meta),
         reply_markup=builder.as_markup(), 
         parse_mode="HTML"
     )
