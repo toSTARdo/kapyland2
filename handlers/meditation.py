@@ -27,7 +27,7 @@ async def meditation_menu(callback: types.CallbackQuery):
             f"⚔️ Атака (ATK): <b>{stats.get('attack', 0)}</b>\n"
             f"🛡️ Захист (DEF): <b>{stats.get('defense', 0)}</b>\n"
             f"💨 Спритність (AGI): <b>{stats.get('agility', 0)}</b>\n"
-            f"🍀 Удача (LCK): <b>{stats.get('luck', 0)}</b>"
+            f"🍀 Удача (LCK): <b>{stats.get('luck', 0)}</b>\n"
             f"⚡ Витривалість (END): <b>{stats.get('endurance', 0)}</b>"
         )
         
@@ -40,7 +40,7 @@ async def meditation_menu(callback: types.CallbackQuery):
         builder.button(text="🔙 Назад", callback_data="profile_back") 
         builder.adjust(2, 2, 1)
 
-        await callback.message.edit_text(text, reply_markup=builder.as_markup(), parse_mode="HTML")
+        await callback.message.edit_caption(text, reply_markup=builder.as_markup(), parse_mode="HTML")
     finally:
         await conn.close()
 
