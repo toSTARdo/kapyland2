@@ -307,6 +307,12 @@ MOODS = {
     "love": "₍ᐢ♡(τ)♡ᐢ₎"
 }
 
+LOTTERY_BANNERS = [
+    "https://raw.githubusercontent.com/toSTARdo/kapyland2/main/assets/capyimg1.jpg",    #Plain banner
+    "https://raw.githubusercontent.com/toSTARdo/kapyland2/main/assets/capyimg2.jpg",    #Miku  banner
+    "https://raw.githubusercontent.com/toSTARdo/kapyland2/main/assets/capyimg3.jpg"     #Yole  banner
+]
+
 ACHIEVEMENTS = {
     "weight_50": {
         "name": "🍎 Круглячок",

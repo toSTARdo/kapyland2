@@ -6,7 +6,7 @@ from aiogram.filters import Command
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 import datetime
 
-from config import RARITY_META, ARTIFACTS
+from config import RARITY_META, ARTIFACTS, LOTTERY_BANNERS
 from database.postgres_db import get_db_connection
 
 GACHA_ITEMS = ARTIFACTS
@@ -21,62 +21,61 @@ async def is_eligible_for_lega(meta: dict) -> bool:
     return datetime.datetime.now() >= last_lega_date + datetime.timedelta(days=7)
 
 @router.message(F.text.startswith("🎟️"))
-@router.callback_query(F.data == "lottery_menu")
+@router.callback_query(F.data.startswith("lottery_menu"))
 async def cmd_lottery_start(event: types.Message | types.CallbackQuery):
     is_callback = isinstance(event, types.CallbackQuery)
     uid = event.from_user.id
     
-    lottery_img = "https://raw.githubusercontent.com/toSTARdo/kapyland2/main/assets/capyimg1.jpg"
+    banner_idx = 0
+    if is_callback and "_" in event.data:
+        try:
+            banner_idx = int(event.data.split("_")[-1])
+        except: banner_idx = 0
+
+    lottery_img = LOTTERY_BANNERS[banner_idx % len(LOTTERY_BANNERS)]
     
     conn = await get_db_connection()
     row = await conn.fetchrow("SELECT meta FROM capybaras WHERE owner_id = $1", uid)
     await conn.close()
-
     tickets = 0
     can_get_lega = True
-    
     if row:
         meta = json.loads(row['meta']) if isinstance(row['meta'], str) else row['meta']
         tickets = meta.get("inventory", {}).get("loot", {}).get("lottery_ticket", 0)
         can_get_lega = await is_eligible_for_lega(meta)
-
     label = "LEGENDARY" if can_get_lega else "EPIC"
-    
+    # ---------------------------------------------------------
+
     builder = InlineKeyboardBuilder()
     builder.row(types.InlineKeyboardButton(text="🏴‍☠️ Крутити (1🎟 / 5кг)", callback_data="gacha_spin"))
-    builder.row(types.InlineKeyboardButton(text=f"🔥 10+1 / 100% {label} (10🎟)", callback_data="gacha_guaranteed_10"))
+    builder.row(types.InlineKeyboardButton(text=f"🔥 10+1 / 100% {label}", callback_data="gacha_guaranteed_10"))
+    
+    prev_idx = (banner_idx - 1) % len(LOTTERY_BANNERS)
+    next_idx = (banner_idx + 1) % len(LOTTERY_BANNERS)
+    builder.row(
+        types.InlineKeyboardButton(text="◀️", callback_data=f"lottery_menu_{prev_idx}"),
+        types.InlineKeyboardButton(text=f"{banner_idx + 1}/{len(LOTTERY_BANNERS)}", callback_data="none"),
+        types.InlineKeyboardButton(text="▶️", callback_data=f"lottery_menu_{next_idx}")
+    )
     builder.row(types.InlineKeyboardButton(text="⬅️ Назад", callback_data="open_inventory_main"))
-
-    c, r, e, l = RARITY_META['Common'], RARITY_META['Rare'], RARITY_META['Epic'], RARITY_META['Legendary']
 
     text = (
         f"🎰 <b>ГАЗИНО «ФОРТУНА КАПІ»</b>\n"
         f"━━━━━━━━━━━━━━━\n"
         f"Твої квитки: <b>{tickets}</b> 🎟\n"
-        f"Ціна: 1 🎟 або <b>5 кг</b> ваги\n\n"
-        f"{c['emoji']} {c['label']}: 60%\n"
-        f"{r['emoji']} {r['label']}: 25%\n"
-        f"{e['emoji']} {e['label']}: 12%\n"
-        f"{l['emoji']} {l['label']}: 3%\n\n"
-        f"<i>Удача посміхається сміливим!</i>"
+        f"<i>Гортай банери, щоб побачити акції!</i>"
     )
 
     if is_callback:
-        await event.message.delete()
-        await event.message.answer_photo(
-            photo=lottery_img, 
-            caption=text, 
-            reply_markup=builder.as_markup(), 
-            parse_mode="HTML"
-        )
+        input_media = types.InputMediaPhoto(media=lottery_img, caption=text, parse_mode="HTML")
+        try:
+            await event.message.edit_media(media=input_media, reply_markup=builder.as_markup())
+        except:
+            await event.message.delete()
+            await event.message.answer_photo(photo=lottery_img, caption=text, reply_markup=builder.as_markup(), parse_mode="HTML")
         await event.answer()
     else:
-        await event.answer_photo(
-            photo=lottery_img, 
-            caption=text, 
-            reply_markup=builder.as_markup(), 
-            parse_mode="HTML"
-        )
+        await event.answer_photo(photo=lottery_img, caption=text, reply_markup=builder.as_markup(), parse_mode="HTML")
 
 @router.callback_query(F.data == "gacha_spin")
 async def handle_gacha_spin(callback: types.CallbackQuery):
