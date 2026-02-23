@@ -3,7 +3,6 @@ import datetime
 from typing import Any, Awaitable, Callable, Dict
 from aiogram import BaseMiddleware, types
 from database.postgres_db import get_db_connection
-from core.capybara_mechanics import wakeup_db_operation
 
 class CapyGuardMiddleware(BaseMiddleware):
     async def __call__(
@@ -71,7 +70,8 @@ class CapyGuardMiddleware(BaseMiddleware):
                 wake_time = wake_time.replace(tzinfo=datetime.timezone.utc)
 
             if datetime.datetime.now(datetime.timezone.utc) >= wake_time:
-                await wakeup_db_operation(user_id) 
+                meta["status"] = "active"
+                await conn.execute("UPDATE capybaras SET meta = $1 WHERE owner_id = $2", json.dumps(meta), user_id)
                 return await handler(event, data)
 
             if event.message and event.message.text:
