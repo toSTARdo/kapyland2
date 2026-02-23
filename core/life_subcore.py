@@ -161,7 +161,7 @@ async def show_fight_stats(callback: types.CallbackQuery):
     builder.button(text="⬅️ Назад", callback_data="profile_back")
     
     await callback.message.edit_caption(
-        get_fight_stats_text(data, meta),
+        caption=get_fight_stats_text(data, meta),
         reply_markup=builder.as_markup(),
         parse_mode="HTML"
     )

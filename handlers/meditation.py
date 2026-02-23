@@ -40,7 +40,7 @@ async def meditation_menu(callback: types.CallbackQuery):
         builder.button(text="🔙 Назад", callback_data="profile_back") 
         builder.adjust(2, 2, 1)
 
-        await callback.message.edit_caption(text, reply_markup=builder.as_markup(), parse_mode="HTML")
+        await callback.message.edit_caption(caption=text,, reply_markup=builder.as_markup(), parse_mode="HTML")
     finally:
         await conn.close()
 
