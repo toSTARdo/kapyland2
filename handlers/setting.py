@@ -3,7 +3,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 from database.postgres_db import get_db_connection
 from handlers.main_buttons import get_settings_kb, get_main_kb
-from config import IMAGE_URLS
+from config import IMAGES_URLS
 
 router = Router()
 
@@ -16,7 +16,7 @@ async def show_settings(event: types.Message | types.CallbackQuery):
     is_callback = isinstance(event, types.CallbackQuery)
     message = event.message if is_callback else event
     await message.answer_photo(
-        photo=IMAGE_URLS["village_main"],
+        photo=IMAGES_URLS["village_main"],
         caption="⚙️ <b>Центр підкрутки твоїй капібарі гайок</b>",
         reply_markup=get_settings_kb(),
         parse_mode="HTML"
