@@ -125,8 +125,8 @@ async def handle_gacha_spin(callback: types.CallbackQuery):
     builder.row(types.InlineKeyboardButton(text="⬅️ До Газино", callback_data="lottery_menu"))
 
     try:
-        await callback.message.edit_text(
-            res_text, 
+        await callback.message.edit_caption(
+            caption=res_text, 
             reply_markup=builder.as_markup(), 
             parse_mode="HTML"
         )

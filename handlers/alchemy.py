@@ -75,8 +75,8 @@ async def process_open_alchemy(callback: types.CallbackQuery):
         "🦥 <i>«П-р-и-в-і-т... Щ-о... в-а-р-и-т-и-м-е-м-о?»</i>"
     )
     
-    await callback.message.edit_text(
-        text=text,
+    await callback.message.edit_caption(
+        caption=text,
         reply_markup=get_alchemy_kb(available),
         parse_mode="HTML"
     )

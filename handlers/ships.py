@@ -159,7 +159,7 @@ async def cmd_ship_menu(event: types.Message | types.CallbackQuery, state: FSMCo
     builder.adjust(1)
     
     if isinstance(event, types.CallbackQuery):
-        await message.edit_text(text, reply_markup=builder.as_markup(), parse_mode="HTML")
+        await message.edit_caption(text, reply_markup=builder.as_markup(), parse_mode="HTML")
     else:
         await message.answer(text, reply_markup=builder.as_markup(), parse_mode="HTML")
 

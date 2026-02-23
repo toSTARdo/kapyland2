@@ -14,8 +14,9 @@ class RenameStates(StatesGroup):
 async def show_settings(event: types.Message | types.CallbackQuery):
     is_callback = isinstance(event, types.CallbackQuery)
     message = event.message if is_callback else event
-    await message.answer(
-        "⚙️ <b>Центр підкрутки твоїй капібарі гайок</b>",
+    await message.answer_photo(
+        photo="https://www.google.com/url?sa=t&source=web&rct=j&url=https%3A%2F%2Fwww.oneearth.org%2Fspecies-of-the-week-capybara%2F&ved=0CBYQjRxqFwoTCMi1xbLP8JIDFQAAAAAdAAAAABAI&opi=89978449",
+        caption="⚙️ <b>Центр підкрутки твоїй капібарі гайок</b>",
         reply_markup=get_settings_kb(),
         parse_mode="HTML"
     )
