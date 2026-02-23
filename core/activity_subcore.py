@@ -547,10 +547,6 @@ async def gift_category_select(callback: types.CallbackQuery):
         row = await conn.fetchrow("SELECT meta FROM capybaras WHERE owner_id = $1", uid)
         meta = json.loads(row['meta']) if isinstance(row['meta'], str) else row['meta']
         
-        can_gift, _ = check_daily_limit(meta, "gift")
-        if not can_gift:
-            return await callback.answer("🎁 Ти вже сьогодні надсилав подарунок. Спробуй завтра!", show_alert=True)
-        
         await conn.execute("UPDATE capybaras SET meta = $1 WHERE owner_id = $2", json.dumps(meta), uid)
         
         builder = InlineKeyboardBuilder()
