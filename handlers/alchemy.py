@@ -67,7 +67,7 @@ async def process_all_recipes(callback: types.CallbackQuery):
     builder = InlineKeyboardBuilder()
     builder.button(text="⬅️ Назад до лавки", callback_data="open_alchemy")
     
-    await callback.message.edit_text(
+    await callback.message.edit_caption(
         text=text,
         reply_markup=builder.as_markup(),
         parse_mode="HTML"
@@ -230,4 +230,4 @@ async def preview_recipe(callback: types.CallbackQuery):
     builder.button(text="⬅️ Назад до лавки", callback_data="open_alchemy")
     builder.adjust(1)
 
-    await callback.message.edit_text(text, reply_markup=builder.as_markup(), parse_mode="HTML")
+    await callback.message.edit_caption(caption=text, reply_markup=builder.as_markup(), parse_mode="HTML")
