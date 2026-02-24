@@ -690,67 +690,61 @@ async def show_leaderboard(callback: types.CallbackQuery):
     page = int(parts[2]) if len(parts) > 2 else 0
     offset = page * 5
 
+    configs = {
+        "mass": ("⚖️ Топ Найважчих", "кг", "SELECT u.username, (c.meta->>'weight')::float as val FROM users u JOIN capybaras c ON u.tg_id = c.owner_id ORDER BY val DESC LIMIT 5 OFFSET $1"),
+        "lvl": ("🎖 Топ Наймудріших", " Lvl", "SELECT u.username, c.lvl as val FROM users u JOIN capybaras c ON u.tg_id = c.owner_id ORDER BY val DESC LIMIT 5 OFFSET $1"),
+        "winrate": ("⚔️ Топ Найсильніших", "%", "SELECT u.username, ROUND((c.wins::float / GREATEST(c.total_fights, 1)) * 100) as val FROM users u JOIN capybaras c ON u.tg_id = c.owner_id WHERE c.total_fights > 0 ORDER BY val DESC, c.wins DESC LIMIT 5 OFFSET $1"),
+        
+        "fishing": ("🎣 Майстри Риболовлі", "кг", """
+            SELECT u.username, 
+            (c.meta->'fishing_stats'->>'total_weight')::float as val,
+            (c.meta->'fishing_stats'->>'max_weight')::float as secondary_val
+            FROM users u JOIN capybaras c ON u.tg_id = c.owner_id 
+            WHERE c.meta->'fishing_stats' IS NOT NULL
+            ORDER BY val DESC LIMIT 5 OFFSET $1
+        """)
+    }
+
+    title, label, query = configs.get(criteria, configs["mass"])
+    
     conn = await get_db_connection()
     try:
-        if criteria == "mass":
-            title = "⚖️ Топ Найважчих"
-            label = "кг"
-            query = """
-                SELECT u.username, (c.meta->>'weight')::float as val 
-                FROM users u JOIN capybaras c ON u.tg_id = c.owner_id 
-                ORDER BY val DESC LIMIT 5 OFFSET $1
-            """
-        elif criteria == "lvl":
-            title = "🎖 Топ Наймудріших"
-            label = "Lvl"
-            query = """
-                SELECT u.username, c.lvl as val 
-                FROM users u JOIN capybaras c ON u.tg_id = c.owner_id 
-                ORDER BY val DESC LIMIT 5 OFFSET $1
-            """
-        else: # winrate
-            title = "⚔️ Топ Найсильніших"
-            label = "%"
-            query = """
-                SELECT u.username, 
-                ROUND((c.wins::float / GREATEST(c.total_fights, 1)) * 100) as val
-                FROM users u JOIN capybaras c ON u.tg_id = c.owner_id 
-                WHERE c.total_fights > 0
-                ORDER BY val DESC, c.wins DESC LIMIT 5 OFFSET $1
-            """
-
         rows = await conn.fetch(query, offset)
         
         text = f"<b>{title}</b>\n━━━━━━━━━━━━━━━\n"
         for i, row in enumerate(rows):
             pos = i + offset + 1
             medal = {1: "🥇", 2: "🥈", 3: "🥉"}.get(pos, "🐾")
-            text += f"{medal} {pos}. <b>{row['username']}</b> — {row['val']}{label}\n"
+            
+            if criteria == "fishing":
+                text += (f"{medal} {pos}. <b>{row['username']}</b>\n"
+                         f"   └ Улов: <code>{row['val']:.2f}</code> | Рекорд: <code>{row['secondary_val']:.2f}</code> {label}\n")
+            else:
+                text += f"{medal} {pos}. <b>{row['username']}</b> — {row['val']}{label}\n"
 
-        if not rows:
-            text += "<i>На цій сторінці порожньо...</i>"
+        if not rows: text += "<i>На цій сторінці порожньо...</i>"
 
         builder = InlineKeyboardBuilder()
-        
-        builder.button(text="⚖️ Вага", callback_data=f"leaderboard:mass:0")
-        builder.button(text="🎖 Рівень", callback_data=f"leaderboard:lvl:0")
-        builder.button(text="⚔️ Бій", callback_data=f"leaderboard:winrate:0")
+        builder.row(
+            types.InlineKeyboardButton(text="⚖️ Вага", callback_data="leaderboard:mass:0"),
+            types.InlineKeyboardButton(text="🎖 Лвл", callback_data="leaderboard:lvl:0"),
+            types.InlineKeyboardButton(text="⚔️ Бій", callback_data="leaderboard:winrate:0"),
+            types.InlineKeyboardButton(text="🎣 Риба", callback_data="leaderboard:fishing:0")
+        )
         
         nav_btns = []
         if page > 0:
             nav_btns.append(types.InlineKeyboardButton(text="⬅️", callback_data=f"leaderboard:{criteria}:{page-1}"))
         nav_btns.append(types.InlineKeyboardButton(text="➡️", callback_data=f"leaderboard:{criteria}:{page+1}"))
+        builder.row(*nav_btns)
         
-        if nav_btns:
-            builder.row(*nav_btns)
-            
         builder.row(types.InlineKeyboardButton(text="🔙 Назад", callback_data="social"))
-        builder.adjust(3, len(nav_btns), 1)
+        builder.adjust(4, len(nav_btns), 1)
 
         await callback.message.edit_text(text, reply_markup=builder.as_markup(), parse_mode="HTML")
     finally:
         await conn.close()
-
+        
 @router.callback_query(F.data.startswith("date_request:"))
 async def send_date_request(callback: types.CallbackQuery):
     target_id = int(callback.data.split(":")[1])
