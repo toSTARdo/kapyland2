@@ -211,7 +211,7 @@ async def show_profile(message: types.Message):
     builder.button(text="⚔️ Бойові характеристики", callback_data="show_fight_stats")
     builder.button(text="🪷 Медитація", callback_data="zen_upgrade")
     
-    builder.adjust(2, 1, 1, 1)
+    builder.adjust(3, 1, 1)
 
     await message.answer_photo(
         photo=IMAGES_URLS["profile"],
@@ -236,7 +236,7 @@ async def profile_back_callback(callback: types.CallbackQuery):
     else:
         builder.button(text="💤 Сон (2 год)", callback_data="sleep_capy")
         
-    builder.button(text="⚔️ Бойові характеристики", callback_data="get_fight_stats_text")
+    builder.button(text="⚔️ Бойові характеристики", callback_data="show_fight_stats")
     builder.button(text="🪷 Медитація", callback_data="zen_upgrade")
     
     builder.adjust(3, 1, 1)
