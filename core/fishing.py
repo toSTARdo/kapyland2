@@ -66,6 +66,18 @@ async def handle_fishing(callback: types.CallbackQuery):
         item_key = item.get('key', 'misc')
         fish_weight = round(random.uniform(item['min_w'], item['max_w']), 2)
 
+        if "fishing_stats" not in meta:
+            meta["fishing_stats"] = {"max_weight": 0.0, "total_weight": 0.0}
+        
+        if item_type != "trash":
+            current_total = meta["fishing_stats"].get("total_weight", 0.0)
+            current_max = meta["fishing_stats"].get("max_weight", 0.0)
+            
+            meta["fishing_stats"]["total_weight"] = round(current_total + fish_weight, 2)
+            
+            if fish_weight > current_max:
+                meta["fishing_stats"]["max_weight"] = fish_weight
+        
         meta["stamina"] = max(0, stamina - 10)
         inventory_note = ""
 
