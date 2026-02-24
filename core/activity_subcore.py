@@ -110,7 +110,10 @@ async def user_menu_handler(callback: types.CallbackQuery):
     
     builder.adjust(*layout)
 
-    await callback.message.edit_reply_markup(reply_markup=builder.as_markup())
+    await callback.message.edit_caption(
+                reply_markup=builder.as_markup(),
+                parse_mode="HTML"
+            )
     await callback.answer()
 
 @router.callback_query(F.data.startswith("challenge_"))
@@ -741,7 +744,7 @@ async def show_leaderboard(callback: types.CallbackQuery):
         builder.row(types.InlineKeyboardButton(text="🔙 Назад", callback_data="social"))
         builder.adjust(4, len(nav_btns), 1)
 
-        await callback.message.edit_text(text, reply_markup=builder.as_markup(), parse_mode="HTML")
+        await callback.message.edit_caption(caption=text, reply_markup=builder.as_markup(), parse_mode="HTML")
     finally:
         await conn.close()
         
@@ -756,7 +759,7 @@ async def send_date_request(callback: types.CallbackQuery):
 
     invite_kb = InlineKeyboardBuilder()
     invite_kb.button(text="🥂 Погодитись", callback_data=f"date_accept:{sender_id}")
-    invite_kb.button(text="💔 Відхилити", callback_data="date_reject")
+    invite_kb.button(text="💔 Відхилити", callback_data=f"date_reject:{sender_id}")
     
     try:
         await callback.bot.send_message(
@@ -769,7 +772,23 @@ async def send_date_request(callback: types.CallbackQuery):
     except:
         await callback.answer("🚨 Не вдалося надіслати запит.", show_alert=True)
 
-import random
+@router.callback_query(F.data.startswith("date_reject:"))
+async def process_date_reject(callback: types.CallbackQuery):
+    sender_id = int(callback.data.split(":")[1])
+    target_name = callback.from_user.full_name
+
+    await callback.message.edit_text("💔 Ти відхилив(ла) запит на побачення.")
+    
+    try:
+        await callback.bot.send_message(
+            sender_id,
+            f"💔 На жаль, капібара <b>{target_name}</b> відшила тебе...",
+            parse_mode="HTML"
+        )
+    except:
+        pass
+
+    await callback.answer("Запит відхилено")
 
 @router.callback_query(F.data.startswith("date_accept:"))
 async def accept_date(callback: types.CallbackQuery):
