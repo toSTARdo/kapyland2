@@ -47,6 +47,32 @@ def filter_available_potions(user_inventory, all_recipes):
             available.append((r_id, r_data))
     return available
 
+@router.callback_query(F.data == "all_recipes")
+async def process_all_recipes(callback: types.CallbackQuery):
+    text = "📜 <b>Книга рецептів</b>\n━━━━━━━━━━━━━━━\n\n"
+    
+    for r_id, r_data in RECIPES.items():
+        name = r_data.get("name", r_id)
+        emoji = r_data.get("emoji", "🧪")
+        stamina = r_data.get("plus_stamina", 0)
+        
+        ingredients = []
+        for ing, count in r_data['ingredients'].items():
+            display_info = DISPLAY_NAMES.get(ing, ing.capitalize())
+            ingredients.append(f"{display_info} x{count}")
+        
+        ing_str = ", ".join(ingredients)
+        text += f"{emoji} <b>{name}</b> (+{stamina}⚡)\n <i>{ing_str}</i>\n\n"
+
+    builder = InlineKeyboardBuilder()
+    builder.button(text="⬅️ Назад до лавки", callback_data="open_alchemy")
+    
+    await callback.message.edit_text(
+        text=text,
+        reply_markup=builder.as_markup(),
+        parse_mode="HTML"
+    )
+
 def get_alchemy_kb(available_recipes):
     builder = InlineKeyboardBuilder()
     for r_id, r_data in available_recipes:
@@ -57,6 +83,8 @@ def get_alchemy_kb(available_recipes):
             text=f"{emoji} {name} (+{stamina}⚡)",
             callback_data=f"brew:{r_id}"
         )
+
+    builder.row(types.InlineKeyboardButton(text="📜 Рецепти", callback_data="all_recipes"))
     builder.button(text="⬅️ Назад", callback_data="open_port")
     builder.adjust(1)
     return builder.as_markup()
@@ -72,7 +100,7 @@ async def process_open_alchemy(callback: types.CallbackQuery):
     
     text = (
         "🧪 <b>Лавка Лінивця Омо</b>\n\n"
-        "🦥 <i>«П-р-и-в-і-т... Щ-о... в-а-р-и-т-и-м-е-м-о?»</i>"
+        "🦥 <i>«П-р-и-в-і-т... Щ-о...\nс-ь-о-г-о-д-н-і в-а-р-и-т-и-м-е-м-о?»</i>"
     )
     
     await callback.message.edit_caption(
