@@ -222,14 +222,14 @@ async def execute_steal_logic(callback: types.CallbackQuery):
                 await conn.execute("UPDATE capybaras SET meta = $1 WHERE owner_id = $2", json.dumps(t_meta, ensure_ascii=False), target_id)
                 await conn.execute("UPDATE capybaras SET meta = $1 WHERE owner_id = $2", json.dumps(a_meta, ensure_ascii=False), uid)
                 
-                await callback.message.edit_text(
+                await callback.message.edit_caption(
                     f"🥷 <b>НАЙШВИДШІ ЛАПКИ!</b>\n"
                     f"Ви непомітно витягли <b>{stolen_item['name']}</b> у {target_row['name']}!\n"
                     f"🍀 Твій успіх: {int(final_success_chance*100)}%",
                     parse_mode="HTML"
                 )
             else:
-                await callback.message.edit_text(f"🧤 Ти обшукав {target_row['name']}, але в кишенях порожньо...")
+                await callback.message.edit_caption(f"🧤 Ти обшукав {target_row['name']}, але в кишенях порожньо...")
 
         elif roll < final_catch_chance:
             if t_meta.get("status") == "sleep":
@@ -256,7 +256,7 @@ async def execute_steal_logic(callback: types.CallbackQuery):
             else:
                 wake_msg = ""
 
-            await callback.message.edit_text(
+            await callback.message.edit_caption(
                 f"😱 <b>ЧОРТ! ВАС ПІЙМАЛИ!</b>{wake_msg}\n"
                 f"Починається бій за життя!", parse_mode="HTML"
             )
@@ -292,7 +292,7 @@ async def execute_ram_logic(callback: types.CallbackQuery):
 
         await conn.execute("UPDATE capybaras SET meta = $1 WHERE owner_id = $2", json.dumps(meta), uid)
 
-        await callback.message.edit_text("💥 <b>БА-БАХ!</b>\nТи влетів у суперника на повному ходу! Бій починається негайно!", parse_mode="HTML")
+        await callback.message.edit_caption("💥 <b>БА-БАХ!</b>\nТи влетів у суперника на повному ходу! Бій починається негайно!", parse_mode="HTML")
         
         asyncio.create_task(run_battle_logic(callback, opponent_id=target_id))
         
@@ -552,7 +552,7 @@ async def handle_inspect_player(callback: types.CallbackQuery):
         builder.button(text="🔙 Назад", callback_data="social")
         builder.adjust(2, 1)
 
-        await callback.message.edit_text(text, reply_markup=builder.as_markup(), parse_mode="HTML")
+        await callback.message.edit_caption(text, reply_markup=builder.as_markup(), parse_mode="HTML")
         
     finally:
         await conn.close()
@@ -584,7 +584,7 @@ async def gift_category_select(callback: types.CallbackQuery):
         builder.button(text="🔙 Назад", callback_data=f"social")
         builder.adjust(2, 1, 1)
 
-        await callback.message.edit_text(
+        await callback.message.edit_caption(
             "🎁 <b>Меню подарунків</b>\nОберіть категорію предметів для передачі:",
             reply_markup=builder.as_markup(),
             parse_mode="HTML"
@@ -640,7 +640,7 @@ async def gift_item_select(callback: types.CallbackQuery):
         builder.button(text="🔙 Назад", callback_data=f"gift_to:{target_id}")
         builder.adjust(1)
 
-        await callback.message.edit_text(
+        await callback.message.edit_caption(
             f"🎁 <b>Ваш інвентар ({category}):</b>",
             reply_markup=builder.as_markup(),
             parse_mode="HTML"
@@ -698,7 +698,7 @@ async def execute_gift_transfer(callback: types.CallbackQuery):
             await conn.execute("UPDATE capybaras SET karma = karma + 1 WHERE owner_id = $1", uid)
             item_name = item_key
 
-        await callback.message.edit_text(f"✨ Успіх!\nВи подарували {ITEM_DISPLAY_NAMES[item_name]} та покращили свою карму.", parse_mode="HTML")
+        await callback.message.edit_caption(f"✨ Успіх!\nВи подарували {ITEM_DISPLAY_NAMES[item_name]} та покращили свою карму.", parse_mode="HTML")
         
         try:
             await callback.bot.send_message(target_id, f"🎁 Гей! Тобі прийшов подарунок: {ITEM_DISPLAY_NAMES[item_name]}!")
