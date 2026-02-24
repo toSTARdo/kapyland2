@@ -26,7 +26,7 @@ async def handle_open_chest(callback: types.CallbackQuery):
         if loot.get("chest", 0) < 1 or loot.get("key", 0) < 1:
             return await callback.answer("❌ Тобі потрібна скриня та ключ!", show_alert=True)
 
-        if random.random() < 0.5:
+        if random.random() < 0.02:
             await conn.execute("""
                 UPDATE capybaras SET meta = jsonb_set(
                     jsonb_set(meta, '{inventory, loot, chest}', ((meta->'inventory'->'loot'->>'chest')::int - 1)::text::jsonb),
@@ -41,7 +41,7 @@ async def handle_open_chest(callback: types.CallbackQuery):
                 parse_mode="HTML"
             )
             
-            asyncio.create_task(run_battle_logic(callback, bot_type="mimic"))
+            return asyncio.create_task(run_battle_logic(callback, bot_type="mimic"))
 
         rewards = []
         sql_parts = []
@@ -72,7 +72,7 @@ async def handle_open_chest(callback: types.CallbackQuery):
 
         new_equip = []
         if random.random() < 0.1:
-            rarity = random.choices(["Common", "Rare", "Epic", "Legendary"], weights=[60, 25, 12, 3])[0]
+            rarity = random.choices(["Epic", "Legendary"], weights=[3, 1])[0]
             item = random.choice(ARTIFACTS.get(rarity, [{"name": "Іржавий ніж"}]))
             new_equip.append({"name": item["name"], "rarity": rarity, "stats": item.get("stats", {})})
             rewards.append(f"✨ {rarity}: {item['name']}")
@@ -87,7 +87,7 @@ async def handle_open_chest(callback: types.CallbackQuery):
         if new_maps:
             base_meta = f"jsonb_set({base_meta}, '{{inventory, loot, treasure_maps}}', (COALESCE(meta->'inventory'->'loot'->'treasure_maps', '[]'::jsonb) || '{json.dumps(new_maps)}'::jsonb))"
         if new_equip:
-            base_meta = f"jsonb_set({base_meta}, '{{inventory, equipment}}', (COALESCE(meta->'inventory'->'equipment', '[]'::jsonb) || '{json.dumps(new_equip)}'::jsonb))"
+            base_meta = f"jsonb_set({base_meta}, '{{inventory, equipment_storage}}', (COALESCE(meta->'inventory'->'equipment_storage', '[]'::jsonb) || '{json.dumps(new_equip)}'::jsonb))"
 
         final_sql_meta = base_meta
         for part in sql_parts:
