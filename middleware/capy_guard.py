@@ -21,7 +21,6 @@ class CapyGuardMiddleware(BaseMiddleware):
         if event.callback_query:
             msg = event.callback_query.message
             user_click_id = event.callback_query.from_user.id
-            
             owner_id = None
             if msg.reply_to_message:
                 owner_id = msg.reply_to_message.from_user.id
@@ -50,60 +49,47 @@ class CapyGuardMiddleware(BaseMiddleware):
         conn = await get_db_connection()
         try:
             row = await conn.fetchrow("SELECT meta FROM capybaras WHERE owner_id = $1", user_id)
-            
             if not row:
                 return await handler(event, data)
 
             meta = json.loads(row['meta']) if isinstance(row['meta'], str) else row['meta']
-
-            now = datetime.datetime.now(datetime.timezone.utc)
-            stamina = meta.get("stamina", 100)
-            MAX_STAMINA = 100
-
             now = datetime.datetime.now(datetime.timezone.utc)
             stamina = meta.get("stamina", 100)
             MAX_STAMINA = 100
             last_regen_str = meta.get("last_regen")
             
+            needs_update = False
+
             if stamina >= MAX_STAMINA:
                 meta["last_regen"] = now.isoformat()
-                return
-            
-            if not last_regen_str:
+            elif last_regen_str:
+                last_regen = datetime.datetime.fromisoformat(last_regen_str)
+                if last_regen.tzinfo is None:
+                    last_regen = last_regen.replace(tzinfo=datetime.timezone.utc)
+                
+                regen_points = int((now - last_regen).total_seconds() // 60) // 14
+                if regen_points > 0:
+                    meta["stamina"] = min(MAX_STAMINA, stamina + regen_points)
+                    meta["last_regen"] = (last_regen + datetime.timedelta(minutes=regen_points * 14)).isoformat()
+                    needs_update = True
+            else:
                 meta["last_regen"] = now.isoformat()
-                return
-            
-            last_regen = datetime.datetime.fromisoformat(last_regen_str)
-            if last_regen.tzinfo is None:
-                last_regen = last_regen.replace(tzinfo=datetime.timezone.utc)
-            
-            diff_mins = int((now - last_regen).total_seconds() // 60)
-            regen_points = diff_mins // 14
-            
-            if regen_points <= 0:
-                return
-            
-            meta["stamina"] = min(MAX_STAMINA, stamina + regen_points)
-            used_mins = regen_points * 10
-            meta["last_regen"] = (last_regen + datetime.timedelta(minutes=used_mins)).isoformat()
-            
-            await conn.execute("UPDATE capybaras SET meta = $1 WHERE owner_id = $2", json.dumps(meta), user_id)
-            
-            if meta.get("status") != "sleep":
-                return await handler(event, data)
 
-            wake_up_str = meta.get("wake_up")
-            if not wake_up_str:
-                return await handler(event, data)
+            if meta.get("status") == "sleep":
+                wake_up_str = meta.get("wake_up")
+                if wake_up_str:
+                    wake_time = datetime.datetime.fromisoformat(wake_up_str)
+                    if wake_time.tzinfo is None:
+                        wake_time = wake_time.replace(tzinfo=datetime.timezone.utc)
+                    
+                    if now >= wake_time:
+                        meta["status"] = "active"
+                        needs_update = True
 
-            wake_time = datetime.datetime.fromisoformat(wake_up_str)
-            
-            if wake_time.tzinfo is None:
-                wake_time = wake_time.replace(tzinfo=datetime.timezone.utc)
-
-            if datetime.datetime.now(datetime.timezone.utc) >= wake_time:
-                meta["status"] = "active"
+            if needs_update:
                 await conn.execute("UPDATE capybaras SET meta = $1 WHERE owner_id = $2", json.dumps(meta), user_id)
+
+            if meta.get("status") != "sleep":
                 return await handler(event, data)
 
             if event.message and event.message.text:
