@@ -301,6 +301,18 @@ async def execute_ram_logic(callback: types.CallbackQuery):
 async def run_battle_logic(callback: types.CallbackQuery, opponent_id: int = None, bot_type: str = None):
     bot = callback.bot
     uid = callback.from_user.id
+
+    conn = await get_db_connection()
+    try:
+        user_row = await conn.fetchrow("SELECT meta FROM capybaras WHERE owner_id = $1", uid)
+        if user_row:
+            user_meta = json.loads(user_row['meta']) if isinstance(user_row['meta'], str) else user_row['meta']
+            current_stamina = user_meta.get("stamina", 0)
+            
+            if current_stamina < 5:
+                return await callback.answer("🪫 Твоя капібара надто стомлена для бою! (Треба мінімум 5⚡)", show_alert=True)
+    finally:
+        await conn.close()
     
     battle_config = {
         "WEAPONS": WEAPON,
@@ -432,9 +444,11 @@ async def run_battle_logic(callback: types.CallbackQuery, opponent_id: int = Non
         except: pass
 
     if winner and loser:
+        is_parrot_fight = (bot_type == "parrotbot")
+        
         conn = await get_db_connection()
         try:
-            if isinstance(winner_id, int): 
+            if isinstance(winner_id, int) and not is_parrot_fight: 
                 res_winner = await grant_exp_and_lvl(winner_id, exp_gain=3, weight_gain=3.0, bot=bot)
                 
                 await conn.execute("""
@@ -446,11 +460,13 @@ async def run_battle_logic(callback: types.CallbackQuery, opponent_id: int = Non
                     WHERE owner_id = $1
                 """, winner_id)
             else:
+                if isinstance(winner_id, int):
+                    await conn.execute("UPDATE capybaras SET meta = jsonb_set(meta, '{stamina}', (GREATEST((meta->>'stamina')::int - 5, 0))::text::jsonb) WHERE owner_id = $1", winner_id)
                 res_winner = {"new_lvl": "NPC"}
 
-            res_loser = None
             if isinstance(loser_id, int):
-                res_loser = await grant_exp_and_lvl(loser_id, exp_gain=0, weight_gain=-3.0, bot=bot)
+                weight_loss = -3.0 if not is_parrot_fight else 0.0
+                res_loser = await grant_exp_and_lvl(loser_id, exp_gain=0, weight_gain=weight_loss, bot=bot)
                 
                 await conn.execute("""
                     UPDATE capybaras 
@@ -460,20 +476,25 @@ async def run_battle_logic(callback: types.CallbackQuery, opponent_id: int = Non
                     WHERE owner_id = $1
                 """, loser_id)
             
-            w_lvl = res_winner.get('new_lvl', '?') if isinstance(res_winner, dict) else "?"
-            
-            reward_msg = (
-                f"📈 <b>Підсумки бою:</b>\n"
-                f"🥇 {winner.name}: {'+3 кг, +3 EXP' if isinstance(winner_id, int) else 'Природжена сила'}\n"
-                f"🥈 {loser.name}: {'-3 кг' if isinstance(loser_id, int) else 'Просто зник у кущах'}"
-            )
+            if is_parrot_fight:
+                reward_msg = (
+                    f"<b>Тренувальний бій завершено!</b>\n"
+                    f"<i>«Гарна розминка, але досвіду за це не дають!»</i>\n"
+                    f"🔋 Витрачено 5⚡ енергії."
+                )
+            else:
+                reward_msg = (
+                    f"📈 <b>Підсумки бою:</b>\n"
+                    f"🥇 {winner.name}: {'+3 кг, +3 EXP' if isinstance(winner_id, int) else 'Природжена сила'}\n"
+                    f"🥈 {loser.name}: {'-3 кг' if isinstance(loser_id, int) else 'Просто зник у кущах'}"
+                )
             
             await msg1.answer(reward_msg, parse_mode="HTML")
             if msg2:
                 try: await msg2.answer(reward_msg, parse_mode="HTML")
                 except: pass
 
-            if winner_id:
+            if winner_id and not is_parrot_fight:
                 await send_victory_celebration(msg1, winner_id)
 
         finally:
