@@ -29,7 +29,7 @@ async def cmd_port(event: types.Message | types.CallbackQuery):
         types.InlineKeyboardButton(text="⛵ Мій Корабель", callback_data="ship_main")
     )
     builder.row(
-        types.InlineKeyboardButton(text="🕌 Містечко Пух-Пух", callback_data="open_village"),
+        types.InlineKeyboardButton(text="🛖 Містечко Пух-Пух", callback_data="open_village"),
         types.InlineKeyboardButton(text="⚙️ Налаштування", callback_data="open_settings")
     )
 
@@ -75,7 +75,7 @@ async def open_village(event: types.Message | types.CallbackQuery, target_text: 
     builder = InlineKeyboardBuilder()
     builder.button(text="⚗️ Лавка Омо", callback_data="open_alchemy")
     builder.button(text="🔨 Кузня Ківі", callback_data="open_forge")
-    builder.button(text="⚖️ Базар", callback_data="open_bazaar")
+    builder.button(text="🎪 Базар", callback_data="open_bazaar")
     builder.button(text="⬅️ Назад", callback_data="open_port")
     builder.adjust(1)
 
