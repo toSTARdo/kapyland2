@@ -6,7 +6,7 @@ from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
 from aiogram.fsm.storage.memory import MemoryStorage
 import config
-from config import DEV_ID
+from config import DEV_ID, IMAGES_URLS
 from aiogram.exceptions import TelegramForbiddenError, TelegramRetryAfter
 #==============================================================#
 from fastapi import FastAPI
@@ -194,9 +194,10 @@ async def give_everyday_gift(bot: Bot):
         for player in players:
             uid = player['owner_id']
             try:
-                await bot.send_message(
+                await bot.send_photo(
                     chat_id=uid,
-                    text=(
+                    photo=IMAGES_URLS["delivery"],
+                    caption=(
                         "🎁 <b>Ранкова пошта Архіпелагу!</b>\n\n"
                         "Поки ви спали, чайки-поштарі принесли вам 🎟 <b>Лотерейний квиток</b>.\n"
                         "Він уже чекає у вашому інвентарі. Гарного дня!"
@@ -204,7 +205,7 @@ async def give_everyday_gift(bot: Bot):
                     parse_mode="HTML"
                 )
                 sent_count += 1
-                await asyncio.sleep(0.05) 
+                await asyncio.sleep(0.05)
                 
             except TelegramForbiddenError:
                 print(f"🚫 Користувач {uid} заблокував бота.")
