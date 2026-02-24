@@ -165,7 +165,7 @@ async def handle_accept(callback: types.CallbackQuery):
 
 @router.callback_query(F.data == "fight_bot")
 async def handle_fight_bot(callback: types.CallbackQuery):
-    await callback.message.edit_text("🤖 Папуга Павло гострить дзьоб...")
+    await callback.message.answer("🤖 Папуга Павло гострить дзьоб...")
     asyncio.create_task(run_battle_logic(callback, bot_type="parrotbot"))
     await callback.answer()
 
