@@ -29,7 +29,7 @@ async def cmd_lottery_start(event: types.Message | types.CallbackQuery):
     banner_idx = 0
     if is_callback and "_" in event.data:
         try:
-            banner_idx = int(event.data.split("_")[-1])
+            banner_idx = int(event.data.rsplit("_", 1)[-1])
         except: banner_idx = 0
 
     lottery_img = LOTTERY_BANNERS[banner_idx % len(LOTTERY_BANNERS)]
@@ -37,34 +37,44 @@ async def cmd_lottery_start(event: types.Message | types.CallbackQuery):
     conn = await get_db_connection()
     row = await conn.fetchrow("SELECT meta FROM capybaras WHERE owner_id = $1", uid)
     await conn.close()
+    
     tickets = 0
     can_get_lega = True
     if row:
         meta = json.loads(row['meta']) if isinstance(row['meta'], str) else row['meta']
         tickets = meta.get("inventory", {}).get("loot", {}).get("lottery_ticket", 0)
         can_get_lega = await is_eligible_for_lega(meta)
-    label = "LEGENDARY" if can_get_lega else "EPIC"
-    # ---------------------------------------------------------
 
     builder = InlineKeyboardBuilder()
-    builder.row(types.InlineKeyboardButton(text="🏴‍☠️ Крутити (1🎟 / 5кг)", callback_data="gacha_spin"))
-    builder.row(types.InlineKeyboardButton(text=f"🔥 10+1 / 100% {label}", callback_data="gacha_guaranteed_10"))
     
+    if banner_idx == 0:
+        label = "LEGENDARY" if can_get_lega else "EPIC"
+        text = (
+            f"🎰 <b>ГАЗИНО «ФОРТУНА КАПІ»</b>\n"
+            f"━━━━━━━━━━━━━━━\n"
+            f"Твої квитки: <b>{tickets}</b> 🎟\n"
+            f"<i>Гортай банери, щоб побачити акції!</i>"
+        )
+        builder.row(types.InlineKeyboardButton(text="🏴‍☠️ Крутити (1🎟 / 5кг)", callback_data="gacha_spin"))
+        builder.row(types.InlineKeyboardButton(text=f"🔥 10+1 / 100% {label}", callback_data="gacha_guaranteed_10"))
+    else:
+        text = (
+            f"🎰 <b>ГАЗИНО «ФОРТУНА КАПІ»</b>\n"
+            f"━━━━━━━━━━━━━━━\n\n"
+            f"🚧 <b>[COMING SOON]</b>\n"
+            f"<i>Цей розіграш ще готується кухарями-капібарами. Завітайте пізніше!</i>"
+        )
+        builder.row(types.InlineKeyboardButton(text="⏳ В розробці...", callback_data="none"))
+
     prev_idx = (banner_idx - 1) % len(LOTTERY_BANNERS)
     next_idx = (banner_idx + 1) % len(LOTTERY_BANNERS)
+    
     builder.row(
         types.InlineKeyboardButton(text="◀️", callback_data=f"lottery_menu_{prev_idx}"),
-        types.InlineKeyboardButton(text=f"{banner_idx + 1}/{len(LOTTERY_BANNERS)}", callback_data="none"),
+        types.InlineKeyboardButton(text=f"{banner_idx + 1} / {len(LOTTERY_BANNERS)}", callback_data="none"),
         types.InlineKeyboardButton(text="▶️", callback_data=f"lottery_menu_{next_idx}")
     )
     builder.row(types.InlineKeyboardButton(text="⬅️ Назад", callback_data="open_inventory_main"))
-
-    text = (
-        f"🎰 <b>ГАЗИНО «ФОРТУНА КАПІ»</b>\n"
-        f"━━━━━━━━━━━━━━━\n"
-        f"Твої квитки: <b>{tickets}</b> 🎟\n"
-        f"<i>Гортай банери, щоб побачити акції!</i>"
-    )
 
     if is_callback:
         input_media = types.InputMediaPhoto(media=lottery_img, caption=text, parse_mode="HTML")
@@ -76,7 +86,7 @@ async def cmd_lottery_start(event: types.Message | types.CallbackQuery):
         await event.answer()
     else:
         await event.answer_photo(photo=lottery_img, caption=text, reply_markup=builder.as_markup(), parse_mode="HTML")
-
+        
 @router.callback_query(F.data == "gacha_spin")
 async def handle_gacha_spin(callback: types.CallbackQuery):
     uid = callback.from_user.id
