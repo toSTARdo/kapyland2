@@ -31,7 +31,7 @@ from handlers.emotes import router as emote_router
 from handlers.alchemy import router as alchemy_router
 from handlers.start import render_story_node
 from middleware.capy_guard import CapyGuardMiddleware
-from jobs import send_goodnight
+from jobs.send_goodnight import send_goodnight
 
 logging.basicConfig(level=logging.INFO)
 app = FastAPI()
