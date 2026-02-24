@@ -224,7 +224,7 @@ async def show_inventory_start(event: types.Message | types.CallbackQuery):
 
     if is_callback:
         try:
-            await event.message.edit_text(text, reply_markup=builder.as_markup(), parse_mode="HTML")
+            await event.message.edit_caption(caption=text, reply_markup=builder.as_markup(), parse_mode="HTML")
         except:
             pass
         await event.answer()
