@@ -68,7 +68,7 @@ async def process_all_recipes(callback: types.CallbackQuery):
     builder.button(text="⬅️ Назад до лавки", callback_data="open_alchemy")
     
     await callback.message.edit_caption(
-        text=text,
+        caption=text,
         reply_markup=builder.as_markup(),
         parse_mode="HTML"
     )
