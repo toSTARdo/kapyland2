@@ -431,9 +431,9 @@ async def run_battle_logic(callback: types.CallbackQuery, opponent_id: int = Non
     if winner and loser:
         conn = await get_db_connection()
         try:
-            res_winner = await grant_exp_and_lvl(winner_id, exp_gain=3, weight_gain=3.0)
-            
-            if winner_id and res_winner:
+            if isinstance(winner_id, int): 
+                res_winner = await grant_exp_and_lvl(winner_id, exp_gain=3, weight_gain=3.0, bot=bot)
+                
                 await conn.execute("""
                     UPDATE capybaras 
                     SET 
@@ -442,10 +442,12 @@ async def run_battle_logic(callback: types.CallbackQuery, opponent_id: int = Non
                         meta = jsonb_set(meta, '{stamina}', (GREATEST((meta->>'stamina')::int - 5, 0))::text::jsonb)
                     WHERE owner_id = $1
                 """, winner_id)
+            else:
+                res_winner = {"new_lvl": "NPC"}
 
             res_loser = None
-            if loser_id and not bot_type:
-                res_loser = await grant_exp_and_lvl(loser_id, exp_gain=0, weight_gain=-3.0)
+            if isinstance(loser_id, int):
+                res_loser = await grant_exp_and_lvl(loser_id, exp_gain=0, weight_gain=-3.0, bot=bot)
                 
                 await conn.execute("""
                     UPDATE capybaras 
@@ -455,12 +457,14 @@ async def run_battle_logic(callback: types.CallbackQuery, opponent_id: int = Non
                     WHERE owner_id = $1
                 """, loser_id)
             
+            w_lvl = res_winner.get('new_lvl', '?') if isinstance(res_winner, dict) else "?"
+            
             reward_msg = (
                 f"📈 <b>Підсумки бою:</b>\n"
-                f"🥇 {winner.name}: +3 кг, +3 EXP (Lvl: {res_winner['new_lvl']})\n"
-                f"🥈 {loser.name}: -3 кг"
+                f"🥇 {winner.name}: {'+3 кг, +3 EXP' if isinstance(winner_id, int) else 'Природжена сила'}\n"
+                f"🥈 {loser.name}: {'-3 кг' if isinstance(loser_id, int) else 'Просто зник у кущах'}"
             )
-
+            
             await msg1.answer(reward_msg, parse_mode="HTML")
             if msg2:
                 try: await msg2.answer(reward_msg, parse_mode="HTML")
