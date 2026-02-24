@@ -241,6 +241,13 @@ async def grant_exp_and_lvl(tg_id: int, exp_gain: int, weight_gain: float = 0, b
             current_weight = meta.get("weight", 20.0)
             meta["weight"] = round(max(1.0, current_weight + weight_gain), 1)
 
+        if lvl_diff > 0:
+            meta["stamina"] = 100
+            
+            inventory = meta.setdefault("inventory", {})
+            loot = inventory.setdefault("loot", {})
+            loot["lottery_ticket"] = loot.get("lottery_ticket", 0) + lvl_diff
+
         await conn.execute('''
             UPDATE capybaras 
             SET exp = $1, lvl = $2, zen = $3, meta = $4
@@ -252,9 +259,12 @@ async def grant_exp_and_lvl(tg_id: int, exp_gain: int, weight_gain: float = 0, b
                 await bot.send_message(
                     tg_id, 
                     f"🎊 <b>LEVEL UP!</b>\n"
-                    f"Твоя капібара досягла <b>{new_lvl} рівня</b>!\n"
-                    f"Отримано Zen-очок: <b>+{lvl_diff}</b> 💠\n\n"
-                    f"<i>Поточний запас Zen: {new_zen}</i>",
+                    f"________________________________\n\n"
+                    f"Твоя капібара досягла <b>{new_lvl} рівня</b>!\n\n"
+                    f"🎁 <b>Нагороди:</b>\n"
+                    f"💠 Капі-дзен: <b>+{lvl_diff}</b>\n"
+                    f"🎟 Квитки: <b>+{lvl_diff} шт.</b>\n"
+                    f"⚡ Енергія відновлена до <b>100%</b>\n\n",
                     parse_mode="HTML"
                 )
             except: pass
