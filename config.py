@@ -316,6 +316,7 @@ LOTTERY_BANNERS = [
 IMAGES_URLS = {
     "profile": "https://raw.githubusercontent.com/toSTARdo/kapyland2/main/assets/capyimg_profile.png",
     "village_main": "https://raw.githubusercontent.com/toSTARdo/kapyland2/main/assets/capyimg_village1.png",
+    "delivery": "https://raw.githubusercontent.com/toSTARdo/kapyland2/main/assets/capyimg_delivery.png"
 }
 
 ACHIEVEMENTS = {
