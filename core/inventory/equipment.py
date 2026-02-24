@@ -216,20 +216,23 @@ async def show_inventory_start(event: types.Message | types.CallbackQuery):
     message = event.message if is_callback else event
     
     builder = InlineKeyboardBuilder()
-    
     builder.row(types.InlineKeyboardButton(text="🧺 Відкрити інвентар", callback_data="inv_page:food:0"))
     builder.row(types.InlineKeyboardButton(text="🎟️ Відкрити Газино", callback_data="lottery_menu"))
 
     text = "<i>Тут всі твої предмети та можна відвідати казино</i>"
+    markup = builder.as_markup()
 
     if is_callback:
-        try:
-            await event.message.edit_caption(caption=text, reply_markup=builder.as_markup(), parse_mode="HTML")
-        except:
-            pass
+        if event.message.photo:
+            await event.message.delete()
+            await event.message.answer(text, reply_markup=markup, parse_mode="HTML")
+        else:
+            await event.message.edit_text(text, reply_markup=markup, parse_mode="HTML")
+        
         await event.answer()
-    else:
-        await message.answer(text, reply_markup=builder.as_markup(), parse_mode="HTML")
+        return
+
+    await message.answer(text, reply_markup=markup, parse_mode="HTML")
 
 @router.callback_query(F.data.startswith("equip:"))
 async def handle_equip_item(callback: types.CallbackQuery):
