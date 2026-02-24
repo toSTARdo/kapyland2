@@ -10,5 +10,11 @@
     "emoji": "🍊🍉⚡",
     "ingredients": {"tangerines": 2, "watermelon_slices": 1},
     "plus_stamina": 15
+  },
+  "catharsis": {
+    "name" "Грибна бодяга",
+    "emoji" "🍄‍🟫🌿🌀",
+    "ingredients": {"mushrooms": 1, "rosemary": 1},
+    "effect" : "stats_reset" 
   }
 }
