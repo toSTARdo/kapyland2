@@ -31,6 +31,7 @@ from handlers.emotes import router as emote_router
 from handlers.alchemy import router as alchemy_router
 from handlers.start import render_story_node
 from middleware.capy_guard import CapyGuardMiddleware
+from jobs import send_goodnight
 
 logging.basicConfig(level=logging.INFO)
 app = FastAPI()
@@ -229,6 +230,7 @@ async def main():
     await init_pg()
     scheduler = AsyncIOScheduler(timezone="Europe/Kyiv")
     scheduler.add_job(give_everyday_gift, 'cron', hour=8, minute=0, args=[bot])
+    scheduler.add_job(send_goodnight, 'cron', hour=20, minute=0, args=[bot])
     scheduler.start()
     config_uvicorn = uvicorn.Config(app=app, host="0.0.0.0", port=8000, log_level="error")
     server = uvicorn.Server(config_uvicorn)
