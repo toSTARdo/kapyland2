@@ -331,9 +331,9 @@ async def run_battle_logic(callback: types.CallbackQuery, opponent_id: int = Non
             "mimic": {
                 "kapy_name": "Мімік",
                 "color": "🗃",
-                "stats": {"attack": 4, "defense": 20, "agility": 1, "luck": 2},
+                "stats": {"attack": 4, "defense": 2, "agility": 5, "luck": 2},
                 "equipped_weapon": "Зуби акули",
-                "hp_bonus": 7
+                "hp_bonus": 4
             },
             "boss_pelican": {
                 "kapy_name": "Пелікан Петро",
