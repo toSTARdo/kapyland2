@@ -48,7 +48,6 @@ class CapyGuardMiddleware(BaseMiddleware):
             return await handler(event, data)
 
         conn = await get_db_connection()
-        conn = await get_db_connection()
         try:
             row = await conn.fetchrow("SELECT meta FROM capybaras WHERE owner_id = $1", user_id)
             
@@ -56,6 +55,39 @@ class CapyGuardMiddleware(BaseMiddleware):
                 return await handler(event, data)
 
             meta = json.loads(row['meta']) if isinstance(row['meta'], str) else row['meta']
+
+            now = datetime.datetime.now(datetime.timezone.utc)
+            stamina = meta.get("stamina", 100)
+            MAX_STAMINA = 100
+
+            now = datetime.datetime.now(datetime.timezone.utc)
+            stamina = meta.get("stamina", 100)
+            MAX_STAMINA = 100
+            last_regen_str = meta.get("last_regen")
+            
+            if stamina >= MAX_STAMINA:
+                meta["last_regen"] = now.isoformat()
+                return
+            
+            if not last_regen_str:
+                meta["last_regen"] = now.isoformat()
+                return
+            
+            last_regen = datetime.datetime.fromisoformat(last_regen_str)
+            if last_regen.tzinfo is None:
+                last_regen = last_regen.replace(tzinfo=datetime.timezone.utc)
+            
+            diff_mins = int((now - last_regen).total_seconds() // 60)
+            regen_points = diff_mins // 14
+            
+            if regen_points <= 0:
+                return
+            
+            meta["stamina"] = min(MAX_STAMINA, stamina + regen_points)
+            used_mins = regen_points * 10
+            meta["last_regen"] = (last_regen + datetime.timedelta(minutes=used_mins)).isoformat()
+            
+            await conn.execute("UPDATE capybaras SET meta = $1 WHERE owner_id = $2", json.dumps(meta), user_id)
             
             if meta.get("status") != "sleep":
                 return await handler(event, data)
