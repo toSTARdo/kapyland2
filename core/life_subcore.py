@@ -242,8 +242,8 @@ async def profile_back_callback(callback: types.CallbackQuery):
     builder.adjust(3, 1, 1)
 
     try:
-        await callback.message.edit_text(
-            get_general_profile_text(data, meta),
+        await callback.message.edit_caption(
+            caption=get_general_profile_text(data, meta),
             reply_markup=builder.as_markup(),
             parse_mode="HTML"
         )
