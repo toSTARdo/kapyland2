@@ -721,7 +721,7 @@ async def show_leaderboard(callback: types.CallbackQuery):
             
             if criteria == "fishing":
                 text += (f"{medal} {pos}. <b>{row['username']}</b>\n"
-                         f"   └ Улов: <code>{row['val']:.2f}</code> | Рекорд: <code>{row['secondary_val']:.2f}</code> {label}\n")
+                         f"   └ Улов: <code>{row['val']:.2f}</code> кг | Рекорд: <code>{row['secondary_val']:.2f}</code> {label}\n")
             else:
                 text += f"{medal} {pos}. <b>{row['username']}</b> — {row['val']}{label}\n"
 
@@ -730,7 +730,7 @@ async def show_leaderboard(callback: types.CallbackQuery):
         builder = InlineKeyboardBuilder()
         builder.row(
             types.InlineKeyboardButton(text="⚖️ Вага", callback_data="leaderboard:mass:0"),
-            types.InlineKeyboardButton(text="🎖 Лвл", callback_data="leaderboard:lvl:0"),
+            types.InlineKeyboardButton(text="🎖 Рівень", callback_data="leaderboard:lvl:0"),
             types.InlineKeyboardButton(text="⚔️ Бій", callback_data="leaderboard:winrate:0"),
             types.InlineKeyboardButton(text="🎣 Риба", callback_data="leaderboard:fishing:0")
         )
@@ -777,7 +777,7 @@ async def process_date_reject(callback: types.CallbackQuery):
     sender_id = int(callback.data.split(":")[1])
     target_name = callback.from_user.full_name
 
-    await callback.message.edit_text("💔 Ти відхилив(ла) запит на побачення.")
+    await callback.answer("💔 Ти відхилив(ла) запит на побачення.")
     
     try:
         await callback.bot.send_message(
