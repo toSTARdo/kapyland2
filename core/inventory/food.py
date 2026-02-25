@@ -12,6 +12,7 @@ router = Router()
 async def handle_food_choice(callback: types.CallbackQuery):
     food_type = callback.data.split(":")[1]
     user_id = callback.from_user.id
+    bot = callback.bot
     
     meta_data = await get_user_inventory(user_id)
     meta = json.loads(meta_data) if isinstance(meta_data, str) else meta_data
@@ -81,7 +82,7 @@ async def handle_eat(callback: types.CallbackQuery):
                            json.dumps(meta, ensure_ascii=False), user_id)
         
         from core.capybara_mechanics import grant_exp_and_lvl
-        res = await grant_exp_and_lvl(user_id, exp_gain=exp_gain, weight_gain=total_bonus)
+        res = await grant_exp_and_lvl(user_id, exp_gain=exp_gain, weight_gain=total_bonus, bot=bot)
 
         if not res:
             return await callback.answer("Помилка магії травлення...")
