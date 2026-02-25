@@ -143,7 +143,7 @@ def get_fight_stats_text(data, meta):
         f"🔥 ATK: <b>{BASE_HIT_CHANCE + STAT_WEIGHTS["atk_to_hit"] * stats.get('attack', 1)}%</b>  |  "
         f"🛡️ DEF: <b>{BASE_BLOCK_CHANCE + STAT_WEIGHTS["def_to_block"] * stats.get('defense', 1)}%</b>\n"
         f"💨 AGI: <b>{STAT_WEIGHTS["agi_to_dodge"] * stats.get('agility', 1)}%</b>  |  "
-        f"🍀 LCK: <b>+{STAT_WEIGHTS["luck_to_crit] * stats.get('luck', 1)}%</b>\n"
+        f"🍀 LCK: <b>+{STAT_WEIGHTS["luck_to_crit"] * stats.get('luck', 1)}%</b>\n"
         f"♥️ HP: <b>{STAT_WEIGHTS * stats.get('hp', 3)*2}</b>"
     )
 
