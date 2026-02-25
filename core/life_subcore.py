@@ -8,7 +8,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from core.capybara_mechanics import get_user_profile, calculate_dynamic_stats, feed_capybara_logic, wash_db_operation, sleep_db_operation, wakeup_db_operation
 from utils.helpers import format_time, calculate_lvl_data
 from database.postgres_db import get_db_connection
-from config import MOODS, IMAGES_URLS
+from config import MOODS, IMAGES_URLS, STAT_WEIGHTS, BASE_HIT_CHANCE, BASE_BLOCK_CHANCE
 
 router = Router()
 
@@ -140,11 +140,11 @@ def get_fight_stats_text(data, meta):
         f"💀 Прокляття: <i>---</i>\n"
         f"________________________________\n\n"
         f"<b>Показники:</b>\n"
-        f"🔥 ATK: <b>{stats.get('attack', 1)}</b>  |  "
-        f"🛡️ DEF: <b>{stats.get('defense', 1)}</b>\n"
-        f"💨 AGI: <b>{stats.get('agility', 1)}</b>  |  "
-        f"🍀 LCK: <b>{stats.get('luck', 1)}</b>\n"
-        f"♥️ HP: <b>{stats.get('hp', 3)*2}</b>"
+        f"🔥 ATK: <b>{BASE_HIT_CHANCE + STAT_WEIGHTS["atk_to_hit"] * stats.get('attack', 1)}%</b>  |  "
+        f"🛡️ DEF: <b>{BASE_BLOCK_CHANCE + STAT_WEIGHTS["def_to_block"] * stats.get('defense', 1)}%</b>\n"
+        f"💨 AGI: <b>{STAT_WEIGHTS["agi_to_dodge"] * stats.get('agility', 1)}%</b>  |  "
+        f"🍀 LCK: <b>+{STAT_WEIGHTS["luck_to_crit] * stats.get('luck', 1)}%</b>\n"
+        f"♥️ HP: <b>{STAT_WEIGHTS * stats.get('hp', 3)*2}</b>"
     )
 
 @router.callback_query(F.data == "show_fight_stats")
