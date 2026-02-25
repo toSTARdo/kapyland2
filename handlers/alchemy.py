@@ -10,7 +10,6 @@ router = Router()
 RECIPES = load_game_data("data/craft.json")
 
 def find_item_in_inventory(inv, item_key):
-    """Шукає предмет у всіх категоріях інвентарю"""
     for category in ["food", "materials", "plants", "loot"]:
         count = inv.get(category, {}).get(item_key)
         if count is not None:
@@ -128,5 +127,75 @@ async def process_confirm_brew(callback: types.CallbackQuery):
         await callback.answer(f"✨ {recipe.get('name')} готове і додане в інвентар!")
         await process_open_alchemy(callback)
         
+    finally:
+        await conn.close()
+
+@router.callback_query(F.data.startswith("use_potion:"))
+async def process_drink_potion(callback: types.CallbackQuery):
+    potion_id = callback.data.split(":")[1]
+    user_id = callback.from_user.id
+    
+    recipe = RECIPES.get(potion_id)
+    if not recipe:
+        return await callback.answer("❌ Це зілля здається зіпсованим...")
+
+    conn = await get_db_connection()
+    try:
+        row = await conn.fetchrow("SELECT meta FROM capybaras WHERE owner_id = $1", user_id)
+        meta = json.loads(row['meta']) if isinstance(row['meta'], str) else row['meta']
+        
+        potions = meta.get("inventory", {}).get("potions", {})
+        
+        if potions.get(potion_id, 0) <= 0:
+            return await callback.answer("❌ У тебе немає цього зілля!", show_alert=True)
+        
+        alert_text = ""
+        
+        if "plus_stamina" in recipe:
+            boost = recipe.get("plus_stamina", 0)
+            current_stamina = meta.get("stamina", 0)
+            max_stamina = meta.get("max_stamina", 100)
+            meta["stamina"] = min(current_stamina + boost, max_stamina)
+            alert_text = f"Ви бахнули {recipe['name']}! +{boost}⚡"
+
+        elif "plus_max_hp" in recipe:
+            hp_boost = recipe.get("plus_max_hp", 0)
+            stats = meta.setdefault("stats", {})
+            current_max_hp = int(stats.get("max_hp", 10))
+            stats["max_hp"] = current_max_hp + hp_boost
+            alert_text = f"🧬 Сила предків! Максимальне HP назавжди зросло на +{hp_boost}!"
+
+        elif recipe.get("effect") == "stats_reset":
+            stats = meta.get("stats", {})
+            total_points = (
+                (stats.get("attack", 1) - 1) +
+                (stats.get("defense", 1) - 1) +
+                (stats.get("agility", 1) - 1) +
+                (stats.get("luck", 1) - 1)
+            )
+            meta["stats"] = {
+                "max_hp": stats.get("max_hp", 10),
+                "attack": 1,
+                "defense": 1,
+                "agility": 1,
+                "luck": 1
+            }
+            meta["points"] = meta.get("points", 0) + total_points
+            alert_text = "🌀 Катарсис! Всі ваші очки характеристик повернуто."
+
+        potions[potion_id] -= 1
+        if potions[potion_id] <= 0:
+            del potions[potion_id]
+
+        await conn.execute(
+            "UPDATE capybaras SET meta = $1 WHERE owner_id = $2",
+            json.dumps(meta, ensure_ascii=False), user_id
+        )
+
+        await callback.answer(alert_text, show_alert=True)
+
+        from handlers.inventory import render_inventory_page 
+        await render_inventory_page(callback.message, user_id, page="potions", is_callback=True)
+
     finally:
         await conn.close()
