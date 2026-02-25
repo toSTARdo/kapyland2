@@ -8,7 +8,8 @@ from handlers.emotes import send_victory_celebration
 from core.models import Fighter, CombatEngine
 from core.capybara_mechanics import get_user_inventory, grant_exp_and_lvl
 from database.postgres_db import get_db_connection
-from config import BASE_HITPOINTS, ARTIFACTS, RARITY_META, WEAPON, ARMOR
+from config import BASE_HITPOINTS, ARTIFACTS, RARITY_META, WEAPON, ARMOR, STAT_WEIGHTS, BASE_HIT_CHANCE, BASE_BLOCK_CHANCE
+
 GACHA_ITEMS = ARTIFACTS
 
 router = Router()
@@ -521,8 +522,9 @@ async def handle_inspect_player(callback: types.CallbackQuery):
         
         weight = meta.get("weight", 0.0)
         status = meta.get("status", "active")
-        mood = meta.get("mood", "Normal")
+        mood = meta.get("mood", "чілово")
         equip = meta.get("equipment", {})
+        stats = meta.get("stats", {})
         
         status_text = "💤 Спить" if status == "sleep" else "🐾 Гуляє архіпелагом"
         karma_title = "😇 Свята булочка" if target['karma'] > 50 else "😈 Мародерна капі" if target['karma'] < -50 else "😐 Нейтральна капі"
@@ -543,6 +545,11 @@ async def handle_inspect_player(callback: types.CallbackQuery):
             f"└ Снаряда: <b>{equip.get('weapon', 'Лапки')}</b>\n"
             f"└ Захист: <b>{equip.get('armor', 'Хутро')}</b>\n"
             f"└ Реліквія: <b>{equip.get('artifact') or 'Порожньо'}</b>\n\n"
+            f"<b>Показники:</b>\n"
+            f"🔥 ATK: <b>{BASE_HIT_CHANCE + STAT_WEIGHTS["atk_to_hit"] * stats.get('attack', 1)}%</b>  |  "
+            f"🛡️ DEF: <b>{BASE_BLOCK_CHANCE + STAT_WEIGHTS["def_to_block"] * stats.get('defense', 1)}%</b>\n"
+            f"💨 AGI: <b>{STAT_WEIGHTS["agi_to_dodge"] * stats.get('agility', 1)}%</b>  |  "
+            f"🍀 LCK: <b>+{STAT_WEIGHTS["luck_to_crit"] * stats.get('luck', 1)}%</b>\n"
             f"<i>Капібара виглядає {mood.lower()}, здається, вона готова до пригод.</i>"
         )
 
