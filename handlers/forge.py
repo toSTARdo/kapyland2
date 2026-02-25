@@ -36,7 +36,7 @@ async def process_open_forge(callback: types.CallbackQuery):
         builder.button(text="⬅️ Назад", callback_data="open_port")
         builder.adjust(1)
 
-         text = (
+        text = (
             "🐦 <b>Кузня ківі</b>\n"
             "━━━━━━━━━━━━━━━\n"
             "Тут пахне сталлю та тропічними фруктами.\n"
@@ -121,3 +121,4 @@ async def forge_craft_list(callback: types.CallbackQuery):
     builder.button(text="⬅️ Назад", callback_data="open_forge")
     builder.adjust(1)
     await callback.message.edit_caption(caption="⚒️ <b>Доступні креслення:</b>", reply_markup=builder.as_markup(), parse_mode="HTML")
+
