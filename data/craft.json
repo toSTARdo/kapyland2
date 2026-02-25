@@ -20,7 +20,7 @@
   "jellyfish_stinger": {
     "name": "Медузний екстракт",
     "emoji": "🪼🪼💥",
-    "ingridients": {"jellyfish": 3},
+    "ingredients": {"jellyfish": 3},
     "effect": "sting"
   }
 }
