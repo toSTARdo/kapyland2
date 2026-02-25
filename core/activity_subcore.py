@@ -559,7 +559,7 @@ async def handle_inspect_player(callback: types.CallbackQuery):
         builder.button(text="🔙 Назад", callback_data="social")
         builder.adjust(2, 1)
 
-        await callback.message.edit_caption(text, reply_markup=builder.as_markup(), parse_mode="HTML")
+        await callback.message.edit_caption(caption=text, reply_markup=builder.as_markup(), parse_mode="HTML")
         
     finally:
         await conn.close()
@@ -592,7 +592,7 @@ async def gift_category_select(callback: types.CallbackQuery):
         builder.adjust(2, 1, 1)
 
         await callback.message.edit_caption(
-            "🎁 <b>Меню подарунків</b>\nОберіть категорію предметів для передачі:",
+            caption="🎁 <b>Меню подарунків</b>\nОберіть категорію предметів для передачі:",
             reply_markup=builder.as_markup(),
             parse_mode="HTML"
         )
@@ -648,7 +648,7 @@ async def gift_item_select(callback: types.CallbackQuery):
         builder.adjust(1)
 
         await callback.message.edit_caption(
-            f"🎁 <b>Ваш інвентар ({category}):</b>",
+            caption=f"🎁 <b>Ваш інвентар ({category}):</b>",
             reply_markup=builder.as_markup(),
             parse_mode="HTML"
         )
@@ -705,7 +705,7 @@ async def execute_gift_transfer(callback: types.CallbackQuery):
             await conn.execute("UPDATE capybaras SET karma = karma + 1 WHERE owner_id = $1", uid)
             item_name = item_key
 
-        await callback.message.edit_caption(f"✨ Успіх!\nВи подарували {ITEM_DISPLAY_NAMES[item_name]} та покращили свою карму.", parse_mode="HTML")
+        await callback.message.edit_caption(caprion=f"✨ Успіх!\nВи подарували {ITEM_DISPLAY_NAMES[item_name]} та покращили свою карму.", parse_mode="HTML")
         
         try:
             await callback.bot.send_message(target_id, f"🎁 Гей! Тобі прийшов подарунок: {ITEM_DISPLAY_NAMES[item_name]}!")
