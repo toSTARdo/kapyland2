@@ -63,6 +63,13 @@ async def render_inventory_page(message, user_id, page="food", current_page=0, i
 
     elif page == "items":
         title = "⚔️ <b>Амуніція</b>"
+        selected_key = None
+        if ":" in page and len(page.split(":")) > 1:
+            _, selected_key = page.split(":", 1)
+            page_type = "items"
+        else:
+            page_type = "items"
+
         curr_equip = meta.get("equipment", {})
         all_items = inv.get("equipment", [])
         
@@ -72,43 +79,62 @@ async def render_inventory_page(message, user_id, page="food", current_page=0, i
             unique_list = []
             seen = {}
             for item in all_items:
-                name = item['name']
-                if name not in seen:
-                    seen[name] = len(unique_list)
-                    unique_list.append({"data": item, "count": 1})
+                if isinstance(item, str): item = {"name": item, "lvl": 0, "type": "artifact", "rarity": "Common"}
+                n, l = item.get('name', '???'), item.get('lvl', 0)
+                k = f"{n}_{l}"
+                if k not in seen:
+                    seen[k] = len(unique_list)
+                    unique_list.append({"data": item, "count": 1, "key": k})
                 else:
-                    unique_list[seen[name]]["count"] += 1
+                    unique_list[seen[k]]["count"] += 1
             
             max_p = (len(unique_list) - 1) // ITEMS_PER_PAGE
             items_slice = unique_list[current_page * ITEMS_PER_PAGE : (current_page + 1) * ITEMS_PER_PAGE]
-            SELL_PRICES = {"Common": 1, "Rare": 2, "Epic": 3, "Legendary": 5}
+            SELL_PRICES = {"Common": 1, "Rare": 2, "Epic": 3, "Legendary": 5, "Mythic": 10}
 
             for info in items_slice:
-                item, count = info["data"], info["count"]
-                name, rarity = item['name'], item.get('rarity', 'Common')
-                
+                item, count, k = info["data"], info["count"], info["key"]
+                name, rarity, lvl = item['name'], item.get('rarity', 'Common'), item.get('lvl', 0)
                 i_type = item.get('type', 'artifact')
+                
                 t_icon = TYPE_ICONS.get(i_type, "🧿")
                 r_icon = RARITY_META.get(rarity, {}).get('emoji', '⚪')
+                stars = "⭐" * lvl if lvl > 0 else ""
                 
-                is_equipped = (name == curr_equip.get("weapon") or name == curr_equip.get("armor"))
-                status = " ✅" if is_equipped else ""
-                price = SELL_PRICES.get(rarity, 1)
+                is_eq = False
+                if isinstance(curr_equip, dict):
+                    for slot, eq_val in curr_equip.items():
+                        en = eq_val.get("name") if isinstance(eq_val, dict) else eq_val
+                        el = eq_val.get("lvl", 0) if isinstance(eq_val, dict) else 0
+                        if en == name and el == lvl:
+                            is_eq = True; break
+                
+                status = " ✅" if is_eq else ""
+                
+                builder.row(types.InlineKeyboardButton(
+                    text=f"{r_icon}{t_icon} {name} {stars} x{count}{status}", 
+                    callback_data=f"inv_page:items:{k}:{current_page}" # Select item
+                ))
 
-                builder.row(
-                    types.InlineKeyboardButton(text=f"{r_icon}{t_icon} {name} x{count}{status}", callback_data=f"equip:{i_type}:{name}"),
-                    types.InlineKeyboardButton(text=f"💰 ({price}🍉)", callback_data=f"sell_item:{rarity}:{name}")
-                )
-            
+                if selected_key == k:
+                    price = SELL_PRICES.get(rarity, 1) + lvl
+                    desc = item.get("desc", "Опис відсутній.")
+                    content = f"<b>{r_icon} {name} {stars}</b>\n<i>{desc}</i>\n\nЦіна продажу: {price} 🍉"
+                    
+                    sub_btns = [
+                        types.InlineKeyboardButton(text="⚔️ Одягнути", callback_data=f"equip:{i_type}:{name}:{lvl}"),
+                        types.InlineKeyboardButton(text=f"💰 Продати ({price}🍉)", callback_data=f"sell_item:{rarity}:{name}:{lvl}")
+                    ]
+                    builder.row(*sub_btns)
+
             if len(unique_list) > ITEMS_PER_PAGE:
                 nav = []
                 if current_page > 0: 
-                    nav.append(types.InlineKeyboardButton(text="⬅️", callback_data=f"inv_page:{page}:{current_page-1}"))
+                    nav.append(types.InlineKeyboardButton(text="⬅️", callback_data=f"inv_page:items:{current_page-1}"))
                 nav.append(types.InlineKeyboardButton(text=f"{current_page+1}/{max_p+1}", callback_data="none"))
                 if current_page < max_p: 
-                    nav.append(types.InlineKeyboardButton(text="➡️", callback_data=f"inv_page:{page}:{current_page+1}"))
+                    nav.append(types.InlineKeyboardButton(text="➡️", callback_data=f"inv_page:items:{current_page+1}"))
                 builder.row(*nav)
-            content = f"Обери предмет (Стор. {current_page + 1}):"
 
     elif page == "loot":
         title = "🧳 <b>Скарби</b>"
