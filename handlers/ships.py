@@ -64,7 +64,7 @@ async def open_village(event: types.Message | types.CallbackQuery, target_text: 
     is_callback = isinstance(event, types.CallbackQuery)
     
     village_text = (
-        "🕌 <b>Містечко Пух-Пух</b>\n"
+        "🛖 <b>Містечко Пух-Пух</b>\n"
         "________________________________\n\n"
         "⚗️ Алхімічна лавка \"Сонний Бровар\" — вари зілля та еліксири\n"
         "🔨 <b>Кузня Ківі</b> — покращуй спорядження та крафти предмети\n"
@@ -159,7 +159,16 @@ async def cmd_ship_menu(event: types.Message | types.CallbackQuery, state: FSMCo
     builder.adjust(1)
     
     if isinstance(event, types.CallbackQuery):
-        await message.edit_caption(text, reply_markup=builder.as_markup(), parse_mode="HTML")
+        new_photo = InputMediaPhoto(
+            media=IMAGES_URLS["harbor"],
+            caption=text,
+            parse_mode="HTML"
+        )
+
+        await callback.message.edit_media(
+            media=new_photo,
+            reply_markup=builder.as_markup()
+        )
     else:
         await message.answer(text, reply_markup=builder.as_markup(), parse_mode="HTML")
 

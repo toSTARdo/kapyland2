@@ -3,7 +3,7 @@ import random
 from datetime import datetime, timedelta, timezone
 from aiogram import types, F, Router
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from config import ARTIFACTS, DISPLAY_NAMES
+from config import ARTIFACTS, DISPLAY_NAMES, IMAGES_URLS
 from database.postgres_db import get_db_connection
 
 router = Router()
@@ -17,7 +17,6 @@ RESOURCES_POOL = [
     "carp", "perch", "pufferfish", "octopus", "crab", "jellyfish", "swordfish", "shark"
 ]
 
-# Ціни продажу (скільки кавунових одиниць дають за 1 шт ресурсу)
 SELL_PRICES = {
     "wood": 10, "mint": 12, "thyme": 12, "rosemary": 15,
     "chamomile": 10, "lavender": 15, "tulip": 20, "lotus": 35,
@@ -59,7 +58,13 @@ async def open_bazaar(callback: types.CallbackQuery):
     builder.button(text="💰 Продати ресурси", callback_data="bazaar_sell_list")
     builder.button(text="⬅️ Назад", callback_data="open_port")
     builder.adjust(2, 1)
-    await callback.message.edit_caption(caption="🏺 <b>Базар Капіграда</b>\n━━━━━━━━━━━━━━━━━━━━\nОбмінюй фрукти на артефакти або здавай свій вилов за соковиті кавуни!", reply_markup=builder.as_markup(), parse_mode="HTML")
+    new_photo = InputMediaPhoto(
+    media=IMAGES_URLS["bazaar"],
+    caption="🏺 <b>Базар Капіграда</b>\n━━━━━━━━━━━━━━━━━━━━\nОбмінюй фрукти на артефакти або здавай свій вилов за соковиті кавуни!",
+    parse_mode="HTML"
+    )
+
+    await callback.message.edit_media(media=new_photo, reply_markup=builder.as_markup())
 
 @router.callback_query(F.data == "bazaar_shop")
 async def bazaar_shop(callback: types.CallbackQuery):

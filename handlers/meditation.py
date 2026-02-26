@@ -4,6 +4,7 @@ from aiogram.filters import Command
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from core.capybara_mechanics import get_user_inventory
 from database.postgres_db import get_db_connection
+from config import IMAGES_URLS
 
 router = Router()
 
@@ -40,7 +41,16 @@ async def meditation_menu(callback: types.CallbackQuery):
         builder.button(text="🔙 Назад", callback_data="profile_back") 
         builder.adjust(2, 2, 1)
 
-        await callback.message.edit_caption(caption=text, reply_markup=builder.as_markup(), parse_mode="HTML")
+        new_photo = InputMediaPhoto(
+            media=IMAGES_URLS["meditation"],
+            caption=text,
+            parse_mode="HTML"
+        )
+
+        await callback.message.edit_media(
+            media=new_photo,
+            reply_markup=builder.as_markup()
+        )
     finally:
         await conn.close()
 

@@ -2,7 +2,7 @@ import json
 import asyncio
 from aiogram import types, F, Router
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from config import load_game_data, DISPLAY_NAMES
+from config import load_game_data, DISPLAY_NAMES, IMAGES_URLS
 from database.postgres_db import get_db_connection
 
 router = Router()
@@ -49,10 +49,15 @@ async def process_open_alchemy(callback: types.CallbackQuery):
             "🦥 <i>«П-р-и-в-і-т... Щ-о...\nс-ь-о-г-о-д-н-і в-а-р-и-т-и-м-е-м-о?»</i>"
         )
         
-        await callback.message.edit_caption(
-            caption=text,
-            reply_markup=builder.as_markup(),
-            parse_mode="HTML"
+        new_photo = InputMediaPhoto(
+        media=IMAGES_URLS["alchemy"],
+        caption=text,
+        parse_mode="HTML"
+        )
+
+        await callback.message.edit_media(
+            media=new_photo,
+            reply_markup=builder.as_markup()
         )
     finally:
         await conn.close()
