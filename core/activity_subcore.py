@@ -450,7 +450,7 @@ async def run_battle_logic(callback: types.CallbackQuery, opponent_id: int = Non
         conn = await get_db_connection()
         try:
             if isinstance(winner_id, int) and not is_parrot_fight: 
-                res_winner = await grant_exp_and_lvl(winner_id, exp_gain=3, weight_gain=3.0, bot=bot)
+                res_winner = await grant_exp_and_lvl(winner_id, exp_gain=3, weight_gain=3.0)
                 
                 await conn.execute("""
                     UPDATE capybaras 
