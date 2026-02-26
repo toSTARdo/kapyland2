@@ -13,7 +13,6 @@ router = Router()
 async def handle_food_choice(callback: types.CallbackQuery):
     food_type = callback.data.split(":")[1]
     user_id = callback.from_user.id
-    bot = callback.bot
     
     meta_data = await get_user_inventory(user_id)
     meta = json.loads(meta_data) if isinstance(meta_data, str) else meta_data
