@@ -163,3 +163,168 @@ async def forge_craft_list(callback: types.CallbackQuery):
         await callback.message.edit_caption(caption="⚒️ <b>Доступні креслення:</b>", reply_markup=builder.as_markup(), parse_mode="HTML")
     finally:
         await conn.close()
+
+@router.callback_query(F.data.startswith("mythic_info:"))
+async def show_mythic_recipe(callback: types.CallbackQuery):
+    mythic_id = callback.data.split(":")[1]
+    user_id = callback.from_user.id
+    
+    conn = await get_db_connection()
+    try:
+        row = await conn.fetchrow("SELECT meta FROM capybaras WHERE owner_id = $1", user_id)
+        meta = json.loads(row['meta']) if isinstance(row['meta'], str) else row['meta']
+        inv = meta.get("inventory", {})
+        
+        recipe = FORGE_RECIPES.get("mythic_artifacts", {}).get(mythic_id)
+        if not recipe:
+            return await callback.answer("❌ Рецепт не знайдено")
+
+        text = f"✨ <b>{recipe['name']}</b>\n"
+        text += f"<i>{recipe['desc']}</i>\n"
+        text += "━━━━━━━━━━━━━━━\n\n"
+        text += "<b>Необхідні артефакти:</b>\n"
+
+        can_craft = True
+        
+        for ing_name in recipe["ingredients"]:
+            in_loot = inv.get("loot", {}).get(ing_name, 0) > 0
+            
+            in_equip = False
+            equip = inv.get("equipment", {})
+            if isinstance(equip, dict):
+                for item in equip.values():
+                    name = item if isinstance(item, str) else item.get("name", "")
+                    if ing_name in name:
+                        in_equip = True
+                        break
+            elif isinstance(equip, list):
+                for item in equip:
+                    name = item if isinstance(item, str) else item.get("name", "")
+                    if ing_name in name:
+                        in_equip = True
+                        break
+            
+            if in_loot or in_equip:
+                text += f"✅ {ing_name}\n"
+            else:
+                text += f"❌ {ing_name}\n"
+                can_craft = False
+
+        if "requirements" in recipe:
+            text += "\n<b>Особливі умови:</b>\n"
+            reqs = recipe["requirements"]
+            stats = meta.get("stats_track", {})
+            
+            if "wins" in reqs:
+                current_wins = stats.get("wins", 0)
+                icon = "✅" if current_wins >= reqs["wins"] else "⏳"
+                text += f"{icon} Перемоги: {current_wins}/{reqs['wins']}\n"
+                if current_wins < reqs["wins"]: can_craft = False
+
+            if "stamina_regen_total" in reqs:
+                current_regen = stats.get("stamina_regen", 0)
+                icon = "✅" if current_regen >= reqs["stamina_regen_total"] else "⏳"
+                text += f"{icon} Реген ХП: {current_regen}/{reqs['stamina_regen_total']}\n"
+                if current_regen < reqs["stamina_regen_total"]: can_craft = False
+
+        builder = InlineKeyboardBuilder()
+        
+        if can_craft:
+            builder.button(text="🔥 КУВАТИ АРТЕФАКТ", callback_data=f"craft_mythic:{mythic_id}")
+        else:
+            builder.button(text="⚠️ Бракує ресурсів", callback_data="none")
+            
+        builder.button(text="⬅️ Назад", callback_data="forge_craft_list")
+        builder.adjust(1)
+
+        await callback.message.edit_caption(
+            caption=text,
+            reply_markup=builder.as_markup(),
+            parse_mode="HTML"
+        )
+    finally:
+        await conn.close()
+
+@router.callback_query(F.data.startswith("craft_mythic:"))
+async def process_mythic_craft(callback: types.CallbackQuery):
+    mythic_id = callback.data.split(":")[1]
+    user_id = callback.from_user.id
+    
+    conn = await get_db_connection()
+    try:
+        row = await conn.fetchrow("SELECT meta FROM capybaras WHERE owner_id = $1", user_id)
+        meta = json.loads(row['meta']) if isinstance(row['meta'], str) else row['meta']
+        inv = meta.get("inventory", {})
+        equip = inv.get("equipment", {})
+        loot = inv.get("loot", {})
+        
+        recipe = FORGE_RECIPES.get("mythic_artifacts", {}).get(mythic_id)
+        
+        to_remove_from_loot = []
+        to_remove_from_equip = []
+        
+        for ing_name in recipe["ingredients"]:
+            found = False
+            if loot.get(ing_name, 0) > 0:
+                to_remove_from_loot.append(ing_name)
+                found = True
+            elif isinstance(equip, dict):
+                for slot, item in equip.items():
+                    name = item if isinstance(item, str) else item.get("name", "")
+                    if ing_name in name:
+                        to_remove_from_equip.append(slot)
+                        found = True
+                        break
+            
+            if not found:
+                return await callback.answer("❌ Один з інгредієнтів зник! Крафт скасовано.", show_alert=True)
+
+        for ing in to_remove_from_loot:
+            loot[ing] -= 1
+            if loot[ing] <= 0: del loot[ing]
+            
+        for slot in to_remove_from_equip:
+            if slot == "weapon": equip[slot] = "Лапки"
+            elif slot == "armor": equip[slot] = "Хутро"
+            else: equip[slot] = "Нічого"
+
+        mythic_item = {
+            "name": recipe["name"],
+            "type": "mythic",
+            "stats": recipe.get("stats", {})
+        }
+        
+        if "weapon" in mythic_id or "drill" in mythic_id or "sword" in mythic_id or "staff" in mythic_id or "axe" in mythic_id:
+            equip["weapon"] = mythic_item
+        else:
+            loot[recipe["name"]] = loot.get(recipe["name"], 0) + 1
+
+        await conn.execute(
+            "UPDATE capybaras SET meta = $1 WHERE owner_id = $2", 
+            json.dumps(meta, ensure_ascii=False), 
+            user_id
+        )
+
+        success_text = (
+            "✨ <b>РИТУАЛ ЗАВЕРШЕНО!</b> ✨\n"
+            "━━━━━━━━━━━━━━━━━━━━\n"
+            f"Легендарні предмети переплавились у:\n"
+            f"⚡️ <b>{recipe['name']}</b>\n\n"
+            "<i>Ви відчуваєте, як сила предків наповнює ваші лапки...</i>"
+        )
+        
+        builder = InlineKeyboardBuilder()
+        builder.button(text="🔥 ВІДЧУТИ МОГУТНІСТЬ", callback_data="open_forge")
+        
+        await callback.message.edit_caption(
+            caption=success_text,
+            reply_markup=builder.as_markup(),
+            parse_mode="HTML"
+        )
+        await callback.answer("⚔️ Міфічний предмет створено!")
+
+    except Exception as e:
+        print(f"Craft Error: {e}")
+        await callback.answer("🛑 Помилка при ковці артефакту.")
+    finally:
+        await conn.close()
