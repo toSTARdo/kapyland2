@@ -317,10 +317,11 @@ IMAGES_URLS = {
     "profile": "https://raw.githubusercontent.com/toSTARdo/kapyland2/main/assets/capyimg_profile.png",
     "village_main": "https://raw.githubusercontent.com/toSTARdo/kapyland2/main/assets/capyimg_village1.png",
     "delivery": "https://raw.githubusercontent.com/toSTARdo/kapyland2/main/assets/capyimg_delivery.png",
-    "forge": "https://raw.githubusercontent.com/toSTARdo/kapyland2/main/assets/capyimg_forge.png",
-    "alchemy": "https://raw.githubusercontent.com/toSTARdo/kapyland2/main/assets/capyimg_alchemy.png",
-    "harbor": "https://raw.githubusercontent.com/toSTARdo/kapyland2/main/assets/capyimg_harbor.png",
-    "bazaar": "https://raw.githubusercontent.com/toSTARdo/kapyland2/main/assets/capyimg_bazaar.png"
+    "forge": "https://raw.githubusercontent.com/toSTARdo/kapyland2/main/assets/capyimg_forge.jpg",
+    "alchemy": "https://raw.githubusercontent.com/toSTARdo/kapyland2/main/assets/capyimg_alchemy.jpg",
+    "harbor": "https://raw.githubusercontent.com/toSTARdo/kapyland2/main/assets/capyimg_harbor.jpg",
+    "bazaar": "https://raw.githubusercontent.com/toSTARdo/kapyland2/main/assets/capyimg_bazaar.jpg",
+    "meditation": "https://raw.githubusercontent.com/toSTARdo/kapyland2/main/assets/capyimg_meditation.jpg"
 }
 
 ACHIEVEMENTS = {
