@@ -161,7 +161,7 @@ class CapyGuardMiddleware(BaseMiddleware):
                         if chest_count > 0:
                             inv = meta.setdefault("inventory", {})
                             loot = inv.setdefault("loot", {})
-                            loot["common_chest"] = loot.get("common_chest", 0) + chest_count
+                            loot["chest"] = loot.get("chest", 0) + chest_count
     
                         title = config.get("reward_title")
                         if title and title not in unlocked_titles:
@@ -173,7 +173,7 @@ class CapyGuardMiddleware(BaseMiddleware):
                                 f"━━━━━━━━━━━━━━━\n"
                                 f"🌟 <b>{config['name']}</b>\n"
                                 f"📜 <i>{config['desc']}</i>\n\n"
-                                f"🎁 Нагорода: <b>{chest_count} 🧳</b> та титул «<b>{title}</b>»"
+                                f"🎁 Нагорода: <b>{chest_count} 🗃</b> та титул «<b>{title}</b>»"
                             )
                             bot = payload.message.bot if payload.message else payload.callback_query.message.bot
                             await bot.send_message(user_id, alert, parse_mode="HTML")
