@@ -5,6 +5,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from core.capybara_mechanics import get_user_inventory
 from database.postgres_db import get_db_connection
 from core.capybara_mechanics import grant_exp_and_lvl
+from core.inventory.equipment import render_inventory_page
 
 router = Router()
 
@@ -82,7 +83,7 @@ async def handle_eat(callback: types.CallbackQuery):
                            json.dumps(meta, ensure_ascii=False), user_id)
         
         from core.capybara_mechanics import grant_exp_and_lvl
-        res = await grant_exp_and_lvl(user_id, exp_gain=exp_gain, weight_gain=total_bonus, bot=bot)
+        res = await grant_exp_and_lvl(user_id, exp_gain=exp_gain, weight_gain=total_bonus)
 
         if not res:
             return await callback.answer("Помилка магії травлення...")
