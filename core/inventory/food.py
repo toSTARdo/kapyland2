@@ -82,7 +82,7 @@ async def handle_eat(callback: types.CallbackQuery):
                            json.dumps(meta, ensure_ascii=False), user_id)
         
         from core.capybara_mechanics import grant_exp_and_lvl
-        res = await grant_exp_and_lvl(user_id, exp_gain=exp_gain, weight_gain=total_bonus)
+        res = await grant_exp_and_lvl(user_id, exp_gain=exp_gain, weight_gain=total_bonus, bot=callback.bot)
 
         if not res:
             return await callback.answer("Помилка магії травлення...")
