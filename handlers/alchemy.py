@@ -1,6 +1,7 @@
 import json
 import asyncio
 from aiogram import types, F, Router
+from aiogram.types import InputMediaPhoto
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from config import load_game_data, DISPLAY_NAMES, IMAGES_URLS
 from database.postgres_db import get_db_connection

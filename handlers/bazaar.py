@@ -2,6 +2,7 @@ import json
 import random
 from datetime import datetime, timedelta, timezone
 from aiogram import types, F, Router
+from aiogram.types import InputMediaPhoto
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from config import ARTIFACTS, DISPLAY_NAMES, IMAGES_URLS
 from database.postgres_db import get_db_connection

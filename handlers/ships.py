@@ -1,5 +1,6 @@
 import asyncio, json, random
 from aiogram import Router, types, html, F
+from aiogram.types import InputMediaPhoto
 from aiogram.filters import Command
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from core.capybara_mechanics import get_user_inventory
