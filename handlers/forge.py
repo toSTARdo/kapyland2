@@ -264,32 +264,31 @@ async def process_mythic_craft(callback: types.CallbackQuery):
         to_remove_from_equip = []
         
         temp_loot = loot.copy()
-        temp_equip = equip.copy()
+        temp_equip = list(equip)
         
         to_remove_from_loot = []
-        to_remove_from_equip = []
+        to_remove_from_equip_indices = []
         
         for ing_name in recipe["ingredients"]:
             found = False
-            
-            if temp_loot.get(ing_name, 0) > 0:
-                temp_loot[ing_name] -= 1
-                to_remove_from_loot.append(ing_name)
+            target = ing_name.strip()
+
+            if temp_loot.get(target, 0) > 0:
+                temp_loot[target] -= 1
+                to_remove_from_loot.append(target)
                 found = True
             
-            if not found and isinstance(temp_equip, dict):
-                for slot, item in temp_equip.items():
-                    current_item_name = item if isinstance(item, str) else item.get("name", "")
+            if not found:
+                for i, item in enumerate(temp_equip):
+                    current_name = item.get("name", "").strip() if isinstance(item, dict) else str(item).strip()
                     
-                    if current_item_name == ing_name and slot not in to_remove_from_equip:
-                        to_remove_from_equip.append(slot)
-                        temp_equip[slot] = "Використано" 
+                    if current_name == target and i not in to_remove_from_equip_indices:
+                        to_remove_from_equip_indices.append(i)
                         found = True
                         break
             
             if not found:
-                print(f"DEBUG: Not found ingredient: {ing_name}")
-                return await callback.answer(f"❌ Немає інгредієнта: {ing_name}", show_alert=True)
+                return await callback.answer(f"❌ Не знайдено: {target}", show_alert=True)
 
         for ing in to_remove_from_loot:
             loot[ing] -= 1
@@ -340,4 +339,5 @@ async def process_mythic_craft(callback: types.CallbackQuery):
         await callback.answer("🛑 Помилка при ковці артефакту.")
     finally:
         await conn.close()
+
 
