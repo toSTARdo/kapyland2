@@ -314,25 +314,31 @@ async def handle_chop(callback: types.CallbackQuery):
     finally: await conn.close()
 
 def render_world_viewer(view_x, view_y, discovered_list):
-    win_size = 15
-    half = win_size // 2
-    start_x = max(0, min(MAP_WIDTH - win_size, view_x - half))
-    start_y = max(0, min(MAP_HEIGHT - win_size, view_y - half))
+    win_w = 30
+    win_h = 15
+    
+    half_w = win_w // 2
+    half_h = win_h // 2
+    
+    start_x = max(0, min(MAP_WIDTH - win_w, view_x - half_w))
+    start_y = max(0, min(MAP_HEIGHT - win_h, view_y - half_h))
     
     discovered_set = set(discovered_list)
-    rows = [f"🌐 <b>Огляд світу ({view_x}, {view_y})</b>", "═" * win_size]
+    rows = [f"🌐 <b>Огляд світу ({view_x}, {view_y})</b>", "═" * win_w]
     
-    for y in range(start_y, start_y + win_size):
+    for y in range(start_y, start_y + win_h):
         line = []
-        for x in range(start_x, start_x + win_size):
+        for x in range(start_x, start_x + win_w):
             c_str = f"{x},{y}"
-            if c_str in discovered_set:
+            if x == view_x and y == view_y:
+                line.append("𖠌")
+            elif c_str in discovered_set:
                 line.append(FULL_MAP[y][x])
             else:
                 line.append(FOG_ICON)
         rows.append("".join(line))
     
-    rows.append("═" * win_size)
+    rows.append("═" * win_w)
     return "\n".join(rows)
 
 def get_viewer_keyboard(vx, vy):
