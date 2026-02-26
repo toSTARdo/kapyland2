@@ -7,7 +7,7 @@ from database.postgres_db import get_db_connection
 
 router = Router()
 
-FORGE_RECIPES = load_game_data("data/forge_recipes.json")
+FORGE_RECIPES = load_game_data("data/forge_craft.json")
 
 def find_item_in_inventory(inv, item_key):
     for category in ["food", "materials", "plants", "loot"]:
@@ -52,25 +52,30 @@ async def process_open_forge(callback: types.CallbackQuery):
 async def upgrade_list(callback: types.CallbackQuery):
     user_id = callback.from_user.id
     conn = await get_db_connection()
-    row = await conn.fetchrow("SELECT meta FROM capybaras WHERE owner_id = $1", user_id)
-    meta = json.loads(row['meta']) if isinstance(row['meta'], str) else row['meta']
-    await conn.close()
+    try:
+        row = await conn.fetchrow("SELECT meta FROM capybaras WHERE owner_id = $1", user_id)
+        meta = json.loads(row['meta']) if isinstance(row['meta'], str) else row['meta']
+        
+        equip = meta.get("inventory", {}).get("equipment", {})
+        
+        builder = InlineKeyboardBuilder()
 
-    equip = meta.get("equipment", {})
-    builder = InlineKeyboardBuilder()
+        for slot, item_data in equip.items():
+            item_name = item_data if isinstance(item_data, str) else item_data.get("name")
+            
+            if item_name and item_name not in ["Лапки", "Хутро", "Нічого"]:
+                builder.button(text=f"💎 {item_name}", callback_data=f"up_item:{slot}")
 
-    for slot, item_name in equip.items():
-        if item_name and item_name not in ["Лапки", "Хутро"]:
-            builder.button(text=f"💎 {item_name}", callback_data=f"up_item:{slot}")
+        builder.button(text="⬅️ Назад", callback_data="open_forge")
+        builder.adjust(1)
 
-    builder.button(text="⬅️ Назад", callback_data="open_forge")
-    builder.adjust(1)
-
-    await callback.message.edit_caption(
-        caption="🛠️ <b>Яку річ хочеш загартувати?</b>\nВартість: <b>5 🥝</b> за +1 рівень.",
-        reply_markup=builder.as_markup(),
-        parse_mode="HTML"
-    )
+        await callback.message.edit_caption(
+            caption="🛠️ <b>Загартування спорядження</b>\n\nОбери предмет, який хочеш посилити.\nВартість: <b>5 🥝</b>",
+            reply_markup=builder.as_markup(),
+            parse_mode="HTML"
+        )
+    finally:
+        await conn.close()
 
 @router.callback_query(F.data.startswith("up_item:"))
 async def confirm_upgrade(callback: types.CallbackQuery):
@@ -121,4 +126,5 @@ async def forge_craft_list(callback: types.CallbackQuery):
     builder.button(text="⬅️ Назад", callback_data="open_forge")
     builder.adjust(1)
     await callback.message.edit_caption(caption="⚒️ <b>Доступні креслення:</b>", reply_markup=builder.as_markup(), parse_mode="HTML")
+
 
