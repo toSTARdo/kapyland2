@@ -113,7 +113,7 @@ async def render_inventory_page(message, user_id, page="food", current_page=0, i
                 
                 builder.row(types.InlineKeyboardButton(
                     text=f"{r_icon}{t_icon} {name} {stars} x{count}{status}", 
-                    callback_data=f"inv_page:items:{k}:{current_page}" # Select item
+                    callback_data=f"inv_page:items:{current_page}:{k}" 
                 ))
 
                 if selected_key == k:
@@ -186,17 +186,27 @@ async def render_inventory_page(message, user_id, page="food", current_page=0, i
     else:
         await message.answer(text, reply_markup=markup, parse_mode="HTML")
 
-@router.callback_query(F.data.startswith("inv_pagination:"))
-async def handle_inv_pagination(callback: types.CallbackQuery):
-    _, category, p_idx = callback.data.split(":")
+@router.callback_query(F.data.startswith("inv_page:"))
+async def handle_inventory_pagination(callback: types.CallbackQuery):
+    data = callback.data.split(":")
+    page_type = data[1]
+    
+    if len(data) > 2 and data[2].isdigit():
+        p_idx = int(data[2])
+        selected_item = data[3] if len(data) > 3 else None
+    else:
+        p_idx = int(data[3]) if len(data) > 3 and data[3].isdigit() else 0
+        selected_item = data[2] if len(data) > 2 else None
+
+    target_page = f"{page_type}:{selected_item}" if selected_item else page_type
+    
     await render_inventory_page(
         callback.message, 
         callback.from_user.id, 
-        page=category, 
-        current_page=int(p_idx), 
+        page=target_page, 
+        current_page=p_idx, 
         is_callback=True
     )
-    await callback.answer()
 
 @router.callback_query(F.data.startswith("sell_item:"))
 async def handle_sell_equipment(callback: types.CallbackQuery):
