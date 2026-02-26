@@ -3,6 +3,7 @@ import datetime
 from typing import Any, Awaitable, Callable, Dict
 from aiogram import BaseMiddleware, types
 from database.postgres_db import get_db_connection
+from config import ACHIEVEMENTS
 
 class CapyGuardMiddleware(BaseMiddleware):
     async def __call__(
@@ -86,6 +87,12 @@ class CapyGuardMiddleware(BaseMiddleware):
                         meta["status"] = "active"
                         needs_update = True
 
+            self.update_stats_track(meta, event)
+            ach_changed = await self.check_achievements(meta, user_id, payload)
+            
+            if ach_changed:
+                needs_update = True
+            
             if needs_update:
                 await conn.execute("UPDATE capybaras SET meta = $1 WHERE owner_id = $2", json.dumps(meta), user_id)
 
@@ -114,3 +121,63 @@ class CapyGuardMiddleware(BaseMiddleware):
 
         finally:
             await conn.close()
+
+def update_stats_track(self, meta: dict, event: types.Update):
+        stats = meta.setdefault("stats_track", {})
+        
+        stats["total_clicks"] = stats.get("total_clicks", 0) + 1
+
+        if event.callback_query:
+            call_data = event.callback_query.data
+            
+            if call_data.startswith("brew:") or call_data.startswith("confirm_brew:"):
+                stats["potions_brewed"] = stats.get("potions_brewed", 0) + 1
+            
+            if "fish" in call_data:
+                stats["fish_caught"] = stats.get("fish_caught", 0) + 1
+                
+            if call_data.startswith("use_potion:"):
+                stats["potions_used"] = stats.get("potions_used", 0) + 1
+
+        if event.message and event.message.text:
+            text = event.message.text
+            if "⚔️" in text:
+                stats["pvp_fights"] = stats.get("pvp_fights", 0) + 1
+            if "🍎" in text or "🍉" in text:
+                stats["fed_total"] = stats.get("fed_total", 0) + 1
+
+async def check_achievements(self, meta: dict, user_id: int, payload: types.Update):
+        acquired = meta.setdefault("achievements", [])
+        unlocked_titles = meta.setdefault("unlocked_titles", ["Новачок"])
+        needs_save = False
+
+        for ach_id, config in ACHIEVEMENTS.items():
+            if ach_id not in acquired:
+                if config["condition"](meta):
+                    acquired.append(ach_id)
+                    needs_save = True
+
+                    chest_count = config.get("reward_chest", 0)
+                    if chest_count > 0:
+                        inv = meta.setdefault("inventory", {})
+                        loot = inv.setdefault("loot", {})
+                        loot["common_chest"] = loot.get("common_chest", 0) + chest_count
+
+                    title = config.get("reward_title")
+                    if title and title not in unlocked_titles:
+                        unlocked_titles.append(title)
+
+                    try:
+                        alert = (
+                            f"🏆 <b>НОВЕ ДОСЯГНЕННЯ!</b>\n"
+                            f"━━━━━━━━━━━━━━━\n"
+                            f"🌟 <b>{config['name']}</b>\n"
+                            f"📜 <i>{config['desc']}</i>\n\n"
+                            f"🎁 Нагорода: <b>{chest_count} 🧳</b> та титул «<b>{title}</b>»"
+                        )
+                        bot = payload.message.bot if payload.message else payload.callback_query.message.bot
+                        await bot.send_message(user_id, alert, parse_mode="HTML")
+                    except Exception:
+                        pass
+        
+        return needs_save
