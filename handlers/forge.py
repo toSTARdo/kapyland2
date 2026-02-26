@@ -263,21 +263,33 @@ async def process_mythic_craft(callback: types.CallbackQuery):
         to_remove_from_loot = []
         to_remove_from_equip = []
         
+        temp_loot = loot.copy()
+        temp_equip = equip.copy()
+        
+        to_remove_from_loot = []
+        to_remove_from_equip = []
+        
         for ing_name in recipe["ingredients"]:
             found = False
-            if loot.get(ing_name, 0) > 0:
+            
+            if temp_loot.get(ing_name, 0) > 0:
+                temp_loot[ing_name] -= 1
                 to_remove_from_loot.append(ing_name)
                 found = True
-            elif isinstance(equip, dict):
-                for slot, item in equip.items():
-                    name = item if isinstance(item, str) else item.get("name", "")
-                    if ing_name in name:
+            
+            if not found and isinstance(temp_equip, dict):
+                for slot, item in temp_equip.items():
+                    current_item_name = item if isinstance(item, str) else item.get("name", "")
+                    
+                    if current_item_name == ing_name and slot not in to_remove_from_equip:
                         to_remove_from_equip.append(slot)
+                        temp_equip[slot] = "Використано" 
                         found = True
                         break
             
             if not found:
-                return await callback.answer("❌ Один з інгредієнтів зник! Крафт скасовано.", show_alert=True)
+                print(f"DEBUG: Not found ingredient: {ing_name}")
+                return await callback.answer(f"❌ Немає інгредієнта: {ing_name}", show_alert=True)
 
         for ing in to_remove_from_loot:
             loot[ing] -= 1
@@ -328,3 +340,4 @@ async def process_mythic_craft(callback: types.CallbackQuery):
         await callback.answer("🛑 Помилка при ковці артефакту.")
     finally:
         await conn.close()
+
