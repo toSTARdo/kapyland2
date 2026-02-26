@@ -11,9 +11,11 @@ FORGE_RECIPES = load_game_data("data/forge_craft.json")
 
 def find_item_in_inventory(inv, item_key):
     for category in ["food", "materials", "plants", "loot"]:
-        count = inv.get(category, {}).get(item_key)
-        if count is not None:
-            return category, count
+        cat_dict = inv.get(category)
+        if isinstance(cat_dict, dict):
+            count = cat_dict.get(item_key)
+            if count is not None:
+                return category, count
     return None, 0
 
 @router.callback_query(F.data == "open_forge")
@@ -22,7 +24,8 @@ async def process_open_forge(callback: types.CallbackQuery):
     conn = await get_db_connection()
     try:
         row = await conn.fetchrow("SELECT lvl, meta FROM capybaras WHERE owner_id = $1", user_id)
-        
+        if not row: return
+
         if row['lvl'] < 10:
             return await callback.answer("🔒 Кузня доступна лише з 10 рівня!", show_alert=True)
 
@@ -40,9 +43,9 @@ async def process_open_forge(callback: types.CallbackQuery):
             "🐦 <b>Кузня ківі</b>\n"
             "━━━━━━━━━━━━━━━\n"
             "Тут пахне сталлю та тропічними фруктами.\n"
-            f"Твій запас ківі: <b>{kiwi_count} 🥝</b>\n\n"
+            "Твій запас ківі: <b>{kiwi_count} 🥝</b>\n\n"
             "<i>«Гей, пухнастий! Хочеш гостріший ніж чи міцніший панцир?\n Можливості залежать від кількості ківі в твоїх кишенях»</i>"
-        )
+        ).format(kiwi_count=kiwi_count)
         
         await callback.message.edit_caption(caption=text, reply_markup=builder.as_markup(), parse_mode="HTML")
     finally:
@@ -54,17 +57,24 @@ async def upgrade_list(callback: types.CallbackQuery):
     conn = await get_db_connection()
     try:
         row = await conn.fetchrow("SELECT meta FROM capybaras WHERE owner_id = $1", user_id)
+        if not row: return
         meta = json.loads(row['meta']) if isinstance(row['meta'], str) else row['meta']
         
-        equip = meta.get("inventory", {}).get("equipment", {})
+        inv = meta.get("inventory", {})
+        equip = inv.get("equipment", {})
         
         builder = InlineKeyboardBuilder()
 
-        for slot, item_data in equip.items():
-            item_name = item_data if isinstance(item_data, str) else item_data.get("name")
-            
-            if item_name and item_name not in ["Лапки", "Хутро", "Нічого"]:
-                builder.button(text=f"💎 {item_name}", callback_data=f"up_item:{slot}")
+        if isinstance(equip, dict):
+            for slot, item_data in equip.items():
+                item_name = item_data if isinstance(item_data, str) else item_data.get("name")
+                if item_name and item_name not in ["Лапки", "Хутро", "Нічого"]:
+                    builder.button(text=f"💎 {item_name}", callback_data=f"up_item:{slot}")
+        elif isinstance(equip, list):
+            for index, item_data in enumerate(equip):
+                item_name = item_data if isinstance(item_data, str) else item_data.get("name")
+                if item_name and item_name not in ["Лапки", "Хутро", "Нічого"]:
+                    builder.button(text=f"💎 {item_name}", callback_data=f"up_item:{index}")
 
         builder.button(text="⬅️ Назад", callback_data="open_forge")
         builder.adjust(1)
@@ -79,29 +89,53 @@ async def upgrade_list(callback: types.CallbackQuery):
 
 @router.callback_query(F.data.startswith("up_item:"))
 async def confirm_upgrade(callback: types.CallbackQuery):
-    slot = callback.data.split(":")[1]
+    slot_key = callback.data.split(":")[1]
     user_id = callback.from_user.id
     
     conn = await get_db_connection()
     try:
         row = await conn.fetchrow("SELECT meta FROM capybaras WHERE owner_id = $1", user_id)
+        if not row: return
         meta = json.loads(row['meta']) if isinstance(row['meta'], str) else row['meta']
         inv = meta.get("inventory", {})
+        equip = inv.get("equipment", {})
         
         cat, kiwi_count = find_item_in_inventory(inv, "kiwi")
         if kiwi_count < 5:
             return await callback.answer("❌ Бракує ківі! Потрібно 5 🥝", show_alert=True)
 
-        current_name = meta["equipment"][slot]
+        if isinstance(equip, list):
+            try:
+                slot_key = int(slot_key)
+                item_data = equip[slot_key]
+            except (ValueError, IndexError):
+                return await callback.answer("❌ Предмет не знайдено")
+        else:
+            item_data = equip.get(slot_key)
+
+        if not item_data:
+            return await callback.answer("❌ Предмет не знайдено")
+
+        current_name = item_data if isinstance(item_data, str) else item_data.get("name")
+        
         inv[cat]["kiwi"] -= 5
         
-        if "+" in current_name:
-            base_name, lvl = current_name.split(" +")
+        if " +" in current_name:
+            base_name, lvl = current_name.rsplit(" +", 1)
             new_name = f"{base_name} +{int(lvl) + 1}"
         else:
             new_name = f"{current_name} +1"
             
-        meta["equipment"][slot] = new_name
+        if isinstance(equip, list):
+            if isinstance(equip[slot_key], dict):
+                equip[slot_key]["name"] = new_name
+            else:
+                equip[slot_key] = new_name
+        else:
+            if isinstance(equip[slot_key], dict):
+                equip[slot_key]["name"] = new_name
+            else:
+                equip[slot_key] = new_name
 
         await conn.execute("UPDATE capybaras SET meta = $1 WHERE owner_id = $2", json.dumps(meta, ensure_ascii=False), user_id)
         await callback.answer(f"🔥 Успішно! Тепер у тебе {new_name}")
@@ -113,18 +147,19 @@ async def confirm_upgrade(callback: types.CallbackQuery):
 async def forge_craft_list(callback: types.CallbackQuery):
     user_id = callback.from_user.id
     conn = await get_db_connection()
-    row = await conn.fetchrow("SELECT lvl FROM capybaras WHERE owner_id = $1", user_id)
-    await conn.close()
+    try:
+        row = await conn.fetchrow("SELECT lvl FROM capybaras WHERE owner_id = $1", user_id)
+        if row['lvl'] < 30:
+            return await callback.answer("❌ Складна робота! Повертайся на 30 рівні.", show_alert=True)
 
-    if row['lvl'] < 30:
-        return await callback.answer("❌ Складна робота! Повертайся на 30 рівні.", show_alert=True)
-
-    builder = InlineKeyboardBuilder()
-    for r_id, r_data in FORGE_RECIPES.items():
-        builder.button(text=f"⚒️ {r_data.get('name')}", callback_data=f"fbrew:{r_id}")
-    
-    builder.button(text="⬅️ Назад", callback_data="open_forge")
-    builder.adjust(1)
-    await callback.message.edit_caption(caption="⚒️ <b>Доступні креслення:</b>", reply_markup=builder.as_markup(), parse_mode="HTML")
-
-
+        builder = InlineKeyboardBuilder()
+        mythics = FORGE_RECIPES.get("mythic_artifacts", {})
+        
+        for r_id, r_data in mythics.items():
+            builder.button(text=f"⚒️ {r_data.get('name')}", callback_data=f"mythic_info:{r_id}")
+        
+        builder.button(text="⬅️ Назад", callback_data="open_forge")
+        builder.adjust(1)
+        await callback.message.edit_caption(caption="⚒️ <b>Доступні креслення:</b>", reply_markup=builder.as_markup(), parse_mode="HTML")
+    finally:
+        await conn.close()
