@@ -38,17 +38,35 @@ async def get_weekly_bazaar_stock():
         now = datetime.now(timezone.utc)
         row = await conn.fetchrow("SELECT value FROM world_state WHERE key = 'bazaar_weekly'")
         state = json.loads(row['value']) if row and row['value'] else {}
+        
         if not state.get("next_update") or now > datetime.fromisoformat(state["next_update"]):
             new_stock = {}
+            
             all_gacha = [i["name"] for r in ARTIFACTS.values() for i in r]
-            new_stock[random.choice(all_gacha)] = {"base_cost": random.randint(250, 600), "cat": "loot"}
-            for res in random.sample(RESOURCES_POOL, 4):
+            gacha_key = random.choice(all_gacha)
+            gacha_currency = random.choice(list(CURRENCY_VALUE.keys()))
+            new_stock[gacha_key] = {
+                "cost": random.randint(250, 600) // CURRENCY_VALUE[gacha_currency],
+                "currency": gacha_currency,
+                "cat": "loot"
+            }
+            
+            selected_res = random.sample(RESOURCES_POOL, 5)
+            for res in selected_res:
                 cat = "plants" if res in ["mint", "thyme", "rosemary", "chamomile", "lavender", "tulip", "lotus"] else "materials"
-                new_stock[res] = {"base_cost": random.randint(25, 110), "cat": cat}
+                res_currency = random.choice(list(CURRENCY_VALUE.keys()))
+                base_val = random.randint(30, 120)
+                new_stock[res] = {
+                    "cost": max(1, base_val // CURRENCY_VALUE[res_currency]),
+                    "currency": res_currency,
+                    "cat": cat
+                }
+            
             next_monday = (now + timedelta(days=(7 - now.weekday()))).replace(hour=0, minute=0, second=0, microsecond=0)
             new_state = {"items": new_stock, "next_update": next_monday.isoformat()}
             await conn.execute("INSERT INTO world_state (key, value) VALUES ('bazaar_weekly', $1) ON CONFLICT (key) DO UPDATE SET value = $1", json.dumps(new_state))
             return new_stock, next_monday
+            
         return state["items"], datetime.fromisoformat(state["next_update"])
     finally: await conn.close()
 
@@ -60,11 +78,10 @@ async def open_bazaar(callback: types.CallbackQuery):
     builder.button(text="⬅️ Назад", callback_data="open_port")
     builder.adjust(2, 1)
     new_photo = InputMediaPhoto(
-    media=IMAGES_URLS["bazaar"],
-    caption="🏺 <b>Базар Капіграда</b>\n━━━━━━━━━━━━━━━━━━━━\nОбмінюй фрукти на артефакти або здавай свій вилов за соковиті кавуни!",
-    parse_mode="HTML"
+        media=IMAGES_URLS["bazaar"],
+        caption="🏺 <b>Базар Капіграда</b>\n━━━━━━━━━━━━━━━━━━━━\nОбмінюй фрукти на артефакти або здавай свій вилов за соковиті кавуни!",
+        parse_mode="HTML"
     )
-
     await callback.message.edit_media(media=new_photo, reply_markup=builder.as_markup())
 
 @router.callback_query(F.data == "bazaar_shop")
@@ -73,10 +90,10 @@ async def bazaar_shop(callback: types.CallbackQuery):
     builder = InlineKeyboardBuilder()
     text = f"🛒 <b>Асортимент</b> (до {next_up.strftime('%d.%m')})\n━━━━━━━━━━━━━━━━━━━━\n\n"
     for k, v in stock.items():
-        cost = v['base_cost']
         name = get_item_name(k)
-        text += f"📦 <b>{name}</b>\n└ 🍉{cost} | 🍊{max(1, cost//5)} | 🥭{max(1, cost//15)} | 🥝{max(1, cost//50)}\n\n"
-        builder.button(text=f"Купити {name}", callback_data=f"b_prebuy:{k}")
+        icon = FOOD_ICONS[v['currency']]
+        text += f"📦 <b>{name}</b>\n└ Ціна: {icon} {v['cost']}\n\n"
+        builder.button(text=f"Купити {name}", callback_data=f"b_pay:{v['currency']}:{v['cost']}:{k}")
     builder.button(text="⬅️ Назад", callback_data="open_bazaar")
     builder.adjust(1)
     await callback.message.edit_caption(caption=text, reply_markup=builder.as_markup(), parse_mode="HTML")
@@ -123,20 +140,6 @@ async def bazaar_process_sell(callback: types.CallbackQuery):
         await callback.answer(f"✅ Продано! Отримано 🍉{price}")
         await bazaar_sell_list(callback)
     finally: await conn.close()
-
-@router.callback_query(F.data.startswith("b_prebuy:"))
-async def bazaar_prebuy(callback: types.CallbackQuery):
-    item_key = callback.data.split(":")[1]
-    stock, _ = await get_weekly_bazaar_stock()
-    cost = stock[item_key]['base_cost']
-    name = get_item_name(item_key)
-    builder = InlineKeyboardBuilder()
-    for f_id, f_icon in FOOD_ICONS.items():
-        needed = max(1, cost // CURRENCY_VALUE[f_id])
-        builder.button(text=f"{f_icon} Сплатити {needed}", callback_data=f"b_pay:{f_id}:{needed}:{item_key}")
-    builder.button(text="⬅️ Назад", callback_data="bazaar_shop")
-    builder.adjust(1)
-    await callback.message.edit_caption(caption=f"❓ Оплата за <b>{name}</b>:", reply_markup=builder.as_markup(), parse_mode="HTML")
 
 @router.callback_query(F.data.startswith("b_pay:"))
 async def bazaar_process_pay(callback: types.CallbackQuery):

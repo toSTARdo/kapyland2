@@ -346,3 +346,29 @@ def get_viewer_keyboard(vx, vy):
     builder.row(types.InlineKeyboardButton(text="⏬", callback_data=f"view:{vx}:{vy+5}"))
     builder.row(types.InlineKeyboardButton(text="🔙 Закрити", callback_data="open_map"))
     return builder.as_markup()
+
+@router.callback_query(F.data.startswith("view:"))
+async def handle_world_viewer(callback: types.CallbackQuery):
+    _, vx, vy = callback.data.split(":")
+    vx, vy = int(vx), int(vy)
+    uid = callback.from_user.id
+    
+    vx = max(0, min(MAP_WIDTH - 1, vx))
+    vy = max(0, min(MAP_HEIGHT - 1, vy))
+    
+    conn = await get_db_connection()
+    try:
+        row = await conn.fetchrow("SELECT meta FROM capybaras WHERE owner_id = $1", uid)
+        if not row: return
+        meta = json.loads(row['meta'])
+        discovered = meta.get("discovered", [])
+        
+        display = render_world_viewer(vx, vy, discovered)
+        
+        await callback.message.edit_text(
+            text=f"{display}\n<i>Ви бачите лише розвідані ділянки. Переміщення тут не витрачає енергію.</i>",
+            reply_markup=get_viewer_keyboard(vx, vy),
+            parse_mode="HTML"
+        )
+    finally:
+        await conn.close()
