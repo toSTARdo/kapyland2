@@ -254,7 +254,7 @@ async def grant_exp_and_lvl(tg_id: int, exp_gain: int, weight_gain: float = 0, b
             WHERE owner_id = $5
         ''', new_total_exp, new_lvl, new_zen, json.dumps(meta, ensure_ascii=False), tg_id)
 
-       if lvl_diff > 0 and bot:
+        if lvl_diff > 0 and bot:
             try:
                 await bot.send_message(
                     tg_id, 
