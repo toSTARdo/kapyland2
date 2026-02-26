@@ -29,6 +29,7 @@ from core.fishing import router as fish_router
 from handlers.ships import router as ship_router
 from handlers.emotes import router as emote_router
 from handlers.alchemy import router as alchemy_router
+from handlers.forge import router as forge_router
 from handlers.start import render_story_node
 from middleware.capy_guard import CapyGuardMiddleware
 from jobs.send_goodnight import send_goodnight
@@ -54,6 +55,7 @@ dp.include_router(zen_router)
 dp.include_router(ship_router)
 dp.include_router(emote_router)
 dp.include_router(alchemy_router)
+dp.include_router(forge_router)
 
 dp.update.middleware(CapyGuardMiddleware())
 
