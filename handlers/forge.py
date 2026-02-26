@@ -255,16 +255,16 @@ async def process_mythic_craft(callback: types.CallbackQuery):
         row = await conn.fetchrow("SELECT meta FROM capybaras WHERE owner_id = $1", user_id)
         meta = json.loads(row['meta']) if isinstance(row['meta'], str) else row['meta']
         inv = meta.get("inventory", {})
-        equip = inv.get("equipment", {})
+        
+        equip = inv.get("equipment", []) 
         loot = inv.get("loot", {})
         
         recipe = FORGE_RECIPES.get("mythic_artifacts", {}).get(mythic_id)
-        
-        to_remove_from_loot = []
-        to_remove_from_equip = []
-        
+        if not recipe:
+            return await callback.answer("❌ Рецепт не знайдено.")
+
         temp_loot = loot.copy()
-        temp_equip = list(equip)
+        temp_equip = list(equip) 
         
         to_remove_from_loot = []
         to_remove_from_equip_indices = []
@@ -281,34 +281,30 @@ async def process_mythic_craft(callback: types.CallbackQuery):
             if not found:
                 for i, item in enumerate(temp_equip):
                     current_name = item.get("name", "").strip() if isinstance(item, dict) else str(item).strip()
-                    
                     if current_name == target and i not in to_remove_from_equip_indices:
                         to_remove_from_equip_indices.append(i)
                         found = True
                         break
             
             if not found:
-                return await callback.answer(f"❌ Не знайдено: {target}", show_alert=True)
+                return await callback.answer(f"❌ Не вистачає: {target}", show_alert=True)
 
         for ing in to_remove_from_loot:
             loot[ing] -= 1
             if loot[ing] <= 0: del loot[ing]
-            
-        for slot in to_remove_from_equip:
-            if slot == "weapon": equip[slot] = "Лапки"
-            elif slot == "armor": equip[slot] = "Хутро"
-            else: equip[slot] = "Нічого"
+
+        for index in sorted(to_remove_from_equip_indices, reverse=True):
+            equip.pop(index)
 
         mythic_item = {
-            "name": recipe["name"],
-            "type": "mythic",
+            "name": recipe.get("name", "Невідомий Артефакт"),
+            "type": recipe.get("type", "mythic"),
+            "rarity": "Mythic",
+            "desc": recipe.get("desc", "Міфічний предмет неймовірної сили."),
             "stats": recipe.get("stats", {})
         }
         
-        if "weapon" in mythic_id or "drill" in mythic_id or "sword" in mythic_id or "staff" in mythic_id or "axe" in mythic_id:
-            equip["weapon"] = mythic_item
-        else:
-            loot[recipe["name"]] = loot.get(recipe["name"], 0) + 1
+        equip.append(mythic_item)
 
         await conn.execute(
             "UPDATE capybaras SET meta = $1 WHERE owner_id = $2", 
@@ -319,9 +315,9 @@ async def process_mythic_craft(callback: types.CallbackQuery):
         success_text = (
             "✨ <b>РИТУАЛ ЗАВЕРШЕНО!</b> ✨\n"
             "━━━━━━━━━━━━━━━━━━━━\n"
-            f"Легендарні предмети переплавились у:\n"
-            f"⚡️ <b>{recipe['name']}</b>\n\n"
-            "<i>Ви відчуваєте, як сила предків наповнює ваші лапки...</i>"
+            f"⚡️ <b>{mythic_item['name']}</b>\n"
+            f"📜 <i>{mythic_item['desc']}</i>\n\n"
+            "🛡 <b>Тип:</b> Міфічний " + ("Зброя" if mythic_item['type'] == "weapon" else "Захист")
         )
         
         builder = InlineKeyboardBuilder()
@@ -336,7 +332,7 @@ async def process_mythic_craft(callback: types.CallbackQuery):
 
     except Exception as e:
         print(f"Craft Error: {e}")
-        await callback.answer("🛑 Помилка при ковці артефакту.")
+        await callback.answer("🛑 Помилка при ковці.")
     finally:
         await conn.close()
 
