@@ -111,4 +111,38 @@ async def bazaar_prebuy(callback: types.CallbackQuery):
     
     builder.button(text="⬅️ Назад", callback_data="bazaar_shop")
     builder.adjust(1)
-    await callback.message.
+    await callback.message.edit_caption(caption=f"❓ Оплата за <b>{name}</b>:", reply_markup=builder.as_markup(), parse_mode="HTML")
+
+@router.callback_query(F.data.startswith("b_pay:"))
+async def bazaar_process_pay(callback: types.CallbackQuery):
+    _, food_id, amount, item_key = callback.data.split(":")
+    amount, user_id = int(amount), callback.from_user.id
+
+    conn = await get_db_connection()
+    try:
+        row = await conn.fetchrow("SELECT meta FROM capybaras WHERE owner_id = $1", user_id)
+        meta = json.loads(row['meta']) if isinstance(row['meta'], str) else row['meta']
+        inv = meta.get("inventory", {})
+        
+        if inv.get("food", {}).get(food_id, 0) < amount:
+            return await callback.answer("❌ Бракує їжі!", show_alert=True)
+
+        inv["food"][food_id] -= amount
+        
+        if item_key in ARTIFACTS:
+            cat = "loot"
+        elif item_key in ["wood", "iron_ore", "crystal"]:
+            cat = "materials"
+        elif item_key in ["mint", "thyme", "rosemary", "chamomile", "lavender", "tulip", "lotus"]:
+            cat = "plants"
+        else:
+            cat = "loot"
+            
+        cat_dict = inv.setdefault(cat, {})
+        cat_dict[item_key] = cat_dict.get(item_key, 0) + 1
+        
+        await conn.execute("UPDATE capybaras SET meta = $1 WHERE owner_id = $2", json.dumps(meta, ensure_ascii=False), user_id)
+        await callback.answer(f"✅ Успішно придбано!")
+        await bazaar_shop(callback)
+    finally:
+        await conn.close()
