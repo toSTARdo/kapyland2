@@ -127,6 +127,7 @@ def get_map_keyboard(px, py, mode, meta):
         types.InlineKeyboardButton(text="⬇️", callback_data=f"mv:down:{px}:{py}:{mode}"),
         types.InlineKeyboardButton(text="➡️", callback_data=f"mv:right:{px}:{py}:{mode}")
     )
+    builder.row(types.InlineKeyboardButton(text="🔭 Огляд розвіданих зон", callback_data=f"view:{px}:{py}"))
     builder.row(types.InlineKeyboardButton(text="🔙 Назад", callback_data="open_adventure"))
     return builder.as_markup()
 
@@ -311,3 +312,37 @@ async def handle_chop(callback: types.CallbackQuery):
         else:
             await callback.answer("Тут уже немає що рубати...")
     finally: await conn.close()
+
+def render_world_viewer(view_x, view_y, discovered_list):
+    win_size = 15
+    half = win_size // 2
+    start_x = max(0, min(MAP_WIDTH - win_size, view_x - half))
+    start_y = max(0, min(MAP_HEIGHT - win_size, view_y - half))
+    
+    discovered_set = set(discovered_list)
+    rows = [f"🌐 <b>Огляд світу ({view_x}, {view_y})</b>", "═" * win_size]
+    
+    for y in range(start_y, start_y + win_size):
+        line = []
+        for x in range(start_x, start_x + win_size):
+            c_str = f"{x},{y}"
+            if c_str in discovered_set:
+                line.append(FULL_MAP[y][x])
+            else:
+                line.append(FOG_ICON)
+        rows.append("".join(line))
+    
+    rows.append("═" * win_size)
+    return "\n".join(rows)
+
+def get_viewer_keyboard(vx, vy):
+    builder = InlineKeyboardBuilder()
+    builder.row(types.InlineKeyboardButton(text="⏫", callback_data=f"view:{vx}:{vy-5}"))
+    builder.row(
+        types.InlineKeyboardButton(text="⏪", callback_data=f"view:{vx-5}:{vy}"),
+        types.InlineKeyboardButton(text="🔄", callback_data=f"open_map"),
+        types.InlineKeyboardButton(text="⏩", callback_data=f"view:{vx+5}:{vy}")
+    )
+    builder.row(types.InlineKeyboardButton(text="⏬", callback_data=f"view:{vx}:{vy+5}"))
+    builder.row(types.InlineKeyboardButton(text="🔙 Закрити", callback_data="open_map"))
+    return builder.as_markup()
