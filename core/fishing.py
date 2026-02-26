@@ -114,7 +114,7 @@ async def handle_fishing(callback: types.CallbackQuery):
         await callback.message.edit_text(
             f"🎣 <b>Риболовля</b>\n━━━━━━━━━━━━━━━\n"
             f"Чілимо... Раптом поплавок смикнувся!\n"
-            f"Твій улов: <b>{item_name}</b> ({fish_weight} кг)\n\n"
+            f"Твій улов: <b>{item['name']}</b> ({fish_weight} кг)\n\n"
             f"{inventory_note}\n"
             f"🔋 Залишок енергії: {meta['stamina']}/100",
             reply_markup=builder.as_markup(),
