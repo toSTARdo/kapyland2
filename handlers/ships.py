@@ -166,13 +166,18 @@ async def cmd_ship_menu(event: types.Message | types.CallbackQuery, state: FSMCo
             parse_mode="HTML"
         )
 
-        await callback.message.edit_media(
+        await message.edit_media(
             media=new_photo,
             reply_markup=builder.as_markup()
         )
     else:
-        await message.answer(text, reply_markup=builder.as_markup(), parse_mode="HTML")
-
+        await message.answer_photo(
+            photo=IMAGES_URLS["harbor"],
+            caption=text,
+            reply_markup=builder.as_markup(),
+            parse_mode="HTML"
+        )
+        
 @router.callback_query(F.data == "ship_treasury")
 async def ship_watermelon_vault(callback: types.CallbackQuery):
     uid = callback.from_user.id
