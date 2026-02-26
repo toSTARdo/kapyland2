@@ -7,7 +7,7 @@ def weapon_ability(base_prob):
         def wrapper(att, targets, round_num):
             w_data = att.weapon_data
             rarity = w_data.get("rarity", "common")
-            lvl = getattr(att, 'weapon_lvl', 0)
+            lvl = att.weapon_data.get("lvl", 0)
             pattern = w_data.get("pattern", "sequential")
             is_aoe = w_data.get("is_aoe", False)
 
