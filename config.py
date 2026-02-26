@@ -320,85 +320,106 @@ IMAGES_URLS = {
 }
 
 ACHIEVEMENTS = {
-    "weight_50": {
+    # --- ВАГА ---
+    "weight_100": {
         "name": "🍎 Круглячок",
         "desc": "Досягнути 100 кг. Твоя капібара тепер лякає хижаків.",
         "condition": lambda u: u.get('weight', 0) >= 100,
         "reward_title": "Щокастий",
         "reward_chest": 1
     },
-    "weight_200": {
+    "weight_250": {
         "name": "🍑 Ненаситний",
-        "desc": "250 кг! Таких запасів жиром'яса стане щоб пережити хуртелицю в Ехвазі.",
+        "desc": "250 кг! Таких запасів вистачить на довгу зиму.",
         "condition": lambda u: u.get('weight', 0) >= 250,
         "reward_title": "Шафа",
         "reward_chest": 3
     },
-    "weight_500": {
-        "name": "🚜 5 Капі-центнерів",
-        "desc": "500 кг! А по тобі й не скажеш...",
-        "condition": lambda u: u.get('weight', 0) >= 500,
-        "reward_title": "Фура",
-        "reward_chest": 5
-    },
     "weight_1000": {
         "name": "🌋 Говерла",
-        "desc": "1000кг! Тепер твій хребет ще й гірський.",
+        "desc": "1000 кг! Тепер твій хребет — це гірський хребет.",
         "condition": lambda u: u.get('weight', 0) >= 1000,
-        "reward_title": "Танкер",
+        "reward_title": "Фура",
         "reward_chest": 10
     },
 
+    # --- БОЇ ТА ПЕРЕМОГИ ---
+    "warrior_first_blood": {
+        "name": "⚔️ Перша кров",
+        "desc": "Перемогти у першому бою.",
+        "condition": lambda u: u.get('stats_track', {}).get('wins', 0) >= 1,
+        "reward_title": "Зубастий",
+        "reward_chest": 1
+    },
     "survivor_10": {
         "name": "🛡️ Невловимий",
         "desc": "Виграти 10 боїв поспіль.",
         "condition": lambda u: u.get('win_strike', 0) >= 10,
-        "reward_title": "Блискавичний пірат",
+        "reward_title": "Блискавичний",
         "reward_chest": 5
     },
-    "warrior_first_blood": {
-        "name": "⚔️ Перша кров",
-        "desc": "Перемогти перший бій.",
-        "condition": lambda u: u.get('wins', 0) >= 1,
-        "reward_title": "Зубастий",
-        "reward_chest": 1
-    },
-    "weapon_master": {
-        "name": "🔱 Майстер збруї",
-        "desc": "Скрафтити міфічну зброю.",
-        "condition": lambda u: u.get('weapon_tier', 0) >= 5,
-        "reward_title": "Колекціонер",
+    "gladiator": {
+        "name": "🏟️ Чемпіон арени",
+        "desc": "Провести 100 дуелей з іншими гравцями.",
+        "condition": lambda u: u.get('stats_track', {}).get('pvp_fights', 0) >= 100,
+        "reward_title": "Гладіатор",
         "reward_chest": 10
     },
 
+    # --- ЕКОНОМІКА ТА РЕСУРСИ ---
     "capitalist": {
         "name": "💎 Капібарон",
-        "desc": "Накопичити 100 кавунів.",
+        "desc": "Накопичити 100 цілих кавунів.",
         "condition": lambda u: u.get('full_watermelons', 0) >= 100,
         "reward_title": "Монополіст",
         "reward_chest": 5
     },
-
-    "serial_loser": {
-        "name": "🪦 Прокляття капітана",
-        "desc": "Втратити 10 капібар на цвинтарі.",
-        "condition": lambda u: u.get('total_deaths', 0) >= 10,
-        "reward_title": "Невдаха-Трунар",
-        "reward_chest": 5
-    },
-    #"immortal_legend": {
-    #    "name": "🌟 Многая літа",
-    #    "desc": "Твоя капібара прожила більше 30 днів реального часу.",
-        #"condition": lambda u: (datetime.now(timezone.utc) - u.get('registration_date', datetime.now(timezone.utc))).days >= 30,      
-    #    "reward_title": "Старожил",
-    #    "reward_chest": 5
-    #},
-
     "water_melon_addict": {
         "name": "🍉 Кавуновий фанатик",
         "desc": "З'їсти 1000 кавунів.",
-        "condition": lambda u: u.get('fed_total', 0) >= 1000,
-        "reward_title": "Кавуновий діабетик",
+        "condition": lambda u: u.get('stats_track', {}).get('fed_total', 0) >= 1000,
+        "reward_title": "Кавуновий магнат",
+        "reward_chest": 5
+    },
+
+    # --- РИБОЛОВЛЯ ТА КРАФТ ---
+    "sea_hunter": {
+        "name": "🎣 Пухнастий рибака",
+        "desc": "Виловити 50 рибин.",
+        "condition": lambda u: u.get('stats_track', {}).get('fish_caught', 0) >= 50,
+        "reward_title": "Рибалка",
+        "reward_chest": 2
+    },
+    "weapon_master": {
+        "name": "🔱 Майстер збруї",
+        "desc": "Покращити зброю до +5 рівня.",
+        "condition": lambda u: any("+5" in str(v) for v in u.get('equipment', {}).values()),
+        "reward_title": "Колекціонер",
+        "reward_chest": 10
+    },
+
+    # --- АЛХІМІЯ ---
+    "mad_chemist": {
+        "name": "🧪 Пуститися берега",
+        "desc": "Зварити 30 будь-яких зілль.",
+        "condition": lambda u: u.get('stats_track', {}).get('potions_brewed', 0) >= 30,
+        "reward_title": "Хімік",
+        "reward_chest": 3
+    },
+
+    # --- КАРМА ТА СМЕРТЬ ---
+    "karma_demon": {
+        "name": "👺 Кошмар архіпелагу",
+        "desc": "Досягнути -100 карми.",
+        "condition": lambda u: u.get('karma', 0) <= -100,
+        "reward_title": "Мародер",
+        "reward_chest": 5
+    },
+    "serial_loser": {
+        "name": "🪦 Прокляття капітана",
+        "desc": "Втратити 10 капібар на цвинтарі.",
+        "condition": lambda u: u.get('stats_track', {}).get('total_deaths', 0) >= 10,
+        "reward_title": "Трунар",
         "reward_chest": 5
     }
 }
