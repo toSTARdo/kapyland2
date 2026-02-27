@@ -49,6 +49,7 @@ async def process_open_forge(callback: types.CallbackQuery):
 
         builder = InlineKeyboardBuilder()
         builder.button(text="🔨 Покращити спорядження (5 🥝)", callback_data="upgrade_menu")
+        builder.button(text="📦 Звичайний крафт", callback_data="common_craft_list")
         builder.button(text="⚒️ Крафт нових речей (Lvl 30)", callback_data="forge_craft_list")
         builder.button(text="⬅️ Назад", callback_data="open_port")
         builder.adjust(1)
@@ -175,6 +176,91 @@ async def confirm_upgrade(callback: types.CallbackQuery):
         
         await callback.answer(f"🔥 Коваль попрацював на славу! Тепер це: {item_data['name']}")
         await upgrade_list(callback)
+    finally:
+        await conn.close()
+
+@router.callback_query(F.data == "common_craft_list")
+async def common_craft_list(callback: types.CallbackQuery):
+    builder = InlineKeyboardBuilder()
+    common_recipes = FORGE_RECIPES.get("common_craft", {})
+    
+    for r_id, r_data in common_recipes.items():
+        builder.button(text=f"📦 {r_data.get('name')}", callback_data=f"common_info:{r_id}")
+    
+    builder.button(text="⬅️ Назад", callback_data="open_forge")
+    builder.adjust(1)
+    await callback.message.edit_caption(caption="📦 <b>Майстерня:</b>\nТут можна створити корисні дрібниці.", reply_markup=builder.as_markup(), parse_mode="HTML")
+
+@router.callback_query(F.data.startswith("common_info:"))
+async def show_common_recipe(callback: types.CallbackQuery):
+    recipe_id = callback.data.split(":")[1]
+    user_id = callback.from_user.id
+    
+    conn = await get_db_connection()
+    try:
+        row = await conn.fetchrow("SELECT meta FROM capybaras WHERE owner_id = $1", user_id)
+        meta = json.loads(row['meta']) if isinstance(row['meta'], str) else row['meta']
+        inv = meta.get("inventory", {})
+        recipe = FORGE_RECIPES.get("common_craft", {}).get(recipe_id)
+        
+        if not recipe: return await callback.answer("❌ Рецепт не знайдено")
+
+        text = f"📦 <b>{recipe['name']}</b>\n{recipe['desc']}\n"
+        text += "━━━━━━━━━━━━━━━\n\n<b>Необхідно:</b>\n"
+        
+        can_craft = True
+        equip = inv.get("equipment", [])
+        has_hook = any("Гак" in (i.get("name", "") if isinstance(i, dict) else str(i)) for i in equip)
+        
+        hook_text = "✅ Гак (в руках)" if has_hook else "❌ Гак (потрібен у спорядженні)"
+        if not has_hook: can_craft = False
+        text += f"{hook_text}\n"
+
+        for mat, count in recipe.get("ingredients", {}).get("materials", {}).items():
+            current = inv.get("materials", {}).get(mat, 0)
+            if current >= count:
+                text += f"✅ {DISPLAY_NAMES.get(mat, mat)}: {current}/{count}\n"
+            else:
+                text += f"❌ {DISPLAY_NAMES.get(mat, mat)}: {current}/{count}\n"
+                can_craft = False
+
+        builder = InlineKeyboardBuilder()
+        if can_craft:
+            builder.button(text="🔨 Скрафтити", callback_data=f"do_common_craft:{recipe_id}")
+        
+        builder.button(text="⬅️ Назад", callback_data="common_craft_list")
+        builder.adjust(1)
+        await callback.message.edit_caption(caption=text, reply_markup=builder.as_markup(), parse_mode="HTML")
+    finally:
+        await conn.close()
+
+@router.callback_query(F.data.startswith("do_common_craft:"))
+async def process_common_craft(callback: types.CallbackQuery):
+    recipe_id = callback.data.split(":")[1]
+    user_id = callback.from_user.id
+    conn = await get_db_connection()
+    try:
+        row = await conn.fetchrow("SELECT meta FROM capybaras WHERE owner_id = $1", user_id)
+        meta = json.loads(row['meta']) if isinstance(row['meta'], str) else row['meta']
+        inv = meta.get("inventory", {})
+        recipe = FORGE_RECIPES.get("common_craft", {}).get(recipe_id)
+
+        equip = inv.get("equipment", [])
+        for i, item in enumerate(equip):
+            name = item.get("name", "") if isinstance(item, dict) else str(item)
+            if "Гак" in name:
+                equip.pop(i)
+                break
+        
+        for mat, count in recipe["ingredients"]["materials"].items():
+            inv["materials"][mat] -= count
+
+        loot = inv.setdefault("loot", {})
+        loot["lockpicker"] = loot.get("lockpicker", 0) + 1
+
+        await conn.execute("UPDATE capybaras SET meta = $1 WHERE owner_id = $2", json.dumps(meta, ensure_ascii=False), user_id)
+        await callback.answer("✅ Відмичка готова! Тепер можна йти за скринями.", show_alert=True)
+        await common_craft_list(callback)
     finally:
         await conn.close()
 

@@ -1,4 +1,17 @@
 {
+  "common_craft": {
+    "lockpicker": {
+      "name": "Відмичка",
+      "ingredients": {
+        "equipment": ["Гак"],
+        "materials": {
+          "wood": 2
+        }
+      },
+      "desc": "Вигнутий сталевий гак, закріплений на подвійній дерев'яній ручці. Ідеально підходить для розкриття старих скринь.",
+      "success_rate": 0.8
+    }
+  },
   "mythic_artifacts": {
     "odins_spear": {
       "name": "Спис Одіна Ґунґнір",
