@@ -83,7 +83,7 @@ async def handle_fishing(callback: types.CallbackQuery):
 
         if item['type'] == "trash":
             inventory_note = "🗑️ <i>Ви викинули сміття назад.</i>"
-        eelif item['type'] == "treasure_map":
+        elif item['type'] == "treasure_map":
             loot = inventory.setdefault("loot", {})
             maps_list = loot.setdefault("treasure_maps", [])
             
