@@ -81,7 +81,14 @@ def render_pov(px, py, discovered_list, mode="ship", treasure_maps=None, flowers
     start_y = max(0, min(MAP_HEIGHT - win_h, py - win_h // 2))
     
     discovered_set = set(discovered_list)
-    treasure_coords = {m['pos'] for m in treasure_maps} if treasure_maps else set()
+    treasure_coords = set()
+    boss_coords = {}
+    if treasure_maps:
+        for m in treasure_maps:
+            if m.get("type") == "boss_den":
+                boss_coords[m['pos']] = m.get("boss_num")
+            else:
+                treasure_coords.add(m['pos'])
     flower_coords = flowers if flowers else {}
     tree_coords = trees if trees else {}
     
@@ -93,6 +100,8 @@ def render_pov(px, py, discovered_list, mode="ship", treasure_maps=None, flowers
             
             if x == px and y == py:
                 display_row.append(icon)
+            elif c_str in boss_coords and c_str in discovered_set:
+                display_row.append("𖤍")
             elif c_str in flower_coords and c_str in discovered_set:
                 display_row.append("✽")
             elif c_str in tree_coords and c_str in discovered_set:
@@ -209,6 +218,27 @@ async def handle_move(callback: types.CallbackQuery):
             if target_tile not in WATER_TILES: x, y = nx, ny
             else: x, y, new_mode = nx, ny, "ship"; await callback.answer("На борт! ⚓")
         coord_key = f"{x},{y}"
+        loot = meta.setdefault("inventory", {}).setdefault("loot", {})
+        tmaps = loot.get("treasure_maps", [])
+
+        boss_map = next((m for m in tmaps if m.get("type") == "boss_den" and m["pos"] == coord_key), None)
+        
+        if boss_map:
+            new_stamina = stamina - 1
+            meta.update({"x": x, "y": y, "stamina": new_stamina, "mode": new_mode})
+            await conn.execute("UPDATE capybaras SET meta = $1 WHERE owner_id = $2", json.dumps(meta, ensure_ascii=False), uid)
+            
+            await callback.message.edit_text(
+                f"💀 <b>ЛІГВО БОСА №{boss_map['boss_num']}</b>\n"
+                f"━━━━━━━━━━━━━━━\n"
+                f"Повітря стає крижаним... Ти відчуваєш на собі погляд велетенського Пелікана!\n\n"
+                f"⚔️ <b>БИТВА ПОЧИНАЄТЬСЯ!</b>",
+                parse_mode="HTML"
+            )
+            
+            from core.activity_subcore import run_battle_logic
+            return asyncio.create_task(run_battle_logic(callback, bot_type="boss_pelican"))
+
         can_refresh, _ = check_daily_limit(meta, "flowers_refresh")
         if can_refresh:
             nf = {}
@@ -233,8 +263,6 @@ async def handle_move(callback: types.CallbackQuery):
                 inv_mats[item_id] = inv_mats.get(item_id, 0) + 1
                 
                 await callback.answer(f"✨ Знайдено: {item_name}!", show_alert=False)
-        loot = meta.setdefault("inventory", {}).setdefault("loot", {})
-        tmaps = loot.get("treasure_maps", [])
         found_map = next((m for m in tmaps if m["pos"] == coord_key), None)
         if found_map:
             loot["treasure_maps"] = [m for m in tmaps if m["pos"] != coord_key]
