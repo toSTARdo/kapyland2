@@ -246,22 +246,52 @@ async def show_mythic_recipe(callback: types.CallbackQuery):
                 can_craft = False
 
         if "requirements" in recipe:
-            text += "\n<b>Особливі умови:</b>\n"
+            text += "\n<b>📜 Особливі умови:</b>\n"
             reqs = recipe["requirements"]
             stats = meta.get("stats_track", {})
-            
-            if "wins" in reqs:
-                current_wins = stats.get("wins", 0)
-                icon = "✅" if current_wins >= reqs["wins"] else "⏳"
-                text += f"{icon} Перемоги: {current_wins}/{reqs['wins']}\n"
-                if current_wins < reqs["wins"]: can_craft = False
+            current_stats = meta.get("stats", {}) 
 
-            if "stamina_regen_total" in reqs:
-                current_regen = stats.get("stamina_regen", 0)
-                icon = "✅" if current_regen >= reqs["stamina_regen_total"] else "⏳"
-                text += f"{icon} Реген ХП: {current_regen}/{reqs['stamina_regen_total']}\n"
-                if current_regen < reqs["stamina_regen_total"]: can_craft = False
+            checks = {
+                "wins": ("Перемоги", "wins", "⚔️"),
+                "total_fights": ("Всього боїв", "total_fights", "👊"),
+                "stamina_regen_total": ("Реген стаміни", "stamina_regen", "🔋"),
+                "clean_chat_days": ("Дні без муту", "clean_days", "😇"),
+                "lifesteal_total": ("Всього вампіризму", "lifesteal_done", "🩸"),
+                "speed_stat": ("Швидкість", "speed", "👟"),
+                "zen": ("Дзен", "zen", "❇️"),
+                "stamina": ("Поточна стаміна", "stamina", "⚡️"),
+                "hunger": ("Голод (макс)", "hunger", "🍏"),
+                "level": ("Рівень", "level", "🆙"),
+                "all_stats_average": ("Сер. стат", "avg_stats", "📊")
+            }
 
+            for key, value in reqs.items():
+                if key == "location":
+                    current_loc = meta.get("location", "Unknown")
+                    icon = "✅" if current_loc == value else "⏳"
+                    text += f"{icon} Локація: {current_loc}/{value}\n"
+                    if current_loc != value: can_craft = False
+                    continue
+
+                if key == "karma":
+                    current_karma = stats.get("karma", 0)
+                    icon = "✅" if current_karma <= value else "⏳"
+                    text += f"{icon} Карма: {current_karma}/{value}\n"
+                    if current_karma > value: can_craft = False
+                    continue
+
+                if key in checks:
+                    label, meta_key, emoji = checks[key]
+                    current_val = stats.get(meta_key, current_stats.get(meta_key, meta.get(meta_key, 0)))
+                    
+                    if key == "hunger":
+                        icon = "✅" if current_val <= value else "⏳"
+                        if current_val > value: can_craft = False
+                    else:
+                        icon = "✅" if current_val >= value else "⏳"
+                        if current_val < value: can_craft = False
+                    
+                    text += f"{icon} {emoji} {label}: {current_val}/{value}\n"
         builder = InlineKeyboardBuilder()
         
         if can_craft:

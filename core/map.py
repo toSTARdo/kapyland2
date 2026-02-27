@@ -343,13 +343,13 @@ def render_world_viewer(view_x, view_y, discovered_list):
 
 def get_viewer_keyboard(vx, vy):
     builder = InlineKeyboardBuilder()
-    builder.row(types.InlineKeyboardButton(text="⏫", callback_data=f"view:{vx}:{vy-5}"))
+    builder.row(types.InlineKeyboardButton(text="⏫", callback_data=f"view:{vx}:{vy-10}"))
     builder.row(
-        types.InlineKeyboardButton(text="⏪", callback_data=f"view:{vx-5}:{vy}"),
+        types.InlineKeyboardButton(text="⏪", callback_data=f"view:{vx-10}:{vy}"),
         types.InlineKeyboardButton(text="🔄", callback_data=f"open_map"),
-        types.InlineKeyboardButton(text="⏩", callback_data=f"view:{vx+5}:{vy}")
+        types.InlineKeyboardButton(text="⏩", callback_data=f"view:{vx+10}:{vy}")
     )
-    builder.row(types.InlineKeyboardButton(text="⏬", callback_data=f"view:{vx}:{vy+5}"))
+    builder.row(types.InlineKeyboardButton(text="⏬", callback_data=f"view:{vx}:{vy+10}"))
     builder.row(types.InlineKeyboardButton(text="🔙 Закрити", callback_data="open_map"))
     return builder.as_markup()
 
