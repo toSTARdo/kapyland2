@@ -184,8 +184,13 @@ async def render_inventory_page(message, user_id, page="food", current_page=0, i
         else:
             content = "<i>Твій сейф порожній...</i>"
             
-        if loot.get('chest', 0) > 0 and loot.get('key', 0) > 0:
-            builder.row(types.InlineKeyboardButton(text="🔓 Відкрити скриню", callback_data="open_chest"))
+        if loot.get("chest", 0) > 0:
+            if loot.get("key", 0) > 0:
+                builder.button(text=f"🔑 Відкрити ще ({loot['key']})", callback_data="open_chest")
+            if loot.get("lockpicker", 0) > 0:
+                builder.button(text=f"🔧 Відмичкою ({loot['lockpicker']})", callback_data="open_chest")
+        builder.button(text="🔙 Назад", callback_data="open_adventure")
+        builder.adjust(1)
 
     elif page == "maps":
         title = "🗺 <b>Твої Карти</b>"
