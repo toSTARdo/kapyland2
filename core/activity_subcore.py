@@ -549,7 +549,7 @@ async def handle_inspect_player(callback: types.CallbackQuery):
             f"🔥 ATK: <b>{round(100*(BASE_HIT_CHANCE + STAT_WEIGHTS['atk_to_hit'] * stats.get('attack', 1)), 0)}%</b>  |  "
             f"🛡️ DEF: <b>{round(100*(BASE_BLOCK_CHANCE + STAT_WEIGHTS['def_to_block'] * stats.get('defense', 1)), 0)}%</b>\n"
             f"💨 AGI: <b>{round(100*(STAT_WEIGHTS['agi_to_dodge'] * stats.get('agility', 1)), 0)}%</b>  |  "
-            f"🍀 LCK: <b>+{round(100*STAT_WEIGHTS['luck_to_crit'] * stats.get('luck', 1)), 0)}%</b>\n"
+            f"🍀 LCK: <b>+{round(100*(STAT_WEIGHTS['luck_to_crit'] * stats.get('luck', 1)), 0)}%</b>\n"
             f"<i>Капібара виглядає {mood.lower()}, здається, вона готова до пригод.</i>"
         )
 
