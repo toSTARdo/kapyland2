@@ -12,6 +12,8 @@ FORGE_RECIPES = load_game_data("data/forge_craft.json")
 
 TYPE_ICONS = {"weapon": "🗡️", "armor": "🔰", "artifact": "🧿"}
 
+MYTHIC_ICONS = {"fenix": "🐦‍🔥", "unicorn": "🦄", "dragon": "🐉"}
+
 UPGRADE_CONFIG = {
     "max_lvl": 5,
     "prefixes": {
@@ -277,7 +279,8 @@ async def forge_craft_list(callback: types.CallbackQuery):
         mythics = FORGE_RECIPES.get("mythic_artifacts", {})
         
         for r_id, r_data in mythics.items():
-            builder.button(text=f"⚒️ {r_data.get('name')}", callback_data=f"mythic_info:{r_id}")
+            icon = MYTHIC_ICONS.get(r_data.get("class", "✨"), "✨")
+            builder.button(text=f"{icon} {r_data.get('name')}", callback_data=f"mythic_info:{r_id}")
         
         builder.button(text="⬅️ Назад", callback_data="open_forge")
         builder.adjust(1)
