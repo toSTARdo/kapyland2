@@ -48,7 +48,8 @@ async def get_weekly_bazaar_stock():
             new_stock[gacha_key] = {
                 "cost": random.randint(250, 600) // CURRENCY_VALUE[gacha_currency],
                 "currency": gacha_currency,
-                "cat": "loot"
+                "cat": "loot",
+                "left": 1
             }
             
             selected_res = random.sample(RESOURCES_POOL, 5)
@@ -59,7 +60,8 @@ async def get_weekly_bazaar_stock():
                 new_stock[res] = {
                     "cost": max(1, base_val // CURRENCY_VALUE[res_currency]),
                     "currency": res_currency,
-                    "cat": cat
+                    "cat": cat,
+                    "left": random.randint(5, 15)
                 }
             
             next_monday = (now + timedelta(days=(7 - now.weekday()))).replace(hour=0, minute=0, second=0, microsecond=0)
@@ -73,7 +75,7 @@ async def get_weekly_bazaar_stock():
 @router.callback_query(F.data == "open_bazaar")
 async def open_bazaar(callback: types.CallbackQuery):
     builder = InlineKeyboardBuilder()
-    builder.button(text="🛒 Купити", callback_data="bazaar_shop")
+    builder.button(text="🍱 Купити", callback_data="bazaar_shop")
     builder.button(text="💰 Продати ресурси", callback_data="bazaar_sell_list")
     builder.button(text="⬅️ Назад", callback_data="open_port")
     builder.adjust(2, 1)
@@ -88,12 +90,19 @@ async def open_bazaar(callback: types.CallbackQuery):
 async def bazaar_shop(callback: types.CallbackQuery):
     stock, next_up = await get_weekly_bazaar_stock()
     builder = InlineKeyboardBuilder()
-    text = f"🛒 <b>Асортимент</b> (до {next_up.strftime('%d.%m')})\n━━━━━━━━━━━━━━━━━━━━\n\n"
+    text = f"🍱 <b>Асортимент</b> (до {next_up.strftime('%d.%m')})\n━━━━━━━━━━━━━━━━━━━━\n\n"
+    
     for k, v in stock.items():
         name = get_item_name(k)
         icon = FOOD_ICONS[v['currency']]
-        text += f"📦 <b>{name}</b>\n└ Ціна: {icon} {v['cost']}\n\n"
-        builder.button(text=f"Купити {name}", callback_data=f"b_pay:{v['currency']}:{v['cost']}:{k}")
+        left = v.get('left', 0)
+        
+        status = f"{left} шт." if left > 0 else "❌ НЕМАЄ"
+        text += f"📦 <b>{name}</b>\n└ {icon} {v['cost']} | Залишилось: <b>{status}</b>\n\n"
+        
+        if left > 0:
+            builder.button(text=f"Купити {name}", callback_data=f"b_pay:{v['currency']}:{v['cost']}:{k}")
+    
     builder.button(text="⬅️ Назад", callback_data="open_bazaar")
     builder.adjust(1)
     await callback.message.edit_caption(caption=text, reply_markup=builder.as_markup(), parse_mode="HTML")
@@ -145,18 +154,32 @@ async def bazaar_process_sell(callback: types.CallbackQuery):
 async def bazaar_process_pay(callback: types.CallbackQuery):
     _, food_id, amount, item_key = callback.data.split(":")
     amount, user_id = int(amount), callback.from_user.id
-    stock, _ = await get_weekly_bazaar_stock()
+    
     conn = await get_db_connection()
     try:
-        row = await conn.fetchrow("SELECT meta FROM capybaras WHERE owner_id = $1", user_id)
-        meta = json.loads(row['meta'])
+        row_world = await conn.fetchrow("SELECT value FROM world_state WHERE key = 'bazaar_weekly'")
+        state = json.loads(row_world['value'])
+        stock = state["items"]
+
+        if item_key not in stock or stock[item_key].get("left", 0) <= 0:
+            return await callback.answer("❌ Товар закінчився!", show_alert=True)
+
+        row_user = await conn.fetchrow("SELECT meta FROM capybaras WHERE owner_id = $1", user_id)
+        meta = json.loads(row_user['meta'])
         inv = meta.get("inventory", {})
+
         if inv.get("food", {}).get(food_id, 0) < amount:
             return await callback.answer("❌ Бракує їжі!", show_alert=True)
+
         inv["food"][food_id] -= amount
         cat = stock[item_key].get("cat", "materials")
         inv.setdefault(cat, {})[item_key] = inv[cat].get(item_key, 0) + 1
+        
+        stock[item_key]["left"] -= 1
+        
+        await conn.execute("UPDATE world_state SET value = $1 WHERE key = 'bazaar_weekly'", json.dumps(state))
         await conn.execute("UPDATE capybaras SET meta = $1 WHERE owner_id = $2", json.dumps(meta, ensure_ascii=False), user_id)
-        await callback.answer("✅ Придбано!")
+        
+        await callback.answer(f"✅ Придбано! Залишилось: {stock[item_key]['left']}")
         await bazaar_shop(callback)
     finally: await conn.close()
