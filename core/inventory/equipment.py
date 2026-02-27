@@ -174,6 +174,7 @@ async def render_inventory_page(message, user_id, page="food", current_page=0, i
         loot_lines = [
             f"🎟️ Квитки: <b>{loot.get('lottery_ticket', 0)}</b>", 
             f"🗝️ Ключі: <b>{loot.get('key', 0)}</b>", 
+            f"🔧 Відмички: <b>{loot.get('lockpicker', 0)}</b>",
             f"🗃 Скрині: <b>{loot.get('chest', 0)}</b>"
         ]
         
@@ -185,6 +186,33 @@ async def render_inventory_page(message, user_id, page="food", current_page=0, i
             
         if loot.get('chest', 0) > 0 and loot.get('key', 0) > 0:
             builder.row(types.InlineKeyboardButton(text="🔓 Відкрити скриню", callback_data="open_chest"))
+
+    elif page == "maps":
+        title = "🗺 <b>Твої Карти</b>"
+        maps = inv.get("loot", {}).get("treasure_maps", [])
+        
+        if not maps:
+            content = "<i>У тебе немає жодної карти.</i>"
+        else:
+            map_entries = []
+            for m in maps:
+                map_type = m.get("type", "treasure")
+                
+                if map_type == "boss_den":
+                    entry = (
+                        f"💀 <b>Лігво Боса №{m['boss_num']}</b>\n"
+                        f"╰ Координати: <code>{m['pos']}</code>"
+                    )
+                else:
+                    # Відображення для звичайної карти скарбів
+                    map_id = m.get('id', '???')
+                    entry = (
+                        f"📍 <b>Карта скарбів #{map_id}</b>\n"
+                        f"╰ Координати: <code>{m['pos']}</code>"
+                    )
+                map_entries.append(entry)
+            
+            content = "\n\n".join(map_entries)
 
     elif page == "materials":
         title = "📦 <b>Ресурси</b>"
@@ -200,6 +228,7 @@ async def render_inventory_page(message, user_id, page="food", current_page=0, i
         pages_meta = {
             "food": "🍎 Їжа", 
             "potions": "🧪 Зілля", 
+            "maps": "🗺 Карти",
             "loot": "🧳 Лут", 
             "items": "⚔️ Речі", 
             "materials": "🌱 Матеріали"

@@ -83,12 +83,40 @@ async def handle_fishing(callback: types.CallbackQuery):
 
         if item['type'] == "trash":
             inventory_note = "🗑️ <i>Ви викинули сміття назад.</i>"
-        elif item['type'] == "treasure_map":
-            map_id = f"#{random.randint(100, 999)}"
-            new_map = {"id": map_id, "pos": f"{random.randint(0,149)},{random.randint(0,149)}", "bought_at": str(datetime.date.today())}
+        eelif item['type'] == "treasure_map":
             loot = inventory.setdefault("loot", {})
-            loot.setdefault("treasure_maps", []).append(new_map)
-            inventory_note = f"🗺️ <b>Знайдено мапу {map_id}!</b>"
+            maps_list = loot.setdefault("treasure_maps", [])
+            
+            if random.random() < 0.1:
+                defeated = meta.get("stats_track", {}).get("bosses_defeated", 0)
+                next_boss = defeated + 1
+                
+                if next_boss <= 20:
+                    if not any(m.get("boss_num") == next_boss for m in maps_list):
+                        boss_coords = f"{next_boss},{next_boss}"
+                        new_map = {
+                            "type": "boss_den",
+                            "boss_num": next_boss,
+                            "pos": boss_coords,
+                            "discovered": str(datetime.date.today())
+                        }
+                        maps_list.append(new_map)
+                        inventory_note = f"💀 <b>Знайдено карту лігва Боса №{next_boss}!</b>"
+                    else:
+                        map_id = random.randint(100, 999)
+                        new_map = {"type": "treasure", "id": map_id, "pos": f"{random.randint(0,149)},{random.randint(0,149)}", "bought_at": str(datetime.date.today())}
+                        maps_list.append(new_map)
+                        inventory_note = f"🗺️ <b>Ви виловили карту скарбів #{map_id}!</b>"
+                else:
+                    map_id = random.randint(100, 999)
+                    new_map = {"type": "treasure", "id": map_id, "pos": f"{random.randint(0,149)},{random.randint(0,149)}", "bought_at": str(datetime.date.today())}
+                    maps_list.append(new_map)
+                    inventory_note = f"🗺️ <b>Ви виловили карту скарбів #{map_id}!</b>"
+            else:
+                map_id = random.randint(100, 999)
+                new_map = {"type": "treasure", "id": map_id, "pos": f"{random.randint(0,149)},{random.randint(0,149)}", "bought_at": str(datetime.date.today())}
+                maps_list.append(new_map)
+                inventory_note = f"🗺️ <b>Ви виловили карту скарбів #{map_id}!</b>"
         else:
             if item.get('key') == "pearl_of_ehwaz" or item['type'] in ["special", "loot"]:
                 folder = "loot"

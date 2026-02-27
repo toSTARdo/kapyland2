@@ -460,10 +460,6 @@ async def run_battle_logic(callback: types.CallbackQuery, opponent_id: int = Non
                         meta = jsonb_set(meta, '{stamina}', (GREATEST((meta->>'stamina')::int - 5, 0))::text::jsonb)
                     WHERE owner_id = $1
                 """, winner_id)
-            else:
-                if isinstance(winner_id, int):
-                    await conn.execute("UPDATE capybaras SET meta = jsonb_set(meta, '{stamina}', (GREATEST((meta->>'stamina')::int - 5, 0))::text::jsonb) WHERE owner_id = $1", winner_id)
-                res_winner = {"new_lvl": "NPC"}
 
             if isinstance(loser_id, int):
                 weight_loss = -3.0 if not is_parrot_fight else 0.0
@@ -481,7 +477,6 @@ async def run_battle_logic(callback: types.CallbackQuery, opponent_id: int = Non
                 reward_msg = (
                     f"<b>Тренувальний бій завершено!</b>\n"
                     f"<i>«Гарна розминка, але досвіду за це не дають!»</i>\n"
-                    f"🔋 Витрачено 5⚡ енергії."
                 )
             else:
                 reward_msg = (
