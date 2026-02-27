@@ -361,7 +361,7 @@ async def run_battle_logic(callback: types.CallbackQuery, opponent_id: int = Non
                 "kapy_name": row['name'],
                 "weight": meta.get("weight", 25.0),
                 "stats": meta.get("stats", {"attack": 0, "defense": 0, "agility": 0, "luck": 0}),
-                "equipped_weapon": equip.get("weapon", "Лапки"),
+                "equipped_weapon": equip.get("weapon", "Лапки")["name"] if isinstance(equip.get("weapon", "Лапки"), dict) else equip.get("weapon", "Лапки"),
                 "equipped_armor": equip.get("armor", ""),
                 "inventory": meta.get("inventory", {}),
                 "color": "🔴"
@@ -542,7 +542,7 @@ async def handle_inspect_player(callback: types.CallbackQuery):
             f"⚖️ <b>Вага:</b> {weight} кг\n"
             f"━━━━━━━━━━━━━━━\n"
             f"⚔️ <b>Арсенал:</b>\n"
-            f"└ Снаряда: <b>{equip.get('weapon', 'Лапки')}</b>\n"
+            f"└ Снаряда: <b>{equip.get('weapon', 'Лапки')['name'] if isinstance(equip.get('weapon', 'Лапки'), dict) else equip.get('weapon', 'Лапки')}</b>\n"
             f"└ Захист: <b>{equip.get('armor', 'Хутро')}</b>\n"
             f"└ Реліквія: <b>{equip.get('artifact') or 'Порожньо'}</b>\n\n"
             f"<b>Показники:</b>\n"
