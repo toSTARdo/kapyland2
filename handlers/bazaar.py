@@ -98,7 +98,7 @@ async def bazaar_shop(callback: types.CallbackQuery):
         left = v.get('left', 0)
         
         status = f"{left} шт." if left > 0 else "❌ НЕМАЄ"
-        text += f"📦 <b>{name}</b>\n└ {icon} {v['cost']} | Залишилось: <b>{status}</b>\n\n"
+        text += f"<b>{name}</b>\n└ {icon} {v['cost']} | Залишилось: <b>{status}</b>\n\n"
         
         if left > 0:
             builder.button(text=f"Купити {name}", callback_data=f"b_pay:{v['currency']}:{v['cost']}:{k}")
