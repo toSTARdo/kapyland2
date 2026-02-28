@@ -42,41 +42,51 @@ async def init_pg():
             id SERIAL PRIMARY KEY,
             owner_id BIGINT REFERENCES users(tg_id) ON DELETE CASCADE,
             name TEXT NOT NULL DEFAULT 'Безіменна булочка',
+            
+            -- CORE STATS
             lvl INTEGER DEFAULT 1,
             exp INTEGER DEFAULT 0,
-            wins INTEGER DEFAULT 0,
-            total_fights INTEGER DEFAULT 0,
-            win_streak INTEGER DEFAULT 0,
-            karma INTEGER DEFAULT 0,
-            zen INTEGER DEFAULT 0,
-            ship_id INTEGER REFERENCES ships(id) ON DELETE SET NULL,
-            blessings TEXT[] DEFAULT '{}',
-            curses TEXT[] DEFAULT '{}',
-            current_quest JSONB DEFAULT NULL,
-            meta JSONB DEFAULT '{
-                "x": 76,
-                "y": 140,
-                "discovered": ["77,144"],
-                "stamina": 100,
-                "status": "active",
-                "wake_up": null,
-                "mode": "capy",
-                "weight": 20.0,
-                "hunger": 3,
-                "cleanness": 3,
-                "mood": "Normal",
-                "stats": {"hp": 3, "attack": 0, "defense": 0, "luck": 0, "agility": 0},
-                "inventory": {
-                    "food": {"tangerines": 5, "melon": 0, "watermelon_slices": 0, "mango": 0, "kiwi": 0},
-                    "materials": {"wood": 0, "iron": 0, "herbs": 0, "carp": 0, "perch": 0, "pufferfish": 0, "octopus": 0, "crab": 0, "jellyfish": 0, "swordfish": 0, "shark": 0},
-                    "loot": {"chest": 0, "key": 0, "lottery_ticket": 10},
-                    "equipment": []
-                },
-                "equipment": {"weapon": "Лапки", "armor": "Хутро", "artifact": null},
-                "last_feed": null,
-                "last_wash": null,
-                "last_weekly_lega": null
-            }'::jsonb
+            hp INTEGER DEFAULT 3,
+            atk INTEGER DEFAULT 1,
+            def INTEGER DEFAULT 0,
+            agi INTEGER DEFAULT 1,
+            luck INTEGER DEFAULT 0,
+            stamina INTEGER DEFAULT 100,
+            hunger INTEGER DEFAULT 3,
+            weight FLOAT DEFAULT 20.0,
+            cleanness INTEGER DEFAULT 3,
+            
+            -- WORLD & MAP
+            navigation JSONB DEFAULT '{
+                "x": 2, "y": 1, 
+                "discovered": [], 
+                "trees": {}, 
+                "flowers": {}
+            }'::jsonb,
+            
+            -- INVENTORY & GEAR
+            inventory JSONB DEFAULT '{
+                "food": {}, "materials": {}, "loot": {}, "potions": {}, "maps": {}
+            }'::jsonb,
+            equipment JSONB DEFAULT '{
+                "weapon": {"name": "Лапки", "lvl": 0}, 
+                "armor": "Хутро", 
+                "artifact": null
+            }'::jsonb,
+            
+            -- PROGRESS & SOCIAL
+            achievements TEXT[] DEFAULT '{}',
+            unlocked_titles TEXT[] DEFAULT '{ "Новачок" }',
+            stats_track JSONB DEFAULT '{}'::jsonb,
+            fishing_stats JSONB DEFAULT '{"max_weight": 0, "total_weight": 0}'::jsonb,
+            
+            -- TIME & STATE
+            state JSONB DEFAULT '{
+                "status": "active", "mode": "capy", "mood": "Normal"
+            }'::jsonb,
+            cooldowns JSONB DEFAULT '{}'::jsonb,
+            last_feed TIMESTAMP,
+            last_wash TIMESTAMP
         )
     ''')
 
