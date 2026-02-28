@@ -241,6 +241,70 @@ getsuga_tensho = weapon_ability(0.3)([
     lambda a, d: (2, "🌙 ТЕНШО! +2 Шкоди")
 ])
 
+#MYTHIC
+
+odin_spear = weapon_ability(0.4)([
+    lambda a, d: (setattr(a, 'def_', a.def_ + 3) or 0, "🛡️ <b>Спис Одіна:</b> Щит Іґдрасіля розквітає! +3 Захисту"),
+    lambda a, d: (2, "⚡ Удар Гунгніра! +2 Шкоди"),
+    lambda a, d: (setattr(a, 'hp', min(a.max_hp, a.hp + 2)) or 0, "🌿 Живиця Світового Дерева! +2 ХП"),
+    lambda a, d: (2, "🌤️ Сяйво Вальгалли! +2 Шкоди всім (AOE)"),
+    lambda a, d: (setattr(d, 'agi', max(0, d.agi - 2)) or 0, "⚖️ Присуд Асгарда! -2 Спритності"),
+    lambda a, d: (setattr(a, 'luck', a.luck + 2) or 0, "👁️ Око Одіна бачить все! +2 Удачі")
+])
+
+vampire_drill = weapon_ability(0.35)([
+    lambda a, d: (setattr(d, 'def_', 0) or 0, "🌀 <b>Бур Вампіра:</b> ТВІЙ БУР ПРОБ’Є НЕБЕСА! Захист ворога = 0"),
+    lambda a, d: (setattr(a, 'hp', min(a.max_hp, a.hp + (d.max_hp * 0.1))) or 0, "🩸 Вампіричний оберти! Крадіжка 10% макс. ХП ворога"),
+    lambda a, d: (1.5, "⚙️ Свердління плоті! +1.5 Шкоди"),
+    lambda a, d: (setattr(a, 'atk', a.atk + 1) or 0, "🏎️ Оберти зростають! +1 Атака"),
+    lambda a, d: (setattr(d, 'atk', max(0, d.atk - 1)) or 0, "📉 Метал перекушено! -1 Атака")
+])
+
+panther_hide = weapon_ability(0.45)([
+    lambda a, d: (setattr(a, 'agi', a.agi + 4) or 0, "🐈‍⬛ <b>Шкура Пантери:</b> Грація нічного мисливця! +4 Спритність"),
+    lambda a, d: (setattr(a, 'max_hp', a.max_hp + 5) or setattr(a, 'hp', a.hp + 5) or 0, "🦴 Міць предків! +5 до макс. ХП"),
+    lambda a, d: (setattr(a, 'luck', a.luck + 3) or 0, "🍀 Дев'ять життів! +3 Удачі"),
+    lambda a, d: (1, "🐾 Безшумний випад! +1 Шкоди"),
+    lambda a, d: (setattr(d, 'luck', 0) or 0, "🔮 Погляд ягуара! Удача ворога = 0")
+])
+
+ea_sword = weapon_ability(0.3)([
+    lambda a, d: (3, "🌀 <b>Еа:</b> Енума Еліш! Розрив простору! +3 Шкоди"),
+    lambda a, d: (setattr(d, 'def_', 0) or setattr(d, 'agi', 0) or 0, "🌍 Світ навколо ворога руйнується! DEF та AGI = 0"),
+    lambda a, d: (setattr(a, 'atk', a.atk + 2) or 0, "👑 Закон Вавилону! +2 Атаки"),
+    lambda a, d: (setattr(a, 'hp', a.max_hp) or 0, "🏆 Святий Грааль: Бажання виконано! ХП відновлено")
+])
+
+yin_yang_staff = weapon_ability(0.5)([
+    lambda a, d: (setattr(a, 'atk', a.atk + 5) or setattr(a, 'def_', max(0, a.def_ - 2)) or 0, "☯️ <b>Янь:</b> Екстремальна агресія! +5 Атаки / -2 Захисту"),
+    lambda a, d: (setattr(a, 'def_', a.def_ + 5) or setattr(a, 'atk', max(0, a.atk - 2)) or 0, "☯️ <b>Інь:</b> Абсолютний спокій! +5 Захисту / -2 Атаки"),
+    lambda a, d: (setattr(d, 'hp', max(1, d.hp // 2)) or 0, "⚖️ Світова рівновага! ХП ворога поділено навпіл"),
+    lambda a, d: (setattr(a, 'luck', 10) or 0, "☸️ Колесо долі! Удача стає 10")
+])
+
+student_lunch = weapon_ability(0.25)([
+    lambda a, d: (setattr(a, 'hp', 1) or 0, "🍜 <b>Обід Студента:</b> Ти вижив на мівіні... ХП стає 1"),
+    lambda a, d: (10, "⚡⚡⚡ УДАР ДЕДЛАЙНОМ! +10 ШКОДИ (Пів кабіни знесено)"),
+    lambda a, d: (setattr(a, 'luck', a.luck + 5) or 0, "🎓 Надія на халяву! +5 Удачі"),
+    lambda a, d: (setattr(d, 'agi', 0) or 0, "🛋️ Ворог впав у кому від запаху! AGI = 0")
+])
+
+spas_axe = weapon_ability(0.4)([
+    lambda a, d: (setattr(a, 'agi', a.agi + 5) or setattr(a, 'atk', a.atk + 3) or 0, "🐺 <b>СПАС:</b> Перевтілення у Вовка! +5 Спритність / +3 Атака"),
+    lambda a, d: (setattr(a, 'def_', 99) or 0, "💨 Характерництво: Кулі пролітають крізь тебе! Захист MAX на хід"),
+    lambda a, d: (2, "⚡ Магічний удар шаблею! +2 Шкоди"),
+    lambda a, d: (setattr(a, 'hp', min(a.max_hp, a.hp + 3)) or 0, "🌿 Цілющий тютюн... +3 ХП"),
+    lambda a, d: (setattr(d, 'luck', 0) or 0, "🪕 Трембіта кличе на той світ! Удача ворога = 0")
+])
+
+ancestor_spirit = weapon_ability(0.4)([
+    lambda a, d: (1.5, "🦉 Дух Сови! +1.5 Шкоди"),
+    lambda a, d: (setattr(a, 'def_', a.def_ + 2) or 0, "🐢 Дух Черепахи! +2 Захисту"),
+    lambda a, d: (setattr(a, 'agi', a.agi + 2) or 0, "🦈 Дух Акули! +2 Спритність"),
+    lambda a, d: (setattr(a, 'atk', a.atk + 2) or 0, "🦣 Дух Мамонта! +2 Атаки"),
+    lambda a, d: (setattr(a, 'hp', min(a.max_hp, a.hp + 1)) or 0, "🌿 Регенерація природи! +1 ХП")
+])
+
 ABILITY_REGISTRY = {
     "none": lambda a, t, r: (0, False, []),
     "hook_snag": hook_snag, "wooden_leg": wooden_leg, "heavy_swing": heavy_swing,
@@ -254,5 +318,8 @@ ABILITY_REGISTRY = {
     "double_strike": double_strike, "crit_20": crit_20, "pierce_armor": pierce_armor,
     "heavy_weight": heavy_weight, "range_attack": range_attack, "stun_chance": stun_chance,
     "latex_choke": latex_choke, "scissor_sever": scissor_sever, "gaulish_might": gaulish_might,
-    "getsuga_tensho": getsuga_tensho
+    "getsuga_tensho": getsuga_tensho,
+    "odin_spear": odin_spear, "vampire_drill": vampire_drill, "panther_hide": panther_hide,
+    "ea_sword": ea_sword, "yin_yang_staff": yin_yang_staff, "student_lunch": student_lunch,
+    "spas_axe": spas_axe, "ancestor_spirit": ancestor_spirit
 }
