@@ -123,28 +123,61 @@ class CapyGuardMiddleware(BaseMiddleware):
             await conn.close()
 
     def update_stats_track(self, meta: dict, event: types.Update):
-            stats = meta.setdefault("stats_track", {})
+        stats = meta.setdefault("stats_track", {})
+        now = datetime.datetime.now(datetime.timezone.utc)
+        
+        stats["total_clicks"] = stats.get("total_clicks", 0) + 1
+
+        today_date = now.date().isoformat()
+        last_clean_check = meta.get("last_clean_check_date")
+        
+        if last_clean_check != today_date:
+            if not meta.get("is_muted", False):
+                meta["clean_days"] = meta.get("clean_days", 0) + 1
+                meta["last_clean_check_date"] = today_date
+            else:
+                pass
+
+        if event.callback_query:
+            call_data = event.callback_query.data
             
-            stats["total_clicks"] = stats.get("total_clicks", 0) + 1
-    
-            if event.callback_query:
-                call_data = event.callback_query.data
+            if call_data.startswith("brew:") or call_data.startswith("confirm_brew:"):
+                stats["potions_brewed"] = stats.get("potions_brewed", 0) + 1
+            
+            if "fish" in call_data:
+                stats["fish_caught"] = stats.get("fish_caught", 0) + 1
                 
-                if call_data.startswith("brew:") or call_data.startswith("confirm_brew:"):
-                    stats["potions_brewed"] = stats.get("potions_brewed", 0) + 1
-                
-                if "fish" in call_data:
-                    stats["fish_caught"] = stats.get("fish_caught", 0) + 1
-                    
-                if call_data.startswith("use_potion:"):
-                    stats["potions_used"] = stats.get("potions_used", 0) + 1
-    
-            if event.message and event.message.text:
-                text = event.message.text
-                if "⚔️" in text:
-                    stats["pvp_fights"] = stats.get("pvp_fights", 0) + 1
-                if "🍎" in text or "🍉" in text:
-                    stats["fed_total"] = stats.get("fed_total", 0) + 1
+            if call_data.startswith("use_potion:"):
+                stats["potions_used"] = stats.get("potions_used", 0) + 1
+
+            if "win" in call_data:
+                meta["wins"] = meta.get("wins", 0) + 1
+                meta["total_fights"] = meta.get("total_fights", 0) + 1
+            elif "lose" in call_data:
+                meta["total_fights"] = meta.get("total_fights", 0) + 1
+
+        if event.message and event.message.text:
+            text = event.message.text
+            if "⚔️" in text:
+                stats["pvp_fights"] = stats.get("pvp_fights", 0) + 1
+            if "🍎" in text or "🍉" in text:
+                stats["fed_total"] = stats.get("fed_total", 0) + 1
+
+        meta["stamina"] = meta.get("stamina", 100)
+        meta["level"] = meta.get("level", 1)
+        meta["speed"] = meta.get("agi", 0)
+        meta["zen"] = meta.get("zen", 0)
+        meta["hunger"] = meta.get("hunger", 100)
+
+        s_atk = meta.get("atk", 0)
+        s_def = meta.get("def_", 0)
+        s_agi = meta.get("agi", 0)
+        s_luk = meta.get("luck", 0)
+        
+        meta["avg_stats"] = round((s_atk + s_def + s_agi + s_luk) / 4, 2)
+
+        meta.setdefault("lifesteal_done", 0)
+        meta.setdefault("stamina_regen", 0)
     
     async def check_achievements(self, meta: dict, user_id: int, payload: types.Update):
             acquired = meta.setdefault("achievements", [])
