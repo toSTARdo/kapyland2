@@ -26,19 +26,18 @@ async def render_story_node(message: types.Message, node_id: str):
     builder = InlineKeyboardBuilder()
     display_text = node["text"]
     
-    # Якщо це фінал
     if node.get("status") in ["dead", "win"]:
         title = node.get("title", "Невідома доля")
-        display_text += f"\n\n🏆 {'Отримано нову зав\'язку:'} <b>{title}</b>"
+        display_text += f"\n\n🏆 Отримано нову зав'язку: <b>{title}</b>"
         display_text += (
             f"\n\n✨ {html.bold('Богиня Капібар зʼявляється перед тобою і промовляє через свої розкішні локони:')}\n"
             f"«Твоє життя у цьому світі завершене, але на планеті Мофу ти можеш стати ким завгодно. "
             f"Який дар ти візьмеш із собою?»"
         )
         
-        builder.button(text="⚔️ Сила", callback_data="godgift_attack")
-        builder.button(text="💨 Спритність", callback_data="godgift_agility")
-        builder.button(text="🛡 Захист", callback_data="godgift_defense")
+        builder.button(text="⚔️ Сила", callback_data="godgift_atk")
+        builder.button(text="💨 Спритність", callback_data="godgift_agi")
+        builder.button(text="🛡 Захист", callback_data="godgift_def")
         builder.button(text="🍀 Удача", callback_data="godgift_luck")
     
     elif "options" in node:
@@ -55,32 +54,30 @@ async def render_story_node(message: types.Message, node_id: str):
 @router.callback_query(F.data.startswith("godgift_"))
 async def handle_goddess_gift(callback: types.CallbackQuery):
     stat_map = {
-        "godgift_attack": "attack",
-        "godgift_agility": "agility",
-        "godgift_defense": "defense",
+        "godgift_atk": "atk",
+        "godgift_agi": "agi",
+        "godgift_def": "def",
         "godgift_luck": "luck"
     }
-    chosen_stat = stat_map.get(callback.data)
-    uid = callback.from_user.id
+    chosen_col = stat_map.get(callback.data)
+    if not chosen_col: return
     
+    uid = callback.from_user.id
     conn = await get_db_connection()
+    
     try:
         await conn.execute(f"""
             UPDATE capybaras 
-            SET meta = jsonb_set(
-                meta, 
-                '{{stats, {chosen_stat}}}', 
-                ((COALESCE(meta->'stats'->>'{chosen_stat}', '0')::int) + 1)::text::jsonb
-            )
+            SET {chosen_col} = {chosen_col} + 1 
             WHERE owner_id = $1
         """, uid)
     finally:
         await conn.close()
 
-    gift_names = {"attack": "Силу", "agility": "Спритність", "defense": "Захист", "luck": "Удачу"}
+    gift_names = {"atk": "Силу", "agi": "Спритність", "def": "Захист", "luck": "Удачу"}
     
     new_text = (
-        f"✨ Богиня посміхнулася: «Ти обрав {html.bold(gift_names[chosen_stat])}. "
+        f"✨ Богиня посміхнулася: «Ти обрав {html.bold(gift_names[chosen_col])}. "
         f"Тепер я назад спати в хмарках...»"
     )
     
@@ -88,16 +85,10 @@ async def handle_goddess_gift(callback: types.CallbackQuery):
     confirm_kb.button(text="✨ Переродитися на землях Мофу", callback_data="finish_prologue")
     
     await callback.message.edit_text(new_text, reply_markup=confirm_kb.as_markup(), parse_mode="HTML")
-    await callback.answer(f"Ви отримали +1 до {chosen_stat}!")
+    await callback.answer(f"Ви отримали +1 до {chosen_col}!")
 
 @router.callback_query(F.data.startswith('story_'))
 async def process_story_step(callback: types.CallbackQuery):
     next_node_id = callback.data.replace("story_", "")
-    
-    try:
-        await callback.message.edit_reply_markup(reply_markup=None)
-    except:
-        pass
-
     await render_story_node(callback.message, next_node_id)
     await callback.answer()
